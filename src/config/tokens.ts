@@ -33,7 +33,7 @@ export const WETH: Record<number, Address> = {
 }
 
 export const TOKENS: TokenCfg[] = [
-  // ── Ethereum Sepolia — every pair below was quoted live against Uniswap v3 on 2026-11-23
+  // ── Ethereum Sepolia, every pair below was quoted live against Uniswap v3 on 2026-11-23
   t(11155111, '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),
   t(11155111, '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', 'WETH', 'Wrapped Ether', 18, 'weth', '#627eea'),
   t(11155111, '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', 'UNI', 'Uniswap', 18, 'token', '#ff007a'),

@@ -1,5 +1,5 @@
 /**
- * Portfolio loader — one wallet, every allowlisted testnet.
+ * Portfolio loader, one wallet, every allowlisted testnet.
  * Reads are batched with Multicall3 where the chain has it, and every failure is
  * reported as a failure (never as a zero balance).
  */
@@ -48,7 +48,7 @@ async function loadChain(chainId: number, owner: Address): Promise<ChainHolding>
   }
 
   const list = allTokensForChain(chainId).filter(
-    // on Arc the ERC-20 USDC entry and the native balance are the same money — show it once
+    // on Arc the ERC-20 USDC entry and the native balance are the same money, show it once
     (t) => !(chain.nativeIsUsdc && t.symbol === 'USDC'),
   )
   let tokens: TokenHolding[] = []

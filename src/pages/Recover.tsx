@@ -125,7 +125,7 @@ export default function Recover() {
     } catch (e) {
       const d = decodeTxError(e, state.destChainId)
       if (activityId) {
-        updateStep(activityId, 'receive', { status: 'failed', note: `${d.title} — ${d.detail}` })
+        updateStep(activityId, 'receive', { status: 'failed', note: `${d.title}, ${d.detail}` })
         finalizeFromSteps(activityId)
       }
       notify(`${d.title}: ${d.detail}`, 'error')
@@ -140,7 +140,7 @@ export default function Recover() {
     <div className="space-y-5">
       <PageHeader
         title="Recover a transfer"
-        subtitle="If a bridge stopped after the burn, the USDC is not lost — Circle's message stays valid. Paste the burn transaction hash and this page finishes the mint without burning anything again."
+        subtitle="If a bridge stopped after the burn, the USDC is not lost, Circle's message stays valid. Paste the burn transaction hash and this page finishes the mint without burning anything again."
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -198,7 +198,7 @@ export default function Recover() {
 
               {state.used ? (
                 <div className="mt-3 rounded-[10px] border border-accent/30 bg-accent/8 p-3 text-[11px] text-t1">
-                  This message is already delivered. Nothing to recover —{' '}
+                  This message is already delivered. Nothing to recover -{' '}
                   <a className="underline" href={explorerAddress(dest.id, state.recipient)} target="_blank" rel="noreferrer">
                     check the balance on {dest.short}
                   </a>
@@ -238,7 +238,7 @@ export default function Recover() {
               <LifeBuoy size={14} className="text-accent" /> How recovery works
             </h3>
             <ol className="list-decimal space-y-1.5 pl-4 text-[11px] leading-relaxed text-t2">
-              <li>The burn already moved your USDC out of your wallet — it is held by Circle's protocol, not lost.</li>
+              <li>The burn already moved your USDC out of your wallet, it is held by Circle's protocol, not lost.</li>
               <li>Circle signs an attestation for that message; it never expires on testnet.</li>
               <li>Minting is a second transaction you sign on the destination chain. It costs only destination gas.</li>
               <li>This page checks <span className="mono">usedNonces</span> first, so it can never mint twice.</li>
@@ -248,9 +248,9 @@ export default function Recover() {
           <Card className="p-4">
             <h3 className="mb-2 text-sm font-semibold text-white">Common reasons a mint fails</h3>
             <ul className="space-y-1.5 text-[11px] leading-relaxed text-t2">
-              <li>· No gas token on the destination (Arc needs USDC for gas — it is the native token there).</li>
+              <li>· No gas token on the destination (Arc needs USDC for gas, it is the native token there).</li>
               <li>· Wallet submitted a fee below the chain floor (Arc requires ≥20 gwei). The app now sets it explicitly.</li>
-              <li>· The message was already delivered — harmless, the balance is already there.</li>
+              <li>· The message was already delivered, harmless, the balance is already there.</li>
             </ul>
           </Card>
         </div>

@@ -1,11 +1,11 @@
 /**
  * Testnet enforcement. Every transaction path in the app funnels through here.
- * If a check fails we throw — the UI never builds a transaction from a rejected input.
+ * If a check fails we throw, the UI never builds a transaction from a rejected input.
  */
 import { TESTNET_IDS, getChain, mustChain, CHAINS } from '../config/chains'
 import type { Address } from '../config/chains'
 
-/** Well-known mainnet ids — used only to produce a clear error message. */
+/** Well-known mainnet ids, used only to produce a clear error message. */
 const KNOWN_MAINNETS = new Set([
   1, 10, 56, 100, 130, 137, 143, 146, 324, 480, 1101, 1868, 5000, 8453, 34443, 42161, 42220, 43114, 59144, 81457,
   534352, 7777777,
@@ -47,7 +47,7 @@ export function assertSwapRoute(chainId: number) {
 export function assertCctpRoute(fromId: number, toId: number) {
   assertTestnet(fromId, 'source chain')
   assertTestnet(toId, 'destination chain')
-  if (fromId === toId) throw new TestnetViolation('Source and destination are the same chain — use Swap instead.')
+  if (fromId === toId) throw new TestnetViolation('Source and destination are the same chain, use Swap instead.')
   const a = mustChain(fromId)
   const b = mustChain(toId)
   if (a.cctpDomain == null || b.cctpDomain == null) {

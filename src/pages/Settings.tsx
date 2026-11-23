@@ -33,10 +33,10 @@ export default function Settings() {
         <h3 className="mb-3 text-sm font-semibold text-white">Security posture</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           {[
-            ['Testnet allowlist', `${allow.length} chain ids — anything else throws before calldata is built.`],
+            ['Testnet allowlist', `${allow.length} chain ids, anything else throws before calldata is built.`],
             ['Mainnet block', 'Known mainnet ids are rejected with an explicit error, not silently routed.'],
             ['Contract pinning', 'CCTP and Uniswap targets must equal the address in the registry.'],
-            ['Exact approvals', 'ERC-20 approvals are for the exact transfer amount — no infinite allowances.'],
+            ['Exact approvals', 'ERC-20 approvals are for the exact transfer amount, no infinite allowances.'],
             ['No custody', 'EBT never sees a private key, seed phrase or signature it did not ask the wallet for.'],
             ['Local-only history', 'Activity lives in localStorage. No backend, no analytics, no telemetry.'],
           ].map(([t, d]) => (
@@ -78,17 +78,17 @@ export default function Settings() {
                       </span>
                     </td>
                     <td className="mono py-1.5 pr-3">{c.id}</td>
-                    <td className="mono py-1.5 pr-3">{c.cctpDomain ?? '—'}</td>
+                    <td className="mono py-1.5 pr-3">{c.cctpDomain ?? '-'}</td>
                     <td className="mono py-1.5 pr-3">
                       {c.usdc ? (
                         <span className="flex items-center gap-1">
                           {c.usdc.slice(0, 6)}…{c.usdc.slice(-4)} <CopyButton value={c.usdc} />
                         </span>
                       ) : (
-                        '—'
+                        '-'
                       )}
                     </td>
-                    <td className="py-1.5 pr-3">{c.uniswap ? <Badge tone="blue">v3</Badge> : '—'}</td>
+                    <td className="py-1.5 pr-3">{c.uniswap ? <Badge tone="blue">v3</Badge> : '-'}</td>
                     <td className="py-1.5">
                       <span className="flex items-center gap-1.5">
                         <StatusDot tone={h?.ok ? 'mint' : health.isLoading ? 'amber' : 'red'} />

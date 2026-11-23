@@ -95,7 +95,7 @@ export default function Overview() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-medium text-t1">{c.name}</div>
                     <div className="mono text-[10px] text-t3">
-                      {h?.ok ? `#${h.blockNumber} · ${h.latencyMs}ms` : health.isLoading ? 'checking…' : h?.error ?? '—'}
+                      {h?.ok ? `#${h.blockNumber} · ${h.latencyMs}ms` : health.isLoading ? 'checking…' : h?.error ?? '-'}
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
@@ -146,7 +146,7 @@ export default function Overview() {
             { t: '1 · Quote', d: 'USDC fee comes from Circle Iris. Swap output comes from an on-chain QuoterV2 call. Nothing is simulated or mocked.' },
             { t: '2 · Sign', d: 'Your wallet approves the exact amount, then sends the burn / swap. EBT never signs and never holds keys.' },
             { t: '3 · Wait', d: 'CCTP: Circle attests the burn. OP deposit: the sequencer includes it (~1–3 min). The timeline explains what is slow.' },
-            { t: '4 · Complete', d: 'On the destination you submit receiveMessage — a second click you sign yourself — then the USDC is minted to your address.' },
+            { t: '4 · Complete', d: 'On the destination you submit receiveMessage, a second click you sign yourself, then the USDC is minted to your address.' },
           ].map((s) => (
             <div key={s.t} className="panel p-3">
               <div className="text-xs font-semibold text-accent">{s.t}</div>

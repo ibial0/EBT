@@ -6,6 +6,7 @@ import { getPublicClient, getWalletClient } from 'wagmi/actions'
 import { explorerTx, getChain } from '../config/chains'
 import { Badge, Button, Card, ChainLogo, Empty, notify, CopyButton } from '../components/ui'
 import { PageHeader } from '../components/Layout'
+import { RecoveryPanel } from '../components/RecoveryPanel'
 import { Timeline } from '../components/Timeline'
 import {
   clearActivity,
@@ -37,7 +38,7 @@ export default function ActivityPage() {
     <div className="space-y-5">
       <PageHeader
         title="Activity"
-        subtitle="Every transfer EBT has submitted from this browser. Stored in localStorage — survives refresh, never leaves the device."
+        subtitle="Every transfer EBT has submitted from this browser. Stored in localStorage, survives refresh, never leaves the device."
         right={
           <div className="flex gap-2">
             <Link to="/recover">
@@ -62,6 +63,8 @@ export default function ActivityPage() {
           </div>
         }
       />
+
+      <RecoveryPanel compact />
 
       {all.length === 0 ? (
         <Card className="py-4">
@@ -173,7 +176,7 @@ function Detail({ id }: { id: string }) {
       notify('Minted on the destination chain.', 'success')
     } catch (e) {
       const d = decodeTxError(e, item!.toChainId)
-      updateStep(id, 'receive', { status: 'failed', note: `${d.title} — ${d.detail}` })
+      updateStep(id, 'receive', { status: 'failed', note: `${d.title}, ${d.detail}` })
       finalizeFromSteps(id)
       notify(`${d.title}: ${d.detail}`, 'error')
     } finally {
@@ -234,7 +237,7 @@ function Detail({ id }: { id: string }) {
           {item.provider === 'cctp' && receiveStep?.status !== 'done' && !msg && (
             <p className="mt-3 text-[11px] leading-relaxed text-t3">
               CCTP is a two-signature flow: the burn happened on {from?.short}; once Circle signs the attestation you submit{' '}
-              <span className="mono">receiveMessage</span> on {to?.short} to mint. Keep this page open or return later — the status is
+              <span className="mono">receiveMessage</span> on {to?.short} to mint. Keep this page open or return later, the status is
               re-checked from Circle's API, not from a timer.
             </p>
           )}
@@ -252,7 +255,7 @@ function Detail({ id }: { id: string }) {
             <DetailRow label="Owner" value={<span className="mono flex items-center gap-1">{shortAddr(item.owner, 5)} <CopyButton value={item.owner} /></span>} />
             <DetailRow label="Kind" value={item.kind} />
             <DetailRow label="Provider" value={item.provider} />
-            <DetailRow label="Slippage / fee tier" value={item.meta?.feeTier ? `${Number(item.meta.feeTier) / 10000}%` : item.meta?.fast ? 'fast transfer' : '—'} />
+            <DetailRow label="Slippage / fee tier" value={item.meta?.feeTier ? `${Number(item.meta.feeTier) / 10000}%` : item.meta?.fast ? 'fast transfer' : '-'} />
             {item.meta?.maxFee && <DetailRow label="Max CCTP fee" value={`${item.meta.maxFee} (subunits)`} />}
             <DetailRow label="Updated" value={timeAgo(item.updatedAt)} />
           </Card>

@@ -57,7 +57,7 @@ export function TokenSelect({
       }
       onSelect(token)
       onClose()
-      notify(`${meta.symbol} imported — quotes will show whether a pool actually exists.`, 'info')
+      notify(`${meta.symbol} imported, quotes will show whether a pool actually exists.`, 'info')
     } catch (e) {
       notify((e as Error).message, 'error')
     } finally {
@@ -85,7 +85,7 @@ export function TokenSelect({
               <AlertTriangle size={13} /> Not in the verified list
             </div>
             <p className="mb-2 text-[11px] leading-relaxed text-[#e3c07b]/70">
-              Importing reads the contract directly from the chain. EBT never assumes a token is swappable — the quote engine
+              Importing reads the contract directly from the chain. EBT never assumes a token is swappable, the quote engine
               probes real pools first.
             </p>
             <button

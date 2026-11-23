@@ -1,5 +1,5 @@
 /**
- * Bridge execution — CCTP v2 burn + receive, and OP Stack ETH deposits.
+ * Bridge execution, CCTP v2 burn + receive, and OP Stack ETH deposits.
  *
  * All writes go through prepareTx(): we estimate gas ourselves and set an explicit
  * fee on chains with a mempool floor (Arc = 20 gwei). That removes the "Transaction
@@ -146,7 +146,7 @@ export async function submitReceiveMessage(params: {
   const gasCheck = await checkGas(client, chain, account)
   if (!gasCheck.ok) {
     throw new Error(
-      `Not enough ${gasCheck.symbol} on ${chain.short} for gas. This mint needs ≈${(Number(gasCheck.needed) / 1e18).toFixed(6)} ${gasCheck.symbol} — you have 0.`,
+      `Not enough ${gasCheck.symbol} on ${chain.short} for gas. This mint needs ≈${(Number(gasCheck.needed) / 1e18).toFixed(6)} ${gasCheck.symbol}, you have 0.`,
     )
   }
 

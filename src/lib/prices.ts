@@ -106,7 +106,7 @@ const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'US
 const usdFmtSmall = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 })
 
 export function usd(value: number): string {
-  if (!Number.isFinite(value)) return '—'
+  if (!Number.isFinite(value)) return '-'
   if (value !== 0 && Math.abs(value) < 0.01) return usdFmtSmall.format(value)
   return usdFmt.format(value)
 }

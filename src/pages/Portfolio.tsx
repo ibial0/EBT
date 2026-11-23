@@ -7,6 +7,7 @@ import type { Address } from 'viem'
 import { CHAINS, explorerAddress, getChain } from '../config/chains'
 import { Badge, Button, ChainLogo, Empty, Modal, Spinner, TokenIcon, notify } from '../components/ui'
 import { ConnectButton, PageHeader } from '../components/Layout'
+import { RecoveryPanel } from '../components/RecoveryPanel'
 import { shortAddr, fmt } from '../lib/format'
 import { loadPortfolio, nativeHoldingLabel, type ChainHolding, type TokenHolding } from '../lib/portfolio'
 import { allTokensForChain, saveCustomToken, type TokenCfg } from '../config/tokens'
@@ -112,6 +113,7 @@ export default function Portfolio() {
     return (
       <div className="space-y-5">
         <PageHeader title="Portfolio" subtitle="Every testnet balance for one wallet. Values are estimated from mainnet spot prices." />
+        <RecoveryPanel />
         <div className="card">
           <Empty
             icon={<Wallet size={32} strokeWidth={1.25} />}
@@ -188,6 +190,8 @@ export default function Portfolio() {
         </div>
 
       </div>
+
+      <RecoveryPanel />
 
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -310,7 +314,7 @@ function valueOf(amount: bigint | null, decimals: number, symbol: string, prices
 
 function AssetRow({ row, view }: { row: Row; view: View }) {
   const chain = getChain(row.chainId)!
-  const amountText = row.error ? 'read failed' : row.amount == null ? '—' : fmt(row.amount, row.decimals, 6)
+  const amountText = row.error ? 'read failed' : row.amount == null ? '-' : fmt(row.amount, row.decimals, 6)
   return (
     <div className="row row-tall ml-2">
       <TokenIcon symbol={row.symbol} size={36} />
@@ -342,7 +346,7 @@ function AssetRow({ row, view }: { row: Row; view: View }) {
       <div className="min-w-[140px] text-right">
         {view === 'usd' ? (
           <>
-            <div className="figure text-[14px] text-t1">{row.usdValue == null ? '—' : usd(row.usdValue)}</div>
+            <div className="figure text-[14px] text-t1">{row.usdValue == null ? '-' : usd(row.usdValue)}</div>
             <div className="figure text-[12px] text-t3">
               {amountText} {row.symbol}
             </div>
@@ -352,7 +356,7 @@ function AssetRow({ row, view }: { row: Row; view: View }) {
             <div className="figure text-[14px] text-t1">
               {amountText} {row.symbol}
             </div>
-            <div className="figure text-[12px] text-t3">{row.usdValue == null ? '—' : usd(row.usdValue)}</div>
+            <div className="figure text-[12px] text-t3">{row.usdValue == null ? '-' : usd(row.usdValue)}</div>
           </>
         )}
       </div>
@@ -403,7 +407,7 @@ function NetworkPicker({
                 <span className="block truncate text-[14px] text-t1">{c.name}</span>
                 <span className="mono block text-[11px] text-t3">{c.id}</span>
               </span>
-              <span className="figure text-[12px] text-t3">{t ? usd(t.usd) : '—'}</span>
+              <span className="figure text-[12px] text-t3">{t ? usd(t.usd) : '-'}</span>
             </button>
           )
         })}

@@ -1,5 +1,5 @@
 /**
- * Uniswap v3 — direct on-chain integration (no Trading API key).
+ * Uniswap v3, direct on-chain integration (no Trading API key).
  *
  * Verified 2026-11-23:
  *  - Deployment addresses come from @uniswap/sdk-core CHAIN_TO_ADDRESSES_MAP (official npm package).
@@ -88,13 +88,15 @@ export async function quoteBest(
     }
   }
 
-  const probeAmount = amountIn / 4n > 0n ? amountIn / 4n : 1n
+  const probeAmount = amountIn / 2n > 0n ? amountIn / 2n : 1n
   const candidates = await Promise.all(
     FEE_TIERS.map(async (fee) => {
       const [out, probe] = await Promise.all([read(fee, amountIn), read(fee, probeAmount)])
       if (out === null || probe === null) return null
-      // a genuine quote must beat the smaller probe; flat output means a partial fill
-      if (out <= probe) return null
+      // a genuine quote must beat the smaller probe; flat output means a partial fill.
+      // below ~0.001 token the two outputs can round to the same integer, so dust is exempt.
+      const dust = probeAmount < 1000n
+      if (!dust && out <= probe) return null
       const perUnit = (out * 1_000_000n) / amountIn
       const probePerUnit = (probe * 1_000_000n) / probeAmount
       // reject tiers whose marginal rate improves with size (impossible in an AMM)
@@ -123,7 +125,7 @@ export async function quoteBest(
  * Largest input the best pool can genuinely fill right now (binary search on the same
  * validity rule). Used to turn "no route" into an actionable number.
  */
-const depthCache = new Map<string, { at: number; value: { amount: bigint; fee: number } | null }>()
+const depthCache = new Map<string, { at: number; value: { amount: bigint; fee: number; impactBps: number | null } | null }>()
 
 export async function maxFillable(
   client: PublicClient,
@@ -131,7 +133,8 @@ export async function maxFillable(
   tokenIn: Address,
   tokenOut: Address,
   ceiling: bigint,
-): Promise<{ amount: bigint; fee: number } | null> {
+  maxImpactBps = 500,
+): Promise<{ amount: bigint; fee: number; impactBps: number | null } | null> {
   const dep = chain.uniswap
   if (!dep || ceiling <= 0n) return null
 
@@ -155,10 +158,12 @@ export async function maxFillable(
 
   const valid = async (fee: number, amount: bigint) => {
     if (amount <= 0n) return false
-    const probe = amount / 4n > 0n ? amount / 4n : 1n
+    const probe = amount / 2n > 0n ? amount / 2n : 1n
     const [out, small] = await Promise.all([read(fee, amount), read(fee, probe)])
     if (out === null || small === null) return false
-    if (out <= small) return false
+    const dust = amount < 2000n
+    if (!dust && out <= small) return false
+    if (dust) return true
     return (out * 1_000_000n) / amount <= (small * 1_000_000n) / probe
   }
 
@@ -181,9 +186,27 @@ export async function maxFillable(
   )
 
   const usable = perTier.filter(Boolean) as Array<{ amount: bigint; fee: number }>
-  const best = usable.length ? usable.reduce((a, b) => (b.amount > a.amount ? b : a)) : null
-  depthCache.set(key, { at: Date.now(), value: best })
-  return best
+  let best: { amount: bigint; fee: number } | null = usable.length
+    ? usable.reduce((a, b) => (b.amount > a.amount ? b : a))
+    : null
+
+  // a fill that only works at a huge price impact is not a useful suggestion: walk it down
+  let impact: number | null = null
+  if (best) {
+    for (let i = 0; i < 5; i++) {
+      const out = await read(best.fee, best.amount)
+      if (out === null) break
+      impact = await priceImpactBps(client, chain, tokenIn, tokenOut, best.amount, out, best.fee)
+      if (impact == null || impact <= maxImpactBps) break
+      const smaller: bigint = best.amount / 2n
+      if (smaller < 1000n) break
+      best = { amount: smaller, fee: best.fee }
+    }
+  }
+
+  const value = best ? { ...best, impactBps: impact } : null
+  depthCache.set(key, { at: Date.now(), value })
+  return value
 }
 
 /**
@@ -222,7 +245,7 @@ async function priceImpactBps(
         : (amountIn * 2n ** 192n) / (sqrt * sqrt)
     if (spotOut === 0n) return null
     const bps = Number(((spotOut - quoteOut) * 10000n) / spotOut)
-    if (bps > 9000) return null // pool state looks unusable — do not report a fake 99% impact
+    if (bps > 9000) return null // pool state looks unusable, do not report a fake 99% impact
     return Math.max(0, bps)
   } catch {
     return null

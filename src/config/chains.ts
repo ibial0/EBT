@@ -27,6 +27,12 @@ export interface FaucetLink {
   url: string
   tokens?: string[]
   note?: string
+  /** how access works */
+  access?: 'free' | 'pow' | 'tasks' | 'account'
+  /** verified cooldown, when the provider states one */
+  cooldown?: string
+  /** last time the link was checked */
+  checked?: string
 }
 
 export interface UniswapDeployment {
@@ -38,7 +44,7 @@ export interface UniswapDeployment {
 }
 
 export interface ChainCfg {
-  /** chain id — this is the hard testnet allowlist key */
+  /** chain id, this is the hard testnet allowlist key */
   id: number
   key: string
   name: string
@@ -53,7 +59,7 @@ export interface ChainCfg {
   uniswap?: UniswapDeployment
   /** primary bridge capability used for badges; opStackParent adds ETH deposits on top */
   bridge: 'cctp' | 'opstack' | 'none'
-  /** OP Stack L1 parent chain id — enables canonical ETH deposits from that parent */
+  /** OP Stack L1 parent chain id, enables canonical ETH deposits from that parent */
   opStackParent?: number
   /** true when the native gas asset IS USDC (Arc): 18-decimal native view, 6-decimal ERC-20 view */
   nativeIsUsdc?: boolean
@@ -88,8 +94,10 @@ export const CHAINS: ChainCfg[] = [
     color: '#8a92b2',
     gradient: ['#627eea', '#3b5bd9'],
     faucets: [
-      { label: 'Google Web3 Faucet', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'] },
-      { label: 'Alchemy Sepolia Faucet', url: 'https://www.alchemy.com/faucets/ethereum-sepolia', tokens: ['ETH'] },
+      { label: 'Google Web3 Faucet', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
+      { label: 'QuickNode Sepolia', url: 'https://faucet.quicknode.com/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: '12h', checked: VERIFIED },
+      { label: 'Sepolia PoW Faucet', url: 'https://sepolia-faucet.pk910.de/', tokens: ['ETH'], access: 'pow', note: 'Mine in the browser to earn ETH. Slower, but no account and no daily cap.', checked: VERIFIED },
+      { label: 'Alchemy Sepolia Faucet', url: 'https://www.alchemy.com/faucets/ethereum-sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -141,7 +149,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#28a0f0',
     gradient: ['#4dc3ff', '#0e6bb0'],
     faucets: [
-      { label: 'Alchemy Arbitrum Sepolia', url: 'https://www.alchemy.com/faucets/arbitrum-sepolia', tokens: ['ETH'] },
+      { label: 'Alchemy Arbitrum Sepolia', url: 'https://www.alchemy.com/faucets/arbitrum-sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -165,7 +173,8 @@ export const CHAINS: ChainCfg[] = [
     gradient: ['#3b82f6', '#0038b3'],
     faucets: [
       { label: 'Coinbase CDP Faucet', url: 'https://portal.cdp.coinbase.com/products/faucet', tokens: ['ETH'] },
-      { label: 'Alchemy Base Sepolia', url: 'https://www.alchemy.com/faucets/base-sepolia', tokens: ['ETH'] },
+      { label: 'Alchemy Base Sepolia', url: 'https://www.alchemy.com/faucets/base-sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
+      { label: 'QuickNode Base Sepolia', url: 'https://faucet.quicknode.com/base/sepolia', tokens: ['ETH'], access: 'account', cooldown: '12h', checked: VERIFIED },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -182,7 +191,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#8247e5',
     gradient: ['#a855f7', '#5b21b6'],
     faucets: [
-      { label: 'Polygon Faucet', url: 'https://faucet.polygon.technology/', tokens: ['POL'], note: 'Bot-protected — open in a normal browser tab.' },
+      { label: 'Polygon Faucet', url: 'https://faucet.polygon.technology/', tokens: ['POL'], note: 'Bot-protected, open in a normal browser tab.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -205,8 +214,8 @@ export const CHAINS: ChainCfg[] = [
     color: '#ff007a',
     gradient: ['#ff4d9d', '#c4005e'],
     faucets: [
-      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'] },
-      { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
+      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
+      { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'], access: 'account', cooldown: '2h', checked: VERIFIED },
     ],
     verifiedAt: VERIFIED,
   },
@@ -222,7 +231,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#61dfff',
     gradient: ['#7bf3ff', '#0e7490'],
     faucets: [
-      { label: 'Linea docs', url: 'https://linea.build/', tokens: ['ETH'], note: 'The dedicated faucet host did not resolve during verification — open the docs for the current faucet.' },
+      { label: 'Linea docs', url: 'https://linea.build/', tokens: ['ETH'], note: 'The dedicated faucet host did not resolve during verification, open the docs for the current faucet.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -397,8 +406,9 @@ export const CHAINS: ChainCfg[] = [
     color: '#f472b6',
     gradient: ['#fb7185', '#9d174d'],
     faucets: [
-      { label: 'GIWA Faucet Docs', url: 'https://docs.giwa.io/get-started/faucets', tokens: ['ETH'] },
-      { label: 'Sepolia ETH (L1 gas)', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'] },
+      { label: 'GIWA Faucet', url: 'https://faucet.giwa.io/', tokens: ['ETH'], access: 'free', cooldown: '24h', note: '0.005 ETH per claim. The host blocks automated checks, so open it in a normal tab.', checked: VERIFIED },
+      { label: 'Nodit GIWA Faucet', url: 'https://faucet.lambda256.io/giwa-sepolia', tokens: ['ETH'], access: 'free', cooldown: '24h', note: '0.01 ETH per claim, no account needed.', checked: VERIFIED },
+      { label: 'Sepolia ETH for L1 gas', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
     ],
     verifiedAt: VERIFIED,
   },

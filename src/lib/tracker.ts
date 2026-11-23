@@ -1,5 +1,5 @@
 /**
- * Attestation tracker — polls Circle Iris for CCTP burn transactions and keeps the
+ * Attestation tracker, polls Circle Iris for CCTP burn transactions and keeps the
  * activity record in sync. Runs in the tab; state is persisted so a refresh resumes it.
  */
 import { getChain } from '../config/chains'

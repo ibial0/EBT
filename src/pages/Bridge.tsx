@@ -170,7 +170,7 @@ export default function Bridge() {
             finalizeFromSteps(item.id)
           },
         })
-        notify('Deposit sent — it lands on the L2 in a minute or two.', 'success')
+        notify('Deposit sent, it lands on the L2 in a minute or two.', 'success')
       } else {
         const { from: f, to: t } = assertCctpRoute(fromId, toId)
         const item = addActivity({
@@ -188,7 +188,7 @@ export default function Bridge() {
           steps: [
             { key: 'approve', label: 'Approve USDC (exact amount)', status: 'pending', chainId: fromId },
             { key: 'burn', label: `Burn USDC on ${f.short}`, status: 'pending', chainId: fromId },
-            { key: 'attestation', label: 'Circle attestation', status: 'pending', note: fast ? 'Fast transfer — soft finality' : 'Standard — hard finality' },
+            { key: 'attestation', label: 'Circle attestation', status: 'pending', note: fast ? 'Fast transfer, soft finality' : 'Standard, hard finality' },
             { key: 'receive', label: `Mint on ${t.short}`, status: 'pending', chainId: toId, note: 'You sign receiveMessage after attestation.' },
           ],
         })
@@ -211,7 +211,7 @@ export default function Bridge() {
         updateStep(item.id, 'attestation', { status: 'active', note: 'Polling Circle Iris…' })
         startTracking(item.id, {
           onDone: (s) => {
-            if (s === 'complete') notify('Attestation ready — finish the mint on the destination.', 'success')
+            if (s === 'complete') notify('Attestation ready, finish the mint on the destination.', 'success')
           },
         })
         tokenBalance.refetch()
@@ -222,7 +222,11 @@ export default function Bridge() {
       setLastError(d)
       notify(`${d.title}: ${d.detail}`, 'error')
       if (activeId) {
-        finalizeFromSteps(activeId)
+        if (d.kind === 'rejected') {
+          updateActivity(activeId, { status: 'cancelled', error: 'Rejected in wallet' })
+        } else {
+          finalizeFromSteps(activeId)
+        }
       }
     } finally {
       setBusy(null)
@@ -244,7 +248,7 @@ export default function Bridge() {
       const wallet = await getWalletClient(wagmiConfig, { chainId: activity.toChainId as never })
 
       if (await isMessageUsed(client, msg as `0x${string}`)) {
-        updateStep(activity.id, 'receive', { status: 'done', note: 'Already minted — nothing left to do.' })
+        updateStep(activity.id, 'receive', { status: 'done', note: 'Already minted, nothing left to do.' })
         finalizeFromSteps(activity.id)
         notify('Already minted on the destination. Refreshing balance…', 'success')
         return
@@ -268,7 +272,7 @@ export default function Bridge() {
       if (d.kind === 'revert' && /already/i.test(d.detail)) {
         updateStep(activity.id, 'receive', { status: 'done', note: 'Already minted.' })
       } else {
-        updateStep(activity.id, 'receive', { status: 'failed', note: `${d.title} — ${d.detail}` })
+        updateStep(activity.id, 'receive', { status: 'failed', note: `${d.title}, ${d.detail}` })
       }
       finalizeFromSteps(activity.id)
       notify(`${d.title}: ${d.detail}`, 'error')
@@ -283,7 +287,7 @@ export default function Bridge() {
     <div className="space-y-5">
       <PageHeader
         title="Bridge"
-        subtitle="USDC moves with Circle CCTP v2. ETH moves with the chain's own OP Stack portal (Sepolia → Base/OP/Unichain/Ink/World/GIWA). A bridge burns on one chain and mints on the other — it is not a swap."
+        subtitle="USDC moves with Circle CCTP v2. ETH moves with the chain's own OP Stack portal (Sepolia → Base/OP/Unichain/Ink/World/GIWA). A bridge burns on one chain and mints on the other, it is not a swap."
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -294,7 +298,7 @@ export default function Bridge() {
                 <span>From</span>
                 <span className={balanceError ? 'text-[#e3c07b]' : ''}>
                   {!isConnected
-                    ? '—'
+                    ? '-'
                     : tokenBalance.isLoading
                       ? 'loading…'
                       : balanceError
@@ -396,7 +400,7 @@ export default function Bridge() {
             {insufficient && <div className="mt-1 text-[11px] text-[#ffb4b6]">Amount exceeds your balance on {from.short}.</div>}
             {srcGas.data && !srcGas.data.ok && (
               <div className="mt-1 text-[11px] text-[#e3c07b]">
-                No {srcGas.data.symbol} for gas on {from.short} — get some from the Faucets page.
+                No {srcGas.data.symbol} for gas on {from.short}, get some from the Faucets page.
               </div>
             )}
           </div>
@@ -406,14 +410,14 @@ export default function Bridge() {
               <button onClick={() => setFast(true)} className={`panel p-3 text-left transition ${fast ? 'border-accent/50 bg-accent/8' : 'hover:bg-ink-700'}`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-t1">Fast</span>
-                  <Badge tone={fast ? 'mint' : 'default'}>{fees.data ? pct(fees.data.fastBps, 2) : '—'}</Badge>
+                  <Badge tone={fast ? 'mint' : 'default'}>{fees.data ? pct(fees.data.fastBps, 2) : '-'}</Badge>
                 </div>
                 <div className="mt-0.5 text-[10px] leading-relaxed text-t3">Fee at mint · attested after soft finality</div>
               </button>
               <button onClick={() => setFast(false)} className={`panel p-3 text-left transition ${!fast ? 'border-accent/50 bg-accent/8' : 'hover:bg-ink-700'}`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-t1">Standard</span>
-                  <Badge tone={!fast ? 'mint' : 'default'}>{fees.data ? pct(fees.data.standardBps, 2) : '—'}</Badge>
+                  <Badge tone={!fast ? 'mint' : 'default'}>{fees.data ? pct(fees.data.standardBps, 2) : '-'}</Badge>
                 </div>
                 <div className="mt-0.5 text-[10px] leading-relaxed text-t3">No protocol fee · waits for hard finality</div>
               </button>
@@ -442,7 +446,7 @@ export default function Bridge() {
 
           {chainId !== fromId && isConnected && (
             <button onClick={() => ensureChain(fromId)} className="mt-2 w-full text-center text-[11px] text-[#e3c07b] hover:underline">
-              Wallet is on {getChain(chainId)?.short ?? chainId} — switching to {from.short} is needed to sign.
+              Wallet is on {getChain(chainId)?.short ?? chainId}, switching to {from.short} is needed to sign.
             </button>
           )}
         </Card>
@@ -453,15 +457,15 @@ export default function Bridge() {
               <h3 className="text-sm font-semibold text-white">Route</h3>
               <Badge tone={kind === 'none' ? 'red' : 'mint'}>{routeLabel}</Badge>
             </div>
-            <Row label="Provider" value={isCctp ? 'Circle CCTP v2' : isOpRoute ? 'OP Stack (canonical portal)' : '—'} />
-            <Row label="Asset" value={isCctp ? 'USDC (native)' : isOpRoute ? `${assetSymbol} (native)` : '—'} />
+            <Row label="Provider" value={isCctp ? 'Circle CCTP v2' : isOpRoute ? 'OP Stack (canonical portal)' : '-'} />
+            <Row label="Asset" value={isCctp ? 'USDC (native)' : isOpRoute ? `${assetSymbol} (native)` : '-'} />
             {isCctp && (
               <>
                 <Row label="Protocol fee" value={fees.isLoading ? '…' : fees.error ? 'fee API error' : `${fmt(maxFee, 6, 6)} USDC max`} />
-                <Row label="You receive" value={amountIn > 0n ? `${fmt(receive, 6, 6)} USDC` : '—'} />
+                <Row label="You receive" value={amountIn > 0n ? `${fmt(receive, 6, 6)} USDC` : '-'} />
               </>
             )}
-            {isOpRoute && <Row label="You receive" value={amountIn > 0n ? `${fmt(amountIn, 18, 6)} ${assetSymbol} on ${to.short}` : '—'} />}
+            {isOpRoute && <Row label="You receive" value={amountIn > 0n ? `${fmt(amountIn, 18, 6)} ${assetSymbol} on ${to.short}` : '-'} />}
             <Row label="ETA" value={isCctp ? (fast ? '~15s–2 min attest + dest tx' : '~13–19 min (hard finality)') : '≈1–3 min after L1 inclusion'} />
             <Row label="Source" value={<span className="mono">{from.short} · {fromId}</span>} />
             <Row label="Destination" value={<span className="mono">{to.short} · {toId}</span>} />
@@ -498,7 +502,7 @@ export default function Bridge() {
               )}
               {activity.steps.find((s) => s.key === 'receive')?.status === 'failed' && (
                 <p className="mt-2 text-[10px] leading-relaxed text-t3">
-                  Your USDC is already burned — retrying never burns again, it only repeats the mint.
+                  Your USDC is already burned, retrying never burns again, it only repeats the mint.
                 </p>
               )}
               <Link to={`/activity/${activity.id}`} className="mt-2 block text-center text-[11px] text-t2 hover:text-accent">
@@ -512,7 +516,7 @@ export default function Bridge() {
               <Info size={14} className="mt-0.5 shrink-0 text-accent" />
               <div className="space-y-1.5">
                 <p>
-                  <span className="font-semibold text-t1">CCTP</span> moves native USDC only — it cannot move ETH or arbitrary
+                  <span className="font-semibold text-t1">CCTP</span> moves native USDC only, it cannot move ETH or arbitrary
                   ERC-20s.
                 </p>
                 <p>

@@ -6,7 +6,7 @@ export function shortAddr(a?: string | null, n = 4): string {
 }
 
 export function fmt(raw: bigint | undefined, decimals = 18, maxFrac = 6): string {
-  if (raw == null) return '—'
+  if (raw == null) return '-'
   const s = formatUnits(raw, decimals)
   const [w, f = ''] = s.split('.')
   if (!f) return w
@@ -36,7 +36,7 @@ export function clock(ts: number): string {
 }
 
 export function pct(bps: number | null | undefined, digits = 2): string {
-  if (bps == null) return '—'
+  if (bps == null) return '-'
   return `${(bps / 100).toFixed(digits)}%`
 }
 

@@ -9,6 +9,8 @@ import {
   LayoutGrid,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   PieChart,
   Repeat,
   Settings as SettingsIcon,
@@ -21,6 +23,7 @@ import { getChain } from '../config/chains'
 import { Button, Badge, notify, CopyButton, ChainLogo, StatusDot } from './ui'
 import { shortAddr } from '../lib/format'
 import { WALLETCONNECT_NOTE } from '../lib/wallet'
+import { NotificationBell } from './NotificationBell'
 
 const NAV = [
   { to: '/', label: 'Overview', short: 'Overview', icon: LayoutGrid },
@@ -35,35 +38,94 @@ const NAV = [
 
 export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('ebt.sidebar') === 'collapsed'
+    } catch {
+      return false
+    }
+  })
   const location = useLocation()
   useEffect(() => setMobileOpen(false), [location.pathname])
+  useEffect(() => {
+    try {
+      localStorage.setItem('ebt.sidebar', collapsed ? 'collapsed' : 'expanded')
+    } catch {
+      /* ignore */
+    }
+  }, [collapsed])
 
   return (
     <div className="min-h-dvh">
       {/* desktop sidebar */}
-      <aside className="fixed left-0 top-0 z-40 hidden h-dvh w-[256px] flex-col border-r border-line bg-ink-950 px-3 py-4 lg:flex">
-        <Brand />
-        <div className="mt-6">
-          <div className="label mb-2 px-2.5">Navigation</div>
+      <aside
+        className={clsx(
+          'fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-line bg-ink-950 py-4 transition-[width] duration-200 lg:flex',
+          collapsed ? 'w-[76px] px-2' : 'w-[256px] px-3',
+        )}
+      >
+        <div className={clsx('flex items-center', collapsed ? 'justify-center' : 'justify-between')}>
+          <Brand compact={collapsed} />
+          {!collapsed && (
+            <button
+              onClick={() => setCollapsed(true)}
+              className="rounded-md p-1.5 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose size={16} />
+            </button>
+          )}
+        </div>
+        {collapsed && (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="mt-3 self-center rounded-md p-1.5 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+        )}
+
+        <div className={collapsed ? 'mt-4' : 'mt-6'}>
+          {!collapsed && <div className="label mb-2 px-2.5">Navigation</div>}
           <nav className="flex flex-col gap-0.5">
             {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => clsx('nav-item', isActive && 'nav-item-active')}>
-                <n.icon size={16} strokeWidth={1.5} className="shrink-0" />
-                {n.label}
+              <NavLink
+                key={n.to}
+                to={n.to}
+                end={n.to === '/'}
+                title={collapsed ? n.label : undefined}
+                aria-label={n.label}
+                className={({ isActive }) =>
+                  clsx('nav-item', isActive && 'nav-item-active', collapsed && 'justify-center px-0')
+                }
+              >
+                <n.icon size={collapsed ? 18 : 16} strokeWidth={1.5} className="shrink-0" />
+                {!collapsed && n.label}
               </NavLink>
             ))}
           </nav>
         </div>
-        <div className="mt-auto space-y-3 px-2.5 pb-1">
-          <div className="hairline" />
-          <div className="flex items-center gap-2 text-[12px] text-t3">
-            <StatusDot tone="mint" />
-            Testnet only
-          </div>
-          <p className="text-[12px] leading-5 text-t2">
-            Mainnet chains are rejected before a transaction is built. No custody, no backend.
-          </p>
-          <div className="mono text-[11px] text-t3">build 0.2.0</div>
+        <div className={clsx('mt-auto pb-1', collapsed ? 'px-0' : 'px-2.5')}>
+          <div className="hairline mb-3" />
+          {collapsed ? (
+            <div className="flex justify-center" title="Testnet only">
+              <StatusDot tone="mint" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-[12px] text-t3">
+                <StatusDot tone="mint" />
+                Testnet only
+              </div>
+              <p className="mt-2 text-[12px] leading-5 text-t2">
+                Mainnet chains are rejected before a transaction is built. No custody, no backend.
+              </p>
+              <div className="mono mt-2 text-[11px] text-t3">build 0.3.0</div>
+            </>
+          )}
         </div>
       </aside>
 
@@ -73,7 +135,10 @@ export function Layout() {
           <Menu size={18} />
         </button>
         <Brand compact />
-        <ConnectButton compact />
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <ConnectButton compact />
+        </div>
       </header>
 
       {mobileOpen && (
@@ -98,11 +163,9 @@ export function Layout() {
         </div>
       )}
 
-      <main className="lg:pl-[256px]">
+      <main className={clsx('transition-[padding] duration-200', collapsed ? 'lg:pl-[76px]' : 'lg:pl-[256px]')}>
         <div className="sticky top-0 z-30 hidden h-14 items-center justify-end gap-3 border-b border-line bg-ink-900 px-6 lg:flex">
-          <span className="chip">
-            <StatusDot tone="mint" /> Testnet
-          </span>
+          <NotificationBell />
           <ConnectButton />
         </div>
         <div className="mx-auto w-full max-w-[1240px] px-4 pb-24 pt-6 sm:px-8 lg:pb-16">
@@ -131,16 +194,18 @@ export function Layout() {
 
 function Brand({ compact }: { compact?: boolean }) {
   return (
-    <div className="flex items-center gap-2.5 px-1">
+    <div className={clsx('flex items-center gap-2.5', !compact && 'px-1')}>
       <div className="grid h-8 w-8 place-items-center rounded-lg bg-ink-700">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M5 7h14M5 12h9M5 17h6" stroke="#ededed" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>
-      <div className="leading-tight">
-        <div className={clsx('font-medium tracking-tight text-t1', compact ? 'text-[15px]' : 'text-[16px]')}>EBT</div>
-        {!compact && <div className="text-[11px] text-t3">Testnet bridge</div>}
-      </div>
+      {!compact && (
+        <div className="leading-tight">
+          <div className="text-[16px] font-medium tracking-tight text-t1">EBT</div>
+          <div className="text-[11px] text-t3">Testnet bridge</div>
+        </div>
+      )}
     </div>
   )
 }

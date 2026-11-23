@@ -1,7 +1,7 @@
 /**
- * OP Stack canonical bridge — ETH/ERC-20 deposits into any Superchain testnet whose
+ * OP Stack canonical bridge, ETH/ERC-20 deposits into any Superchain testnet whose
  * OptimismPortal is defined in viem's chain config (Base, OP, Unichain, Ink, World
- * Chain, GIWA …). This is the real, canonical L1→L2 deposit path — no extra protocol.
+ * Chain, GIWA …). This is the real, canonical L1→L2 deposit path, no extra protocol.
  *
  * Withdrawals need the 7-day challenge period, so v1 supports deposits only.
  */

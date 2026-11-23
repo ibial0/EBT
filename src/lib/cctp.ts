@@ -115,7 +115,7 @@ export async function fetchAttestation(sourceDomain: number, txHash: string): Pr
   }
 
   if (res.status === 404) {
-    return { state: 'pending', detail: 'Burn not indexed yet — waiting for source-chain finality.' }
+    return { state: 'pending', detail: 'Burn not indexed yet, waiting for source-chain finality.' }
   }
   if (!res.ok) {
     return { state: 'error', detail: `Circle Iris returned ${res.status}` }

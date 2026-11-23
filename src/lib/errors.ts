@@ -1,5 +1,5 @@
 /**
- * Error decoding — turns raw wallet/RPC failures into something a human can act on.
+ * Error decoding, turns raw wallet/RPC failures into something a human can act on.
  * The point: never show a bare "Transaction failed" when the cause is knowable.
  */
 import { BaseError, UserRejectedRequestError } from 'viem'
@@ -7,7 +7,7 @@ import { getChain, nativeSymbol } from '../config/chains'
 
 export class AlreadyMintedError extends Error {
   constructor() {
-    super('This CCTP message was already used — the USDC has been minted. Check your balance on the destination.')
+    super('This CCTP message was already used, the USDC has been minted. Check your balance on the destination.')
     this.name = 'AlreadyMintedError'
   }
 }
@@ -49,7 +49,7 @@ export function decodeTxError(e: unknown, chainId?: number): DecodedError {
   if (/nonce already used|already been used|message already received|nonceused/.test(lower)) {
     return {
       title: 'Already minted',
-      detail: 'Circle already delivered this message — the USDC is on the destination.',
+      detail: 'Circle already delivered this message, the USDC is on the destination.',
       hint: 'Refresh the balance; nothing else is needed.',
       raw,
       kind: 'revert',
@@ -68,7 +68,7 @@ export function decodeTxError(e: unknown, chainId?: number): DecodedError {
     return {
       title: 'Gas price too low for this chain',
       detail: 'The network rejected the fee. Arc requires at least 20 gwei.',
-      hint: 'Retry — the app now sets the fee explicitly for chains with a floor.',
+      hint: 'Retry, the app now sets the fee explicitly for chains with a floor.',
       raw,
       kind: 'gas',
     }

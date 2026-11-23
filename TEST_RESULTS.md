@@ -84,3 +84,36 @@ shown as the native gas asset.
 
 No transaction was fabricated, and no "successful" result in this file came from anything other than a
 real RPC/API response or a real simulation.
+
+
+---
+
+## Round 2 (2026-11-23, evening)
+
+### Arc swap: the reported failure, reproduced and fixed
+
+| Check | Result |
+| --- | --- |
+| Pool depth read directly | 0.01% pool: 4.64 USDC / 1.00 EURC · 0.30%: 3.72 / 0.54 · 1.00%: 28.68 / 1.27 |
+| Quote 1 USDC | 0.927591 EURC (0.01% tier) |
+| Quote at 1.5-100 USDC, 1% tier | flat 1.254022 EURC for every size, a partial fill the old code accepted |
+| Quote 23 USDC after fix | **rejected** (no honest fill) |
+| `maxFillable` after fix | **1.402685 USDC** at 1.96% impact, suggested in the UI with a "Use" button |
+| UI text | "This pool can fill about 1.402685 USDC right now" + button |
+
+### UI and state
+
+| Check | Result |
+| --- | --- |
+| Sidebar collapse | collapses to a 76px icon rail, preference persisted, tooltips on icons |
+| Notification bell | renders, red count only for records with a hash and status pending |
+| Draft records | "Build route plan" now creates a draft; it never appears as pending or failed |
+| Wallet rejection | recorded as `cancelled`, not `failed` |
+| Recovery panel | with the real Base to Arc message seeded, it shows "1 claimable, 20.0000 USDC, Ready to mint" and a Recover button |
+| Faucet modal | opens with asset, access type, cooldown, last-checked date and the direct link |
+| Em dashes in UI copy | 0 remaining |
+| Build | `tsc --noEmit` clean, `vite build` clean |
+
+### Not verified (needs a human signature)
+
+- Signing the actual mint or a swap on Arc. The calldata, gas and simulation are verified; the signature is yours.

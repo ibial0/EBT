@@ -22,7 +22,8 @@ import { PageHeader } from '../components/Layout'
 import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity } from '../lib/activity'
 import { quoteBest, maxFillable, applySlippage, erc20Balance, formatAmount, erc20Abi } from '../lib/uniswap'
 import { executeSwap, buildSwapCalldata } from '../lib/swapExec'
-import { assertSwapRoute, describeBlock } from '../lib/guard'
+import { assertSwapRoute } from '../lib/guard'
+import { decodeTxError } from '../lib/errors'
 import { fmt, safeParseUnits, pct } from '../lib/format'
 import { wagmiConfig } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
@@ -198,7 +199,12 @@ export default function Swap() {
       allowance.refetch()
       quote.refetch()
     } catch (e) {
-      notify(describeBlock((e as Error).message), 'error')
+      const d = decodeTxError(e, swapChainId)
+      notify(`${d.title}: ${d.detail}`, 'error')
+      if (activeId) {
+        if (d.kind === 'rejected') updateActivity(activeId, { status: 'cancelled', error: 'Rejected in wallet' })
+        else finalizeFromSteps(activeId)
+      }
     } finally {
       setBusy(null)
     }
@@ -208,7 +214,7 @@ export default function Swap() {
     <div className="space-y-5">
       <PageHeader
         title="Swap"
-        subtitle="Same-chain swaps against real Uniswap v3 pools. Every quote is an eth_call to QuoterV2 — if a pool has no liquidity the route simply is not offered."
+        subtitle="Same-chain swaps against real Uniswap v3 pools. Every quote is an eth_call to QuoterV2, if a pool has no liquidity the route simply is not offered."
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -230,7 +236,7 @@ export default function Swap() {
                   onClick={() => address && balanceIn.data != null && setAmount(formatUnits(balanceIn.data, tokenIn.decimals))}
                   className="text-[10px] font-semibold normal-case text-accent hover:underline"
                 >
-                  balance {balanceIn.data != null ? fmt(balanceIn.data, tokenIn.decimals, 5) : '—'}
+                  balance {balanceIn.data != null ? fmt(balanceIn.data, tokenIn.decimals, 5) : '-'}
                 </button>
               </div>
               <div className="flex items-center gap-2">
@@ -331,7 +337,7 @@ export default function Swap() {
 
           {chainId !== swapChainId && isConnected && (
             <button onClick={() => ensureChain(swapChainId)} className="mt-2 w-full text-center text-[11px] text-[#e3c07b] hover:underline">
-              Wallet is on {getChain(chainId)?.short ?? chainId} — switch to {chain.short} to sign.
+              Wallet is on {getChain(chainId)?.short ?? chainId}, switch to {chain.short} to sign.
             </button>
           )}
         </Card>
@@ -340,23 +346,23 @@ export default function Swap() {
           <Card className="p-4">
             <h3 className="mb-2 text-sm font-semibold text-white">Quote details</h3>
             {quote.isError && <div className="text-[11px] text-[#ffb4b6]">Quote failed: {(quote.error as Error).message}</div>}
-            <Row label="Rate" value={rate > 0 ? `1 ${tokenIn.symbol} ≈ ${rate < 0.0001 ? rate.toExponential(3) : rate.toFixed(6)} ${tokenOut.symbol}` : '—'} />
+            <Row label="Rate" value={rate > 0 ? `1 ${tokenIn.symbol} ≈ ${rate < 0.0001 ? rate.toExponential(3) : rate.toFixed(6)} ${tokenOut.symbol}` : '-'} />
             <Row
               label="Price impact"
               value={
                 quote.data?.priceImpactBps != null ? (
                   <span className={quote.data.priceImpactBps > 300 ? 'text-[#e3c07b]' : ''}>{pct(quote.data.priceImpactBps, 2)}</span>
                 ) : (
-                  '—'
+                  '-'
                 )
               }
               hint="Compared with the pool's current mid price"
             />
-            <Row label="Minimum received" value={out > 0n ? `${formatAmount(minOut, tokenOut.decimals, 6)} ${tokenOut.symbol}` : '—'} />
+            <Row label="Minimum received" value={out > 0n ? `${formatAmount(minOut, tokenOut.decimals, 6)} ${tokenOut.symbol}` : '-'} />
             <Row label="Slippage tolerance" value={pct(slippageBps, 2)} />
-            <Row label="Route" value={quote.data?.route ?? '—'} />
-            <Row label="Approval" value={!isConnected ? '—' : isNativeToken(tokenIn) ? 'not needed (native)' : needsApproval ? 'required — exact amount' : 'already approved'} />
-            <Row label="Pool fee" value={quote.data ? `${quote.data.fee / 10000}%` : '—'} />
+            <Row label="Route" value={quote.data?.route ?? '-'} />
+            <Row label="Approval" value={!isConnected ? '-' : isNativeToken(tokenIn) ? 'not needed (native)' : needsApproval ? 'required, exact amount' : 'already approved'} />
+            <Row label="Pool fee" value={quote.data ? `${quote.data.fee / 10000}%` : '-'} />
           </Card>
 
           {activity && (
@@ -448,7 +454,7 @@ export default function Swap() {
             <span className="text-xs text-t3">% custom</span>
           </div>
           <p className="text-[11px] leading-relaxed text-t3">
-            Minimum received is recomputed after every quote. High slippage on thin testnet pools can still revert — that is the pool,
+            Minimum received is recomputed after every quote. High slippage on thin testnet pools can still revert, that is the pool,
             not the app.
           </p>
         </div>

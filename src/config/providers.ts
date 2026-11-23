@@ -1,4 +1,4 @@
-/** Provider matrix — one row per provider we actually ship (not just researched). */
+/** Provider matrix, one row per provider we actually ship (not just researched). */
 export interface ProviderInfo {
   id: 'cctp' | 'uniswap' | 'opstack'
   name: string
@@ -29,7 +29,7 @@ export const PROVIDERS: ProviderInfo[] = [
     chains: '17 verified EVM testnets',
     notes: [
       'TokenMessengerV2 0x8FE6…2DAA and MessageTransmitterV2 0xE737…E275 share the same address on every testnet (CREATE2).',
-      'Attestation via the public Iris sandbox API — no API key, CORS open.',
+      'Attestation via the public Iris sandbox API, no API key, CORS open.',
       'Only native USDC moves. It cannot bridge ETH or arbitrary ERC-20s.',
     ],
   },
@@ -46,7 +46,7 @@ export const PROVIDERS: ProviderInfo[] = [
     capabilities: ['Same-chain swap', 'Exact-input quotes', 'Slippage + min received'],
     chains: 'Ethereum Sepolia, Base Sepolia, Unichain Sepolia',
     notes: [
-      'Quotes come from QuoterV2 eth_call — real pool state, no Uniswap API key needed.',
+      'Quotes come from QuoterV2 eth_call, real pool state, no Uniswap API key needed.',
       'Execution goes through the canonical SwapRouter02 deployment.',
       'Uniswap’s hosted Trading API needs a key and is intentionally not a dependency here.',
     ],
@@ -64,9 +64,9 @@ export const PROVIDERS: ProviderInfo[] = [
     capabilities: ['Deposit ETH (L1 → L2)', 'Base / OP / Unichain / Ink / World / GIWA'],
     chains: 'Sepolia → 6 Superchain testnets',
     notes: [
-      'Uses each chain’s own OptimismPortal — the same canonical deposit path the chains document.',
+      'Uses each chain’s own OptimismPortal, the same canonical deposit path the chains document.',
       'Deposits land in ~1–3 minutes. L2→L1 withdrawals take the 7-day challenge period, so v1 ships deposits only.',
-      'GIWA is not a CCTP chain — USDC cannot be bridged there, but ETH can.',
+      'GIWA is not a CCTP chain, USDC cannot be bridged there, but ETH can.',
     ],
   },
 ]
@@ -87,6 +87,6 @@ export const NOT_INTEGRATED = [
   },
   {
     name: 'Uniswap Trading API',
-    reason: 'Works on Sepolia/Base Sepolia/Unichain Sepolia but requires a developer API key — replaced with direct on-chain quotes.',
+    reason: 'Works on Sepolia/Base Sepolia/Unichain Sepolia but requires a developer API key, replaced with direct on-chain quotes.',
   },
 ]

@@ -1,5 +1,5 @@
 /**
- * Swap execution — Uniswap v3 SwapRouter02.
+ * Swap execution, Uniswap v3 SwapRouter02.
  * Calldata is encoded explicitly and sent with eth_sendTransaction from the user's wallet,
  * so the exact bytes that get signed are the bytes this file builds (and the simulation
  * script exercises). Native ETH is wrapped/unwrapped through the router.
@@ -124,7 +124,7 @@ export function buildSwapCalldata(params: {
     )
 
   // Native input: SwapRouter02.pay() wraps msg.value itself when tokenIn is WETH9, so the
-  // swap must be sent directly with `value` — wrapping first inside multicall breaks it
+  // swap must be sent directly with `value`, wrapping first inside multicall breaks it
   // (multicall delegatecalls, so msg.sender stays the user and the wrapped WETH is unreachable).
   if (!nativeOut) return { to: router, data: swapCall, value: nativeIn ? params.amountIn : 0n }
   return {

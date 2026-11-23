@@ -1,12 +1,12 @@
 /**
- * Local activity store — the "transaction centre" survives refresh because it is
+ * Local activity store, the "transaction centre" survives refresh because it is
  * persisted in localStorage (no backend, no database, no custody).
  */
 import { useSyncExternalStore } from 'react'
 
 export type StepStatus = 'pending' | 'active' | 'done' | 'failed' | 'skipped'
 export type ActivityKind = 'bridge' | 'swap' | 'deposit'
-export type ActivityStatus = 'pending' | 'complete' | 'failed'
+export type ActivityStatus = 'draft' | 'pending' | 'complete' | 'failed' | 'cancelled'
 export type ProviderId = 'cctp' | 'uniswap' | 'opstack'
 
 export interface TxStep {
@@ -123,9 +123,18 @@ export function updateStep(id: string, stepKey: string, patch: Partial<TxStep>) 
   emit()
 }
 
+/** Anything on chain? Used to tell a plan from a real transaction. */
+export function hasChainActivity(item: ActivityItem): boolean {
+  return item.steps.some((s) => Boolean(s.hash))
+}
+
 export function finalizeFromSteps(id: string) {
   const item = getActivity(id)
   if (!item) return
+  if (!hasChainActivity(item) && item.status !== 'cancelled') {
+    updateActivity(id, { status: 'draft' })
+    return
+  }
   const failed = item.steps.some((s) => s.status === 'failed')
   const allDone = item.steps.every((s) => s.status === 'done' || s.status === 'skipped')
   if (failed) updateActivity(id, { status: 'failed' })

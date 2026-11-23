@@ -99,7 +99,7 @@ export default function CrossChain() {
       tokenIn: { symbol: 'USDC', address: usdcIn?.address, decimals: 6 },
       tokenOut: { symbol: chosenTarget.symbol, address: chosenTarget.address, decimals: chosenTarget.decimals },
       amountIn: amount,
-      status: 'pending',
+      status: 'draft',
       meta: {
         composite: true,
         fast: true,
@@ -122,7 +122,7 @@ export default function CrossChain() {
       ],
     })
     setActiveId(item.id)
-    notify('Plan created. Execute the steps in order — you sign each one.', 'success')
+    notify('Plan created. Execute the steps in order, you sign each one.', 'success')
   }
 
   async function runNext() {
@@ -276,7 +276,7 @@ export default function CrossChain() {
             <div className="text-right">
               <div className="text-[10px] text-t3">estimated out</div>
               <div className="mono text-sm text-t1">
-                {destQuote.data && chosenTarget ? `${formatAmount(destQuote.data.amountOut, chosenTarget.decimals, 6)}` : '—'}
+                {destQuote.data && chosenTarget ? `${formatAmount(destQuote.data.amountOut, chosenTarget.decimals, 6)}` : '-'}
               </div>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function CrossChain() {
               </Button>
               {nextStep?.key === 'attestation' && !attestationReady && (
                 <div className="mt-2 flex items-center gap-2 text-[11px] text-t3">
-                  <Spinner size={12} /> Circle is attesting — this page polls automatically.
+                  <Spinner size={12} /> Circle is attesting, this page polls automatically.
                 </div>
               )}
             </div>
@@ -318,9 +318,9 @@ export default function CrossChain() {
           <Card className="p-4">
             <h3 className="mb-2 text-sm font-semibold text-white">Route economics</h3>
             <Row label="Hop 1" value={`USDC · ${from.short} → ${to.short} (CCTP)`} />
-            <Row label="Hop 2" value={chosenTarget ? `USDC → ${chosenTarget.symbol} on ${to.short}` : '—'} />
-            <Row label="CCTP max fee" value={fees.data ? `${fmt(maxFee, 6, 6)} USDC` : fees.isLoading ? '…' : '—'} />
-            <Row label="USDC arriving" value={arriving > 0n ? `${fmt(arriving, 6, 6)}` : '—'} />
+            <Row label="Hop 2" value={chosenTarget ? `USDC → ${chosenTarget.symbol} on ${to.short}` : '-'} />
+            <Row label="CCTP max fee" value={fees.data ? `${fmt(maxFee, 6, 6)} USDC` : fees.isLoading ? '…' : '-'} />
+            <Row label="USDC arriving" value={arriving > 0n ? `${fmt(arriving, 6, 6)}` : '-'} />
             <Row label="Dest pool" value={destQuote.data ? `${destQuote.data.fee / 10000}% · impact ${pct(destQuote.data.priceImpactBps, 2)}` : destQuote.isFetching ? '…' : 'no quote'} />
             <Row label="Slippage" value={pct(slippageBps, 2)} />
             <Row label="Signatures" value={activity ? '4–5 wallet approvals' : '4–5 wallet approvals'} />
@@ -339,11 +339,11 @@ export default function CrossChain() {
           <Card className="p-4">
             <h3 className="mb-1.5 text-sm font-semibold text-white">Bridge vs swap vs cross-chain</h3>
             <div className="space-y-1.5 text-[11px] leading-relaxed text-t2">
-              <p><span className="text-t1">Bridge</span> — same asset, different chain (USDC → USDC). No price risk while it moves.</p>
-              <p><span className="text-t1">Swap</span> — different asset, same chain (ETH → USDC). One pool, one transaction.</p>
-              <p><span className="text-t1">Cross-chain swap</span> — different asset, different chain. Two hops, 4–5 signatures.</p>
+              <p><span className="text-t1">Bridge</span>, same asset, different chain (USDC → USDC). No price risk while it moves.</p>
+              <p><span className="text-t1">Swap</span>, different asset, same chain (ETH → USDC). One pool, one transaction.</p>
+              <p><span className="text-t1">Cross-chain swap</span>, different asset, different chain. Two hops, 4–5 signatures.</p>
               <p className="text-[#e3c07b]/90">
-                No verified provider does an atomic testnet cross-chain swap, so this is a real composition — never packaged as one
+                No verified provider does an atomic testnet cross-chain swap, so this is a real composition, never packaged as one
                 transaction.
               </p>
             </div>

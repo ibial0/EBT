@@ -4,7 +4,7 @@ import type { Chain } from 'viem'
 import { CHAINS, VIEM_CHAINS } from '../config/chains'
 
 /**
- * Public testnet RPCs — every endpoint below was probed for eth_chainId on 2026-11-23.
+ * Public testnet RPCs, every endpoint below was probed for eth_chainId on 2026-11-23.
  * No API keys, no backend proxy: these are the chains' own public endpoints.
  */
 export const RPC: Record<number, string> = {
