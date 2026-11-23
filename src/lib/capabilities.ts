@@ -74,7 +74,10 @@ export function capabilitiesOf(chain: ChainCfg): CapabilityRow[] {
       key: 'swap',
       label: LABELS.swap,
       state: chain.uniswap ? (hasPools ? 'yes' : 'partial') : 'no',
-      note: chain.uniswap
+      note:
+        chain.key === 'robinhoodTestnet'
+          ? 'No Uniswap v3 deployment: the canonical factories (0x0227628f…, 0x1F98431c…, 0x4752ba5D…) have no code on this chain.'
+          : chain.uniswap
         ? hasPools
           ? `${pairsForChain(chain.id).length} verified pair${pairsForChain(chain.id).length === 1 ? '' : 's'} with real liquidity.`
           : 'Deployment verified, no pool currently holds liquidity.'
@@ -86,7 +89,7 @@ export function capabilitiesOf(chain: ChainCfg): CapabilityRow[] {
       state: cctpPeer ? 'yes' : 'no',
       note: cctpPeer
         ? `CCTP domain ${chain.cctpDomain}, USDC ${chain.usdc?.slice(0, 10)}…`
-        : 'Not a Circle CCTP chain, so USDC cannot be bridged here.',
+        : (chain.bridgeNote ?? 'Not a Circle CCTP chain, so USDC cannot be bridged here.'),
     },
     {
       key: 'bridgeEth',

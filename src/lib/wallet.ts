@@ -26,6 +26,7 @@ export const RPC: Record<number, string> = {
   9746: 'https://testnet-rpc.plasma.to',
   1952: 'https://xlayertestrpc.okx.com',
   91342: 'https://sepolia-rpc.giwa.io',
+  46630: 'https://rpc.testnet.chain.robinhood.com',
 }
 
 export const wagmiConfig = createConfig({

@@ -65,6 +65,8 @@ export interface ChainCfg {
   nativeIsUsdc?: boolean
   /** minimum maxFeePerGas in gwei that the chain's mempool accepts (Arc = 20) */
   minGasPriceGwei?: number
+  /** why a capability is absent, shown instead of the generic reason */
+  bridgeNote?: string
   color: string
   gradient: [string, string]
   faucets: FaucetLink[]
@@ -94,10 +96,10 @@ export const CHAINS: ChainCfg[] = [
     color: '#8a92b2',
     gradient: ['#627eea', '#3b5bd9'],
     faucets: [
-      { label: 'Google Web3 Faucet', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
-      { label: 'QuickNode Sepolia', url: 'https://faucet.quicknode.com/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: '12h', checked: VERIFIED },
+      { label: 'Google Web3 Faucet', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: 'rate limit', checked: VERIFIED, note: '0.05 ETH. Needs a Google Account and about 0.001 ETH on mainnet; the drip limit depends on the network.' },
+      { label: 'QuickNode Sepolia', url: 'https://faucet.quicknode.com/ethereum/sepolia', tokens: ['ETH'], access: 'free', cooldown: '12h', checked: VERIFIED, note: 'No QuickNode account, but the wallet needs a small mainnet balance. Optional X share doubles the drip.' },
       { label: 'Sepolia PoW Faucet', url: 'https://sepolia-faucet.pk910.de/', tokens: ['ETH'], access: 'pow', note: 'Mine in the browser to earn ETH. Slower, but no account and no daily cap.', checked: VERIFIED },
-      { label: 'Alchemy Sepolia Faucet', url: 'https://www.alchemy.com/faucets/ethereum-sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
+      { label: 'Alchemy Sepolia Faucet', url: 'https://www.alchemy.com/faucets/ethereum-sepolia', tokens: ['ETH'], access: 'free', cooldown: '24h', checked: VERIFIED, note: '0.1 ETH every 24h. No Alchemy account, but the wallet must meet eligibility rules (small mainnet balance).' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -114,7 +116,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#e84142',
     gradient: ['#ff5a5f', '#c31c23'],
     faucets: [
-      { label: 'Avalanche Faucet', url: 'https://faucet.avax.network/', tokens: ['AVAX'] },
+      { label: 'Avalanche Builder Hub Faucet', url: 'https://build.avax.network/console/primary-network/faucet', tokens: ['AVAX'], access: 'account', cooldown: '2h', checked: VERIFIED, note: 'Up to 2 Fuji AVAX per day, one request every 2 hours. Needs a Builder Hub account, or mainnet AVAX balance for the no-coupon path.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -137,7 +139,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#ff0420',
     gradient: ['#ff4a5c', '#c40018'],
     faucets: [
-      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
+      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED, note: 'Shown as under maintenance on 2026-11-23. Use the Alchemy OP Sepolia entry below.' },
       { label: 'Alchemy OP Sepolia', url: 'https://www.alchemy.com/faucets/optimism-sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
@@ -220,8 +222,9 @@ export const CHAINS: ChainCfg[] = [
     color: '#ff007a',
     gradient: ['#ff4d9d', '#c4005e'],
     faucets: [
-      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
-      { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'], access: 'account', cooldown: '2h', checked: VERIFIED },
+      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED, note: 'Shown as under maintenance on 2026-11-23. Use the Alchemy Unichain Sepolia entry below.' },
+      { label: 'Alchemy Unichain Sepolia', url: 'https://www.alchemy.com/faucets/unichain-sepolia', tokens: ['ETH'], access: 'free', cooldown: '24h', checked: VERIFIED, note: '0.1 ETH every 24h. No Alchemy account, but the wallet must meet eligibility rules.' },
+      { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'], access: 'free', cooldown: '2h', checked: VERIFIED },
     ],
     verifiedAt: VERIFIED,
   },
@@ -237,7 +240,8 @@ export const CHAINS: ChainCfg[] = [
     color: '#61dfff',
     gradient: ['#7bf3ff', '#0e7490'],
     faucets: [
-      { label: 'Linea docs', url: 'https://linea.build/', tokens: ['ETH'], note: 'The dedicated faucet host did not resolve during verification, open the docs for the current faucet.' },
+      { label: 'MetaMask Developer Faucet (Linea)', url: 'https://developer.metamask.com/faucet/linea-sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED, note: 'Linea docs state a 0.5 ETH daily maximum. Needs a MetaMask developer account.' },
+      { label: 'QuickNode Linea Sepolia', url: 'https://faucet.quicknode.com/linea/sepolia', tokens: ['ETH'], access: 'free', cooldown: '12h', checked: VERIFIED, note: 'No account, but the wallet needs a small mainnet balance.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -254,7 +258,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#e7e3d4',
     gradient: ['#fef3c7', '#a1803f'],
     faucets: [
-      { label: 'Codex explorer', url: 'https://explorer.codex-stg.xyz/', tokens: ['ETH'], note: 'Faucet entry point lives in the Codex explorer/docs.' },
+      { label: 'Codex explorer', url: 'https://explorer.codex-stg.xyz/', tokens: ['ETH'], note: 'No official Codex Testnet faucet was found. The explorer is linked so you can check gas and transactions; get Sepolia ETH and bridge if a route is ever listed.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -272,7 +276,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#d4d4d8',
     gradient: ['#e5e7eb', '#6b7280'],
     faucets: [
-      { label: 'World Chain docs', url: 'https://docs.world.org/world-chain', tokens: ['ETH'], note: 'Faucet instructions live in the World Chain docs.' },
+      { label: 'Alchemy World Chain Sepolia', url: 'https://www.alchemy.com/faucets/world-chain-sepolia', tokens: ['ETH'], access: 'free', cooldown: '24h', checked: VERIFIED, note: '0.1 ETH every 24h. No account, but the wallet must meet eligibility rules (about 0.001 ETH mainnet).' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -289,7 +293,8 @@ export const CHAINS: ChainCfg[] = [
     color: '#836ef9',
     gradient: ['#a78bfa', '#5b21b6'],
     faucets: [
-      { label: 'Monad Faucet', url: 'https://testnet.monad.xyz/', tokens: ['MON'], access: 'account', cooldown: '24h', checked: VERIFIED },
+      { label: 'Monad Faucet', url: 'https://faucet.monad.xyz/', tokens: ['MON'], access: 'free', cooldown: '24h', checked: VERIFIED, note: 'Up to 50 testnet MON every 24 hours.' },
+      { label: 'Monad developer docs', url: 'https://testnet.monad.xyz/', tokens: ['MON'], note: 'Redirects to the Monad developer docs, kept as the fallback entry point.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -306,7 +311,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#9e1f19',
     gradient: ['#ef4444', '#7f1d1d'],
     faucets: [
-      { label: 'Sei docs', url: 'https://docs.sei.io/', tokens: ['SEI'], note: 'The atlantic-2 faucet host did not resolve during verification.' },
+      { label: 'Sei Faucet', url: 'https://docs.sei.io/learn/faucet', tokens: ['SEI'], access: 'account', cooldown: '24h', checked: VERIFIED, note: 'The official faucet page embeds a third-party widget; the amount is not published.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -324,7 +329,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#7c3aed',
     gradient: ['#a78bfa', '#4c1d95'],
     faucets: [
-      { label: 'Ink Faucet', url: 'https://inkonchain.com/faucet', tokens: ['ETH'], access: 'account', checked: VERIFIED },
+      { label: 'Ink Faucet', url: 'https://inkonchain.com/faucet', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED, note: '0.01 ETH per request. Offers Alchemy, QuickNode and Superchain as providers.' },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -402,6 +407,30 @@ export const CHAINS: ChainCfg[] = [
     verifiedAt: VERIFIED,
   },
   {
+    id: 46630,
+    key: 'robinhoodTestnet',
+    name: 'Robinhood Chain Testnet',
+    short: 'Robinhood',
+    viem: {
+      id: 46630,
+      name: 'Robinhood Chain Testnet',
+      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      rpcUrls: { default: { http: ['https://rpc.testnet.chain.robinhood.com'] } },
+      blockExplorers: {
+        default: { name: 'Robinhood Chain Testnet Explorer', url: 'https://explorer.testnet.chain.robinhood.com' },
+      },
+    } as unknown as Chain,
+    bridge: 'none',
+    bridgeNote:
+      'TokenMessengerV2 and MessageTransmitterV2 do exist at the canonical address here (localDomain 35, and the Iris sandbox returns a fee schedule), but Circle does not document this chain and several look-alike USDC tokens exist without a verifiably Circle-issued one. Offering a burn against the wrong USDC would be a fund-loss trap, so no USDC route is exposed.',
+    color: '#00c853',
+    gradient: ['#00c853', '#00522d'],
+    faucets: [
+      { label: 'Robinhood Chain Faucet', url: 'https://faucet.testnet.chain.robinhood.com', tokens: ['ETH'], access: 'free', checked: VERIFIED, note: 'Official testnet faucet. Rate-limited for automated checks, so it may need a normal browser tab.' },
+    ],
+    verifiedAt: VERIFIED,
+  },
+  {
     id: giwaSepolia.id,
     key: 'giwaSepolia',
     name: 'GIWA Sepolia',
@@ -413,7 +442,7 @@ export const CHAINS: ChainCfg[] = [
     gradient: ['#fb7185', '#9d174d'],
     faucets: [
       { label: 'GIWA Faucet', url: 'https://faucet.giwa.io/', tokens: ['ETH'], access: 'free', cooldown: '24h', note: '0.005 ETH per claim. The host blocks automated checks, so open it in a normal tab.', checked: VERIFIED },
-      { label: 'Nodit GIWA Faucet', url: 'https://faucet.lambda256.io/giwa-sepolia', tokens: ['ETH'], access: 'free', cooldown: '24h', note: '0.01 ETH per claim, no account needed.', checked: VERIFIED },
+      { label: 'Nodit GIWA Faucet', url: 'https://faucet.lambda256.io/giwa-sepolia', tokens: ['ETH'], access: 'free', cooldown: '24h', note: '0.01 ETH per wallet every 24 hours. No account, but the page asks you to follow @NoditPlatform on X.', checked: VERIFIED },
       { label: 'Sepolia ETH for L1 gas', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
     ],
     verifiedAt: VERIFIED,

@@ -30,7 +30,7 @@ limitation), Unsupported (no verified provider exists), Blocked (needs something
 
 | ID | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
-| SWAP-001 | Offer every chain with a real swap route | Partial | 4 chains have a verified deployment with liquidity: Sepolia, Base, Unichain, Arc. OP Sepolia was verified during this pass and is being wired in. The rest have no verified pool and are not offered |
+| SWAP-001 | Offer every chain with a real swap route | Verified | 5 chains: Sepolia, Base, Unichain, OP Sepolia, Arc. Ink Sepolia (16 routers, zero pools), World Chain (one uninitialized pool, no bound router) and GIWA (only a mock-USDC pool, no bound quoter) were each investigated and are not offered |
 | SWAP-002 | Pair support from pool discovery, not assumption | Verified | `src/config/pools.ts` (23 pools) + buy list narrowed to pooled pairs |
 | SWAP-003 | Quote, rate, min received, slippage, impact, fee, gas, balance checks | Verified | `Swap.tsx` quote panel and `maxFillable` depth check |
 | SWAP-004 | No partial-fill quotes accepted | Verified | `quoteBest` probes at half size and rejects flat or improving curves |
@@ -77,9 +77,10 @@ limitation), Unsupported (no verified provider exists), Blocked (needs something
 | --- | --- | --- | --- |
 | UI-001 | Logo toggles the sidebar, collapsed rail | Verified | Click tested in the browser |
 | UI-002 | Bigger nav targets and icons | Verified | 40px rows, 18px icons |
-| UI-003 | Faucet links work and show requirements | Verified | 19 of 21 URLs return 200; the two 403s are bot walls and are labelled as such |
+| UI-003 | Faucet links work and show requirements | Verified | Every URL re-checked and read. Docs/marketing links replaced for Linea, World Chain, Sei, Monad and Avalanche. Two 403s and one 429 are bot walls / rate limits and are labelled as such; Superchain is genuinely under maintenance and the Alchemy entry is given as the working path |
 | UI-004 | Plain copy, no em dashes or filler | Verified | Swept this pass |
 | LOGO-001 | Central asset registry, address-keyed | Verified | `src/config/logos.ts` |
 | LOGO-002 | cirBTC logo | Unsupported | No verified official asset found; a neutral monogram is shown instead of a wrong mark |
 | FEE-001 | Fee audit, platform fee inactive | Verified | `PLATFORM_FEE_DESIGN.md`; no fee code path exists |
-| SECURITY-001 | Contract pinning, exact approvals, testnet guard | Verified | `guard.ts`, `tx.ts` |
+| SECURITY-001 | Contract pinning, exact approvals, testnet guard | Verified | `guard.ts`, `tx.ts`; Robinhood mainnet (4663) added to the blocklist |
+| ROBIN-001 | Robinhood Chain investigated | Verified | Testnet 46630 verified live (RPC, explorer, faucet, chain id) and added with only wallet/native/ERC-20/faucet/explorer. Swap and USDC bridge are not offered because no Uniswap deployment exists and no Circle-issued USDC can be verified |

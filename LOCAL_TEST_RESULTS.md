@@ -51,6 +51,20 @@ Runs the app's own calldata builders against live chain state with `eth_call` an
 | Swap | Base Sepolia buy list with ETH selected | only USDC offered (the only token pooled against WETH) |
 | Portfolio | Recovery panel | detects the real unattested transfer and offers Recover |
 
+## Robinhood Chain Testnet (added 2026-11-23)
+
+| Check | Result |
+| --- | --- |
+| `eth_chainId` on rpc.testnet.chain.robinhood.com | `0xb626` = 46630, matching the official docs |
+| Block number | 157,027,478 (chain responds) |
+| Explorer | explorer.testnet.chain.robinhood.com returns 200 |
+| Official faucet | faucet.testnet.chain.robinhood.com returns 429 (rate-limited, not dead) |
+| Uniswap v3 factories | no code at 0x0227628f…, 0x1F98431c…, 0x4752ba5D… |
+| WETH predeploy | no code |
+| CCTP contracts | exist at the canonical address, `localDomain()` = 35, Iris returns a fee schedule |
+| Circle USDC issuance | **not verifiable**; several USDC-named tokens, none documented by Circle |
+| Offered in the UI | wallet, native balance, ERC-20 balance, faucet, explorer only |
+
 ## Not verified by automation
 
 Anything that needs a real signature: the actual mint on Arc, an actual swap, a real

@@ -8,7 +8,7 @@ import type { Address } from '../config/chains'
 /** Well-known mainnet ids, used only to produce a clear error message. */
 const KNOWN_MAINNETS = new Set([
   1, 10, 56, 100, 130, 137, 143, 146, 324, 480, 1101, 1868, 5000, 8453, 34443, 42161, 42220, 43114, 59144, 81457,
-  534352, 7777777,
+  534352, 7777777, 4663,
 ])
 
 export class TestnetViolation extends Error {

@@ -33,6 +33,24 @@ Scope: the existing local app only. Nothing was deployed, published or moved to 
 | A14 | Faucets: clicking a row did nothing | `detail` state was set but no modal was rendered | Direct Open link plus a Requirements modal with asset, access, cooldown, note, raw URL and check date |
 | A15 | Token logos keyed by symbol only | Symbol map | `src/config/logos.ts`: identity is chain + address; symbol is a fallback and is suppressed for user-imported tokens |
 | A16 | No per-feature capability view | One implicit "supported" flag | `src/lib/capabilities.ts` plus a capability matrix in Settings |
+| A17 | Robinhood Chain missing | No public testnet was ever verified | Added with only the capabilities that were proven: wallet, native, ERC-20, faucet, explorer. No swap, no bridge (see below) |
+| A18 | Faucet links pointed at docs or marketing pages | Not re-checked since they were added | Linea, World Chain, Sei, Monad, Avalanche replaced with the real faucet pages; Superchain marked as under maintenance with Alchemy as the working path |
+
+## Robinhood Chain Testnet, and why it has no swap or bridge
+
+Verified live on 2026-11-23: chain id **46630** (`eth_chainId` → `0xb626`), native ETH, explorer
+`explorer.testnet.chain.robinhood.com`, public RPC `rpc.testnet.chain.robinhood.com`, official faucet
+`faucet.testnet.chain.robinhood.com`, and the official docs list mainnet as 4663 and testnet as 46630.
+
+- **No swap.** The three canonical Uniswap v3 factories (`0x0227628f…`, `0x1F98431c…`,
+  `0x4752ba5D…`) have no code on this chain, and the WETH predeploy has no code either. Nothing to
+  quote against.
+- **No USDC bridge.** `TokenMessengerV2` and `MessageTransmitterV2` *do* exist at the canonical
+  CREATE2 address, `localDomain()` returns **35**, and the Iris sandbox returns a fee schedule for
+  domain 35. But Circle's supported-chain table does not list Robinhood, and the explorer shows
+  several USDC-named tokens with no verifiable Circle issuance. Burning against the wrong one would
+  be a fund-loss trap, so no route is exposed. Mainnet id 4663 was added to the blocklist so the app
+  can never route there.
 
 ## Not fixed, and why
 

@@ -1,6 +1,6 @@
 # NETWORK CAPABILITIES
 
-Generated from `src/lib/capabilities.ts` on 2026-11-23. Each feature is decided separately: a chain that can receive a bridge but has no swap venue is never reported as swap-capable.
+Generated from `src/lib/capabilities.ts` on 2026-11-23. Each feature is decided separately: a chain that can receive a bridge but has no swap venue is never reported as swap-capable, and a chain with CCTP contracts but no verified Circle USDC is never reported as bridgeable.
 
 | Chain | id | Wallet | Native | ERC-20 | Swap | USDC bridge | ETH deposit | Cross-chain | Recovery |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -21,6 +21,7 @@ Generated from `src/lib/capabilities.ts` on 2026-11-23. Each feature is decided 
 | Injective Testnet | 1439 | yes | yes | yes | no | yes | no | no | yes |
 | Plasma Testnet | 9746 | yes | yes | yes | no | yes | no | no | yes |
 | X Layer Testnet | 1952 | yes | yes | yes | no | yes | no | no | yes |
+| Robinhood Chain Testnet | 46630 | yes | yes | yes | no | no | no | no | no |
 | GIWA Sepolia | 91342 | yes | yes | yes | no | no | yes | no | no |
 
 ## Notes per chain
@@ -194,6 +195,16 @@ Generated from `src/lib/capabilities.ts` on 2026-11-23. Each feature is decided 
 - **ETH deposit (OP Stack)**: no — No canonical portal on this chain and it is not an L1 source for any allowlisted chain.
 - **Cross-chain swap**: no — No swap venue, so a cross-chain swap cannot finish here.
 - **Transfer recovery**: yes — usedNonces can be checked on chain and an attested message can be finished.
+
+### Robinhood Chain Testnet (46630)
+- **Wallet connection**: yes — Any injected EVM wallet. No separate account.
+- **Native balance**: yes — Reads the chain's own gas token (ETH).
+- **ERC-20 balances**: yes — Multicall3 where deployed, single reads otherwise.
+- **Same-chain swap**: no — No Uniswap v3 deployment: the canonical factories (0x0227628f…, 0x1F98431c…, 0x4752ba5D…) have no code on this chain.
+- **USDC bridge (CCTP)**: no — TokenMessengerV2 and MessageTransmitterV2 do exist at the canonical address here (localDomain 35, and the Iris sandbox returns a fee schedule), but Circle does not document this chain and several look-alike USDC tokens exist without a verifiably Circle-issued one. Offering a burn against the wrong USDC would be a fund-loss trap, so no USDC route is exposed.
+- **ETH deposit (OP Stack)**: no — No canonical portal on this chain and it is not an L1 source for any allowlisted chain.
+- **Cross-chain swap**: no — No swap venue, so a cross-chain swap cannot finish here.
+- **Transfer recovery**: no — Not a CCTP chain, there is nothing to recover.
 
 ### GIWA Sepolia (91342)
 - **Wallet connection**: yes — Any injected EVM wallet. No separate account.
