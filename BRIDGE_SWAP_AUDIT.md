@@ -58,6 +58,37 @@ deposit (`0xad7ae936…`, value `1320001650660061600` = `1320000000000000000` ca
 `61600` submission + `27511*60000000` gas). `npm run test:orbit` re-executes the calldata
 with `eth_call` on the live chain.
 
+### Every Orbit testnet inspected (2026-11-23)
+
+Thirteen verified deployments, each address confirmed with bytecode on its parent chain:
+
+| chain | id | parent | native | ETH deposit |
+| --- | --- | --- | --- | --- |
+| Robinhood Chain Testnet | 46630 | Sepolia | ETH | yes |
+| T-Rex Testnet | 1962 | Sepolia | ETH | yes |
+| HPP Sepolia | 181228 | Sepolia | ETH | yes |
+| Edge Testnet | 33431 | Arbitrum Sepolia | ETH | yes |
+| SX Toronto | 79479957 | Sepolia | SX | no |
+| Humanity Testnet | 7080969 | Sepolia | tHP | no |
+| Plume Testnet | 98867 | Sepolia | PLUME | no |
+| Galactica Cassiopeia | 843843 | Sepolia | GNET | no |
+| JASMY Chain Testnet | 681 | Sepolia | JASMY | no |
+| Mars Chain Testnet | 704852 | Sepolia | MarsC | no |
+| GenLayer Chain Testnet | 4221 | Sepolia | GEN | no |
+| WorldMobile Testnet | 323432 | Base Sepolia | WOMOX | no |
+| Xai Testnet | 37714555429 | Arbitrum Sepolia | sXAI | no |
+
+**Why only four accept a native ETH deposit.** The four ETH-native chains deploy the standard
+`EthInbox.createRetryableTicket(to, l2CallValue, maxSubmissionCost, excessFeeRefund,
+callValueRefund, gasLimit, maxFeePerGas, data)` — the calldata executes successfully under
+`eth_call`. The other nine deploy an `ERC20Inbox`, whose `createRetryableTicket` takes an
+extra `uint256 tokenTotalFeeAmount` argument and prices the ticket in that chain's own gas
+token, so a plain ETH deposit does not exist there. Offering one would strand funds, so the
+route engine refuses (`ORBIT_ETH_NATIVE`) and `npm run test:orbit` asserts both directions.
+
+Nine further candidates were rejected with reasons recorded in the audit log (migrated
+rollups, stale addresses, unreachable RPCs, non-Orbit L2s).
+
 ## Files
 
 - `src/lib/routes.ts` — engine (legs, search, selector helpers)

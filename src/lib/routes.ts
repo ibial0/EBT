@@ -315,12 +315,19 @@ function push(
   })
 }
 
+/** Native asset symbol for a chain, used in labels. */
+export function nativeSymbolOf(chainId: number): string {
+  return getChain(chainId)?.viem.nativeCurrency.symbol ?? 'ETH'
+}
+
 function describeLegs(legs: RouteLeg[], fromId: number, toId: number): string {
   const parts: string[] = []
   for (const leg of legs) {
     if (leg.kind === 'cctp') parts.push(`${getChain(leg.from)?.short} USDC → CCTP → ${getChain(leg.to)?.short} USDC`)
-    else if (leg.kind === 'portal') parts.push(`${getChain(leg.from)?.short} ETH → Native bridge → ${getChain(leg.to)?.short} ETH`)
-    else if (leg.kind === 'arbitrum') parts.push(`${getChain(leg.from)?.short} ETH → Arbitrum bridge → ${getChain(leg.to)?.short} ETH`)
+    else if (leg.kind === 'portal')
+      parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Native bridge → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
+    else if (leg.kind === 'arbitrum')
+      parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Arbitrum bridge → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
     else {
       const a = findToken(leg.chainId, leg.tokenIn)
       const b = findToken(leg.chainId, leg.tokenOut)
@@ -371,11 +378,6 @@ export function reachableDestTokens(fromId: number, toId: number, inToken: Token
     if (!prev || t.address.toLowerCase() === NATIVE_SENTINEL.toLowerCase()) out.set(key, t)
   }
   return [...out.values()]
-}
-
-/** Native asset symbol for a chain, used in labels. */
-export function nativeSymbolOf(chainId: number): string {
-  return getChain(chainId)?.viem.nativeCurrency.symbol ?? 'ETH'
 }
 
 export { CHAINS, getChain }

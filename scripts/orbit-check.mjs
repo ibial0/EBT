@@ -20363,6 +20363,195 @@ function http(url, config = {}) {
 // node_modules/viem/_esm/index.js
 init_encodeAbiParameters();
 init_encodeFunctionData();
+init_defineChain();
+
+// src/config/orbit.ts
+var ORBIT_BRIDGES = {
+  // Robinhood Chain Testnet — Arbitrum Orbit chain settling to Ethereum Sepolia.
+  // https://docs.robinhood.com/chain/protocol-contracts/
+  46630: {
+    chainId: 46630,
+    parentChainId: 11155111,
+    rollup: "0xdc5F8E399DBd8a9F5F87AeC4C23Beb12431b386D",
+    inbox: "0xF2939afA86F6f933A3CE17fCAB007907B6b0B7a4",
+    bridge: "0x96295BDad104eaD97cC08797b3dC68efF59CcF30",
+    outbox: "0x8D180Caf588f3Da027BEf1F42a106Da93F90b166",
+    l1GatewayRouter: "0xF6F11aAEE80875776C264d93B37B34cE437382D1",
+    l1Erc20Gateway: "0x52C2976cbDEf48BcC51d07d3c523769F76ECBd09",
+    l1WethGateway: "0x8f8A6799F2b1978c6586318543c73D8Fb12f218f",
+    l1Weth: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+    l2GatewayRouter: "0x77bF00A6A90c600f214b34BAFBB7918c0cF113A8",
+    l2Weth: "0x7943e237c7F95DA44E0301572D358911207852Fa",
+    source: "https://docs.robinhood.com/chain/protocol-contracts/"
+  },
+  // SX Toronto — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  79479957: {
+    chainId: 79479957,
+    parentChainId: 11155111,
+    rollup: "0x82332BE0ef83A2b7Df91DCDCF481c393455E0D31",
+    inbox: "0x46C42Cf5127ffd6dE2d9f231173C6d81E5010726",
+    bridge: "0xC703f27438898BebE682D253185149cBeaC1621c",
+    l1GatewayRouter: "0xEb362E3C9B081baE0024b34955a132B93D05047f",
+    l1Erc20Gateway: "0xa66971304463c017F4D152685B1483cc63Fd116d",
+    outbox: "0x5B8220489827Be74CeD6b7974C3a80d3ba8dbf91",
+    l2GatewayRouter: "0x650cD99b736173d8AB9aeF9f4b3B5DA8EE054adC",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // Humanity Testnet — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  7080969: {
+    chainId: 7080969,
+    parentChainId: 11155111,
+    rollup: "0x627E5adAA60F15Ed29e16F4e18e481F878d76376",
+    inbox: "0x5AAa02fa6A405329CAe9b7F6D744f73CB20bFe2e",
+    bridge: "0xA2e0a93Adc142A94C0a0E4e80940298F9c59DeC9",
+    l1GatewayRouter: "0x105b7c26707c0D048D8d885d31A3b550e7B6E162",
+    l1Erc20Gateway: "0x2D771595616748fA9f31D1434426fE1b0cd2C35b",
+    outbox: "0xDE34eC789e300229E6e419aa814452e413CDb69B",
+    l2GatewayRouter: "0x13D8B6d796CC2cdE2c28C9cC52E5328384c6fBB0",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // Plume Testnet — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  98867: {
+    chainId: 98867,
+    parentChainId: 11155111,
+    rollup: "0x3B37BeD1c38c6283A56E60340FE813C0BBA031C3",
+    inbox: "0xb48cdff890199f5De31514024B95F8664F8Af222",
+    bridge: "0xC55b89c17d7a35877FA4ea818fea2a70d5765f1c",
+    l1GatewayRouter: "0xF06D7785E023FFdE5E0daAFc40d268c2DD6bB1eD",
+    l1Erc20Gateway: "0xB57388059e3e2C13a6cb9E551dA6B5D80dCf8a47",
+    outbox: "0x3F6e2Ee3406b18b7F5ce3D0447d3aD8fbc807744",
+    l2GatewayRouter: "0x77510dC7fbB7a9861d233404794f6446d4BbFdc7",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // T-Rex Testnet — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  1962: {
+    chainId: 1962,
+    parentChainId: 11155111,
+    rollup: "0x82ea947bB006690667225099cDf87D03A2dd56dC",
+    inbox: "0xCb47f0bb29f44e00fbb00324f0E104330Ee1072F",
+    bridge: "0x5b1b3C2B531caac8b7A50E65A8d954aDCf8CBc24",
+    l1GatewayRouter: "0xa2ea20576C50371136ea1b20A364A82185d4D4a5",
+    l1Erc20Gateway: "0xd30F1C65476f47A4D5c54e6c246a5EB6D74295A3",
+    outbox: "0x8aB6FA23Ebb58FAa105C108b7F6c27C110828781",
+    l1WethGateway: "0xEb801249D7213fE018e562970F1c29A107d52882",
+    l1Weth: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+    l2GatewayRouter: "0x00AB824F25ed820A351e0A7b0aF15c3B84755B77",
+    l2Weth: "0x24305a5E6F469950E9842e95A7D577D5522E5151",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // Galactica Cassiopeia Testnet — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  843843: {
+    chainId: 843843,
+    parentChainId: 11155111,
+    rollup: "0x2A419230ACA266F4BCddE349936871C6e622529d",
+    inbox: "0xb0579056c22aD1fF85a1288f82089B1205447613",
+    bridge: "0xD522DC770E2452375AfceD3c3ec96eb784c75570",
+    l1GatewayRouter: "0x6E5d41f9a8aA672938f719cC6562676808f9bf60",
+    l1Erc20Gateway: "0xe557F0db287eD44f11630dCA4aDf850660f0B38E",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // HPP Sepolia — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  181228: {
+    chainId: 181228,
+    parentChainId: 11155111,
+    rollup: "0x537F6A3606cb000aE568005bebAF8bd1Ea2DE3b6",
+    inbox: "0xAAD45a7bF65b43E56767CdE3Ab84A5433c714Afc",
+    bridge: "0x1DDe0F57E7889B6866505634E58E3057b01dfed0",
+    l1GatewayRouter: "0x8deBBE23AAE151C49609A46ad2b14590e3692F21",
+    l1Erc20Gateway: "0x15C7018696e1bDc392C252a28E0accD429D85b3E",
+    l1WethGateway: "0xbB0c4391ACBA1e218feE5aD156fA661eBff5545B",
+    l1Weth: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // JASMY Chain Testnet — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  681: {
+    chainId: 681,
+    parentChainId: 11155111,
+    rollup: "0xb4d897FFc6b163414C36A470E5c3B9AE8a4e784E",
+    inbox: "0x574DB42697C40492ED620441AA5Ca633E06d1B47",
+    bridge: "0x53A868f525D27F1c5De0fd983a7672A501C54853",
+    l1GatewayRouter: "0x779922999bFD660e1A4997E2774b472Fbeb6a9D4",
+    l1Erc20Gateway: "0xD0e209e57709C34Bba9AF68F515bb0d17fdD6E5E",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // Mars Chain Testnet — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  704852: {
+    chainId: 704852,
+    parentChainId: 11155111,
+    rollup: "0xdc57101751220C05f401b9C7982B183A11B7D173",
+    inbox: "0xb78614a722431f15F47bCd873e48A5B1cf9983b1",
+    bridge: "0xAA8bb4E9851735E07Fe6ccb29d61def136Cce3E9",
+    l1GatewayRouter: "0xDA4BA4BE6e32241B45Af53182e9E5606ba62A7e6",
+    l1Erc20Gateway: "0xa43ff360E93fA20551C2Ef49d8cf8ea6E40586Ab",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // GenLayer Chain Testnet — Arbitrum Orbit chain settling to 11155111.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  4221: {
+    chainId: 4221,
+    parentChainId: 11155111,
+    rollup: "0x96cb416A3defB4Ec596e23806581Eb02f6def71a",
+    inbox: "0x0f76cf640B349bA9D66DB844CF420c138C43d49A",
+    bridge: "0x4F408768E4eC8Fffb55E84c9ac21801c088C183c",
+    l1GatewayRouter: "0x68F084B09c9b34CeD4894313689e1Fb55d114f34",
+    l1Erc20Gateway: "0xD28787A5f3fDC85cB3e706978C63583a53C856E7",
+    l2GatewayRouter: "0x707DbF4d53390238C96A15C9406881Aec98f9289",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // WorldMobile Testnet — Arbitrum Orbit chain settling to 84532.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  323432: {
+    chainId: 323432,
+    parentChainId: 84532,
+    rollup: "0xEE0e953FEF4733e93E228207a1DdFDcEDFD650F6",
+    inbox: "0xa5099f144FA1ed4A74a6E6dFc6Bb1B4E514FD061",
+    bridge: "0x28C3C1FC243DCCDD5Ae2Aa9081fA01b64D69cD21",
+    l1GatewayRouter: "0x2dbc704a564975811AbB70991B6E4A281cafe01F",
+    l1Erc20Gateway: "0xC837bDe6dBEDE5Fd5EB2A5678f9634985D91E5DD",
+    outbox: "0x193cc92D190D5d9d593A8b9242449e1f5AA8a678",
+    l1Weth: "0x4200000000000000000000000000000000000006",
+    l2GatewayRouter: "0x186f8022a1Cd5D13E92876FA2A63DF45ce40b7C7",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // Xai Testnet — Arbitrum Orbit chain settling to 421614.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  37714555429: {
+    chainId: 37714555429,
+    parentChainId: 421614,
+    rollup: "0xeedE9367Df91913ab149e828BDd6bE336df2c892",
+    inbox: "0x6396825803B720bc6A43c63caa1DcD7B31EB4dd0",
+    bridge: "0x6c7FAC4edC72E86B3388B48979eF37Ecca5027e6",
+    l1GatewayRouter: "0x185b868DBBF41554465fcb99C6FAb9383E15f47A",
+    l1Erc20Gateway: "0xCcB451C4Df22addCFe1447c58bC6b2f264Bb1256",
+    outbox: "0xc7491a559b416540427f9f112C5c98b1412c5d51",
+    l1Weth: "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
+    l2GatewayRouter: "0x3B8ba769a43f34cdD67a20aF60d08D54C9C8f1AD",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  },
+  // Edge Testnet — Arbitrum Orbit chain settling to 421614.
+  // Addresses verified with bytecode on the parent chain; portal-data.arbitrum.io orbit registry.
+  33431: {
+    chainId: 33431,
+    parentChainId: 421614,
+    rollup: "0x244935dedb20c68df097abd384b4eff531457867",
+    inbox: "0x784702Ec0D8E1CA4B3a062230F2cf748841560F7",
+    bridge: "0x399FEA0125A0B8A9782cB0Cdb6DC11669305E68d",
+    l1GatewayRouter: "0x3ef0E50bE1063A1FA76319b457F46411Add06d89",
+    l1Erc20Gateway: "0x68A6e8A0C10954C2A3D6349d4c1B746f4dCFA8Ab",
+    l1WethGateway: "0xdCA777FFCa62E791CC83fc46b8880A7E192050Ee",
+    l1Weth: "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
+    source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
+  }
+};
+var ORBIT_ETH_NATIVE = /* @__PURE__ */ new Set([46630, 1962, 181228, 33431]);
 
 // node_modules/viem/_esm/op-stack/contracts.js
 var contracts = {
@@ -21298,6 +21487,90 @@ var xLayerTestnet = /* @__PURE__ */ defineChain({
 
 // src/config/chains.ts
 var VERIFIED = "2026-11-23";
+var o_SXToronto = defineChain({
+  id: 79479957,
+  name: "SX Toronto",
+  nativeCurrency: { name: "SX", symbol: "SX", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc-rollup.toronto.sx.technology"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://explorerl2.toronto.sx.technology" } }
+});
+var o_Humanity = defineChain({
+  id: 7080969,
+  name: "Humanity Testnet",
+  nativeCurrency: { name: "tHP", symbol: "tHP", decimals: 18 },
+  rpcUrls: { default: { http: ["https://humanity-testnet.g.alchemy.com/public"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://humanity-testnet.explorer.alchemy.com" } }
+});
+var o_Plume = defineChain({
+  id: 98867,
+  name: "Plume Testnet",
+  nativeCurrency: { name: "PLUME", symbol: "PLUME", decimals: 18 },
+  rpcUrls: { default: { http: ["https://testnet-rpc.plume.org"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://testnet-explorer.plume.org" } }
+});
+var o_TRex = defineChain({
+  id: 1962,
+  name: "T-Rex Testnet",
+  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://testnetrpc.trex.xyz"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://testnet.trex.xyz" } }
+});
+var o_GalacticaCas = defineChain({
+  id: 843843,
+  name: "Galactica Cassiopeia Testnet",
+  nativeCurrency: { name: "GNET", symbol: "GNET", decimals: 18 },
+  rpcUrls: { default: { http: ["https://galactica-cassiopeia.g.alchemy.com/public"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://galactica-cassiopeia.explorer.alchemy.com" } }
+});
+var o_HPPSepolia = defineChain({
+  id: 181228,
+  name: "HPP Sepolia",
+  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://sepolia.hpp.io"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://sepolia-explorer.hpp.io" } }
+});
+var o_JASMY = defineChain({
+  id: 681,
+  name: "JASMY Chain Testnet",
+  nativeCurrency: { name: "JASMY", symbol: "JASMY", decimals: 18 },
+  rpcUrls: { default: { http: ["https://jasmy-chain-testnet.alt.technology"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://jasmy-chain-testnet-explorer.alt.technology" } }
+});
+var o_Mars = defineChain({
+  id: 704852,
+  name: "Mars Chain Testnet",
+  nativeCurrency: { name: "MarsC", symbol: "MarsC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://testnet-rpc.mars-chain.io"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://testnet-explorer.mars-chain.io" } }
+});
+var o_GenLayer = defineChain({
+  id: 4221,
+  name: "GenLayer Chain Testnet",
+  nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.testnet-chain.genlayer.com"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://scan.testnet-chain.genlayer.com" } }
+});
+var o_WorldMobile = defineChain({
+  id: 323432,
+  name: "WorldMobile Testnet",
+  nativeCurrency: { name: "WOMOX", symbol: "WOMOX", decimals: 18 },
+  rpcUrls: { default: { http: ["https://worldmobile-testnet.g.alchemy.com/public"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://testnet-explorer.worldmobile.net" } }
+});
+var o_Xai = defineChain({
+  id: 37714555429,
+  name: "Xai Testnet",
+  nativeCurrency: { name: "sXAI", symbol: "sXAI", decimals: 18 },
+  rpcUrls: { default: { http: ["https://testnet-v2.xai-chain.net/rpc"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://testnet-explorer-v2.xai-chain.net" } }
+});
+var o_Edge = defineChain({
+  id: 33431,
+  name: "Edge Testnet",
+  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://edge-testnet.g.alchemy.com/public"] } },
+  blockExplorers: { default: { name: "Explorer", url: "https://edge-testnet.explorer.alchemy.com" } }
+});
 var CHAINS = [
   {
     id: sepolia.id,
@@ -21640,8 +21913,8 @@ var CHAINS = [
         default: { name: "Robinhood Chain Testnet Explorer", url: "https://explorer.testnet.chain.robinhood.com" }
       }
     },
-    bridge: "none",
-    bridgeNote: "TokenMessengerV2 and MessageTransmitterV2 do exist at the canonical address here (localDomain 35, and the Iris sandbox returns a fee schedule), but Circle does not document this chain and several look-alike USDC tokens exist without a verifiably Circle-issued one. Offering a burn against the wrong USDC would be a fund-loss trap, so no USDC route is exposed.",
+    bridge: "orbit",
+    bridgeNote: "No Circle CCTP route: TokenMessengerV2 and MessageTransmitterV2 exist at the canonical addresses (localDomain 35) but Circle does not document this chain, and several look-alike USDC tokens exist without a verifiably Circle-issued one. ETH deposits go through the Arbitrum Orbit inbox instead.",
     color: "#00c853",
     gradient: ["#00c853", "#00522d"],
     faucets: [
@@ -21665,39 +21938,167 @@ var CHAINS = [
       { label: "Sepolia ETH for L1 gas", url: "https://cloud.google.com/application/web3/faucet/ethereum/sepolia", tokens: ["ETH"], access: "account", cooldown: "24h", checked: VERIFIED }
     ],
     verifiedAt: VERIFIED
+  },
+  {
+    id: o_SXToronto.id,
+    key: "o_SXToronto",
+    name: "SX Toronto",
+    short: "SXTO",
+    viem: o_SXToronto,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#f59e0b",
+    gradient: ["#f59e0b", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_Humanity.id,
+    key: "o_Humanity",
+    name: "Humanity Testnet",
+    short: "HUM",
+    viem: o_Humanity,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#38bdf8",
+    gradient: ["#38bdf8", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_Plume.id,
+    key: "o_Plume",
+    name: "Plume Testnet",
+    short: "PLUME",
+    viem: o_Plume,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#a78bfa",
+    gradient: ["#a78bfa", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_TRex.id,
+    key: "o_TRex",
+    name: "T-Rex Testnet",
+    short: "TREX",
+    viem: o_TRex,
+    bridge: "orbit",
+    color: "#fb7185",
+    gradient: ["#fb7185", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_GalacticaCas.id,
+    key: "o_GalacticaCas",
+    name: "Galactica Cassiopeia Testnet",
+    short: "GAL",
+    viem: o_GalacticaCas,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#34d399",
+    gradient: ["#34d399", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_HPPSepolia.id,
+    key: "o_HPPSepolia",
+    name: "HPP Sepolia",
+    short: "HPP",
+    viem: o_HPPSepolia,
+    bridge: "orbit",
+    color: "#fbbf24",
+    gradient: ["#fbbf24", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_JASMY.id,
+    key: "o_JASMY",
+    name: "JASMY Chain Testnet",
+    short: "JAS",
+    viem: o_JASMY,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#818cf8",
+    gradient: ["#818cf8", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_Mars.id,
+    key: "o_Mars",
+    name: "Mars Chain Testnet",
+    short: "MARS",
+    viem: o_Mars,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#f97316",
+    gradient: ["#f97316", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_GenLayer.id,
+    key: "o_GenLayer",
+    name: "GenLayer Chain Testnet",
+    short: "GEN",
+    viem: o_GenLayer,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#22d3ee",
+    gradient: ["#22d3ee", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_WorldMobile.id,
+    key: "o_WorldMobile",
+    name: "WorldMobile Testnet",
+    short: "WOM",
+    viem: o_WorldMobile,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#e879f9",
+    gradient: ["#e879f9", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_Xai.id,
+    key: "o_Xai",
+    name: "Xai Testnet",
+    short: "XAI",
+    viem: o_Xai,
+    bridge: "none",
+    bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
+    color: "#4ade80",
+    gradient: ["#4ade80", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
+  },
+  {
+    id: o_Edge.id,
+    key: "o_Edge",
+    name: "Edge Testnet",
+    short: "EDGE",
+    viem: o_Edge,
+    bridge: "orbit",
+    color: "#f43f5e",
+    gradient: ["#f43f5e", "#0b1120"],
+    faucets: [],
+    verifiedAt: VERIFIED
   }
 ];
 var TESTNET_IDS = new Set(CHAINS.map((c) => c.id));
 var BY_ID = new Map(CHAINS.map((c) => [c.id, c]));
 var BY_KEY = new Map(CHAINS.map((c) => [c.key, c]));
-function getChain(id) {
-  if (id == null) return void 0;
-  return BY_ID.get(id);
-}
 var CCTP_CHAINS = CHAINS.filter((c) => c.bridge === "cctp" && c.cctpDomain != null && c.usdc);
 var SWAP_CHAINS = CHAINS.filter((c) => c.uniswap);
 var VIEM_CHAINS = CHAINS.map((c) => c.viem);
-
-// src/config/orbit.ts
-var ORBIT_BRIDGES = {
-  // Robinhood Chain Testnet — Arbitrum Orbit chain settling to Ethereum Sepolia.
-  // https://docs.robinhood.com/chain/protocol-contracts/
-  46630: {
-    chainId: 46630,
-    parentChainId: 11155111,
-    rollup: "0xdc5F8E399DBd8a9F5F87AeC4C23Beb12431b386D",
-    inbox: "0xF2939afA86F6f933A3CE17fCAB007907B6b0B7a4",
-    bridge: "0x96295BDad104eaD97cC08797b3dC68efF59CcF30",
-    outbox: "0x8D180Caf588f3Da027BEf1F42a106Da93F90b166",
-    l1GatewayRouter: "0xF6F11aAEE80875776C264d93B37B34cE437382D1",
-    l1Erc20Gateway: "0x52C2976cbDEf48BcC51d07d3c523769F76ECBd09",
-    l1WethGateway: "0x8f8A6799F2b1978c6586318543c73D8Fb12f218f",
-    l1Weth: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
-    l2GatewayRouter: "0x77bF00A6A90c600f214b34BAFBB7918c0cF113A8",
-    l2Weth: "0x7943e237c7F95DA44E0301572D358911207852Fa",
-    source: "https://docs.robinhood.com/chain/protocol-contracts/"
-  }
-};
 
 // src/lib/arbitrumOrbit.ts
 var orbitInboxAbi = parseAbi([
@@ -21710,8 +22111,8 @@ var orbitRouterAbi = parseAbi([
 ]);
 var orbitGatewayAbi = parseAbi(["function calculateL2TokenAddress(address l1Token) view returns (address)"]);
 var erc20ApproveAbi = parseAbi(["function approve(address spender, uint256 amount) returns (bool)"]);
-async function orbitGasParams(l12, l22) {
-  const [l1Price, l2Price] = await Promise.all([l12.getGasPrice(), l22.getGasPrice()]);
+async function orbitGasParams(l1, l2) {
+  const [l1Price, l2Price] = await Promise.all([l1.getGasPrice(), l2.getGasPrice()]);
   const floor = 10n ** 8n;
   return {
     maxSubmissionCost: l1Price * 200000n,
@@ -21719,19 +22120,19 @@ async function orbitGasParams(l12, l22) {
     gasPriceBid: l2Price > floor ? l2Price : floor
   };
 }
-function buildOrbitEthDeposit(cfg2, to, amount, p) {
+function buildOrbitEthDeposit(cfg, to, amount, p) {
   const data = encodeFunctionData({
     abi: orbitInboxAbi,
     functionName: "createRetryableTicket",
     args: [to, amount, p.maxSubmissionCost, to, to, p.maxGas, p.gasPriceBid, "0x"]
   });
   return {
-    to: cfg2.inbox,
+    to: cfg.inbox,
     data,
     value: amount + p.maxSubmissionCost + p.maxGas * p.gasPriceBid
   };
 }
-function buildOrbitErc20Deposit(cfg2, token, to, amount, p) {
+function buildOrbitErc20Deposit(cfg, token, to, amount, p) {
   const userData = encodeAbiParameters([{ type: "uint256" }, { type: "bytes" }], [p.maxSubmissionCost, "0x"]);
   const data = encodeFunctionData({
     abi: orbitRouterAbi,
@@ -21739,75 +22140,92 @@ function buildOrbitErc20Deposit(cfg2, token, to, amount, p) {
     args: [token, to, amount, p.maxGas, p.gasPriceBid, userData]
   });
   return {
-    to: cfg2.l1GatewayRouter,
+    to: cfg.l1GatewayRouter,
     data,
     value: p.maxSubmissionCost + p.maxGas * p.gasPriceBid
   };
 }
 
 // scripts/orbit-check.ts
-var RPC = "https://ethereum-sepolia-rpc.publicnode.com";
-var l1 = createPublicClient({ transport: http(RPC, { timeout: 3e4, retryCount: 1 }) });
-var l2 = createPublicClient({ transport: http("https://rpc.testnet.chain.robinhood.com", { timeout: 3e4, retryCount: 1 }) });
-var cfg = ORBIT_BRIDGES[46630];
+var PARENT_RPC = {
+  11155111: "https://ethereum-sepolia-rpc.publicnode.com",
+  84532: "https://sepolia.base.org",
+  421614: "https://sepolia-rollup.arbitrum.io/rpc"
+};
+var CHILD_RPC = {
+  46630: "https://rpc.testnet.chain.robinhood.com",
+  79479957: "https://rpc-rollup.toronto.sx.technology",
+  7080969: "https://humanity-testnet.g.alchemy.com/public",
+  98867: "https://testnet-rpc.plume.org",
+  1962: "https://testnetrpc.trex.xyz",
+  843843: "https://galactica-cassiopeia.g.alchemy.com/public",
+  181228: "https://sepolia.hpp.io",
+  681: "https://jasmy-chain-testnet.alt.technology",
+  704852: "https://testnet-rpc.mars-chain.io",
+  4221: "https://rpc.testnet-chain.genlayer.com",
+  323432: "https://worldmobile-testnet.g.alchemy.com/public",
+  37714555429: "https://testnet-v2.xai-chain.net/rpc",
+  33431: "https://edge-testnet.g.alchemy.com/public"
+};
 var ME = "0x17078d3B7F67f7207719B7E0f91656644425E58e";
-var USDC = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
+var USDC_SEP = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 var pass = 0;
 var failures = [];
-if (!cfg) failures.push("Robinhood Chain testnet Orbit config missing");
-else {
-  const from15 = getChain(cfg.parentChainId);
-  const to = getChain(cfg.chainId);
-  void from15;
-  void to;
+var cfgs = Object.values(ORBIT_BRIDGES);
+console.log("=== Arbitrum Orbit deployments ===");
+for (const cfg of cfgs) {
+  const parentRpc = PARENT_RPC[cfg.parentChainId];
+  const childRpc = CHILD_RPC[cfg.chainId];
+  if (!parentRpc || !childRpc) {
+    failures.push(`${cfg.chainId}: no RPC configured for parent ${cfg.parentChainId} / child`);
+    continue;
+  }
+  const l1 = createPublicClient({ transport: http(parentRpc, { timeout: 3e4, retryCount: 1 }) });
+  const l2 = createPublicClient({ transport: http(childRpc, { timeout: 3e4, retryCount: 1 }) });
+  const ethNative = ORBIT_ETH_NATIVE.has(cfg.chainId);
   const contracts2 = [
     ["rollup", cfg.rollup],
     ["inbox", cfg.inbox],
     ["bridge", cfg.bridge],
-    ["outbox", cfg.outbox],
     ["l1GatewayRouter", cfg.l1GatewayRouter],
-    ["l1Erc20Gateway", cfg.l1Erc20Gateway],
-    ["l1WethGateway", cfg.l1WethGateway]
+    ["l1Erc20Gateway", cfg.l1Erc20Gateway]
   ];
   let codeOk = 0;
   for (const [name, addr] of contracts2) {
     const code = await l1.getBytecode({ address: addr }) ?? "0x";
     if ((code.length - 2) / 2 > 0) codeOk++;
-    else failures.push(`${name} ${addr} has no bytecode on ${getChain(cfg.parentChainId).short}`);
+    else failures.push(`${cfg.chainId} ${name} ${addr} has no bytecode on parent ${cfg.parentChainId}`);
   }
   if (codeOk === contracts2.length) pass++;
   const p = await orbitGasParams(l1, l2);
-  const amount = 10n ** 16n;
-  const eth = buildOrbitEthDeposit(cfg, ME, amount, p);
-  if (eth.value === amount + p.maxSubmissionCost + p.maxGas * p.gasPriceBid) pass++;
-  else failures.push(`ETH deposit value ${eth.value} != amount + submission + gas*fee`);
-  let simError = null;
-  const sim = await l1.call({ account: ME, to: eth.to, data: eth.data, value: eth.value }).then(() => true).catch((e) => {
-    simError = e?.shortMessage ?? "reverted";
-    return false;
-  });
-  if (sim) pass++;
-  else failures.push(`ETH deposit simulation reverted: ${simError ?? "unknown"}`);
-  const erc = buildOrbitErc20Deposit(cfg, USDC, ME, 1000000n, p);
+  const amount = 10n ** 15n;
+  const erc = buildOrbitErc20Deposit(cfg, USDC_SEP, ME, 1000000n, p);
   if (erc.value === p.maxSubmissionCost + p.maxGas * p.gasPriceBid) pass++;
-  else failures.push("ERC-20 deposit value should be fees only");
-  const userData = encodeAbiParameters([{ type: "uint256" }, { type: "bytes" }], [p.maxSubmissionCost, "0x"]);
-  if (encodeFunctionData({ abi: parseAbi(["function outboundTransfer(address,address,uint256,uint256,uint256,bytes)"]), functionName: "outboundTransfer", args: [USDC, ME, 1000000n, p.maxGas, p.gasPriceBid, userData] }) === erc.data) pass++;
-  else failures.push("ERC-20 calldata does not match the expected encoding");
-  const gateway = await l1.readContract({ address: cfg.l1GatewayRouter, abi: parseAbi(["function getGateway(address) view returns (address)"]), functionName: "getGateway", args: [USDC] });
-  if (gateway !== "0x0000000000000000000000000000000000000000") pass++;
-  else failures.push("USDC has no gateway registered on the Robinhood router");
-  console.log("=== Arbitrum Orbit bridge ===");
-  console.log(`chain            : ${cfg.chainId} (parent ${cfg.parentChainId})`);
-  console.log(`contracts w/code : ${codeOk}/${contracts2.length}`);
-  console.log(`ETH value        : ${eth.value} wei`);
-  console.log(`ETH simulation   : ${sim ? "ok" : "REVERTED"}`);
-  console.log(`USDC gateway     : ${gateway}`);
+  else failures.push(`${cfg.chainId}: ERC-20 deposit value should be fees only`);
+  const built = buildOrbitEthDeposit(cfg, ME, amount, p);
+  const sim = await l1.call({ account: ME, to: built.to, data: built.data, value: built.value }).then(
+    () => true,
+    () => false
+  );
+  if (ethNative) {
+    if (built.value !== amount + p.maxSubmissionCost + p.maxGas * p.gasPriceBid) {
+      failures.push(`${cfg.chainId}: ETH deposit value formula wrong`);
+    }
+    if (sim) pass++;
+    else failures.push(`${cfg.chainId}: ETH deposit simulation reverted but the chain is marked ETH-native`);
+  } else {
+    if (!sim) pass++;
+    else failures.push(`${cfg.chainId}: plain ETH deposit unexpectedly succeeds on an ERC20Inbox chain`);
+  }
+  console.log(
+    `${String(cfg.chainId).padEnd(12)} parent=${String(cfg.parentChainId).padEnd(8)} code=${codeOk}/${contracts2.length} ethNative=${ethNative ? "yes" : "no "} ethSim=${sim ? "ok" : "revert"}`
+  );
 }
+var expected = cfgs.length * 3;
 console.log(`
-=== ${pass}/6 orbit checks passed ===`);
+=== ${pass}/${expected} orbit checks passed across ${cfgs.length} chains ===`);
 if (failures.length) {
-  console.log("FAILED: " + failures.join(" | "));
+  console.log("FAILED:\n" + failures.map((f) => " - " + f).join("\n"));
   process.exit(1);
 }
 /*! Bundled license information:

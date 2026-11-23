@@ -17,7 +17,7 @@
 import { encodeAbiParameters, encodeFunctionData, parseAbi } from 'viem'
 import type { Address, ChainCfg } from '../config/chains'
 import { getChain } from '../config/chains'
-import { ORBIT_BRIDGES, orbitBridgeFor, type OrbitBridgeCfg } from '../config/orbit'
+import { ORBIT_BRIDGES, ORBIT_ETH_NATIVE, orbitBridgeFor, type OrbitBridgeCfg } from '../config/orbit'
 import type { TokenCfg } from '../config/tokens'
 
 export const orbitInboxAbi = parseAbi([
@@ -127,10 +127,10 @@ export function orbitTargets(parentChainId: number): Array<{ cfg: OrbitBridgeCfg
     .filter((x) => Boolean(x.chain))
 }
 
-/** True when the destination is an Orbit chain settling to the source chain. */
+/** True when the destination is an ETH-native Orbit chain settling to the source chain. */
 export function orbitRouteExists(fromId: number, toId: number): boolean {
   const cfg = orbitBridgeFor(toId)
-  return Boolean(cfg) && cfg!.parentChainId === fromId
+  return Boolean(cfg) && cfg!.parentChainId === fromId && ORBIT_ETH_NATIVE.has(toId)
 }
 
 export type { OrbitBridgeCfg }

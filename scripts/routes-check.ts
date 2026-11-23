@@ -39,6 +39,10 @@ const CASES: Case[] = [
   { name: 'Robinhood -> GIWA (no provider)', from: 46630, to: 91342, in: N(46630), out: N(91342), expect: 'none' },
   { name: 'Sepolia ETH -> Robinhood ETH', from: 11155111, to: 46630, in: N(11155111), out: N(46630), expect: 'direct', expectTx: 1 },
   { name: 'Base ETH -> Robinhood ETH', from: 84532, to: 46630, in: N(84532), out: N(46630), expect: 'composite', expectTx: 4 },
+  { name: 'Sepolia ETH -> T-Rex ETH', from: 11155111, to: 1962, in: N(11155111), out: N(1962), expect: 'direct', expectTx: 1 },
+  { name: 'Sepolia ETH -> HPP ETH', from: 11155111, to: 181228, in: N(11155111), out: N(181228), expect: 'direct', expectTx: 1 },
+  { name: 'Arbitrum Sepolia ETH -> Edge ETH', from: 421614, to: 33431, in: N(421614), out: N(33431), expect: 'direct', expectTx: 1 },
+  { name: 'Sepolia ETH -> Plume (ERC20Inbox)', from: 11155111, to: 98867, in: N(11155111), out: N(98867), expect: 'none' },
 ]
 
 let pass = 0

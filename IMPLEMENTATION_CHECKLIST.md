@@ -111,6 +111,14 @@ All twelve run green in `npm run test:routes`:
 - [x] `npm run test:orbit` regression check (6/6, includes a live simulation)
 - [x] Withdrawals still not offered (7-day challenge period)
 
+### Orbit testnet coverage (v0.7.0)
+
+- [x] 13 verified Arbitrum Orbit deployments added; every address re-checked for bytecode on its parent chain
+- [x] 4 ETH-native chains offer a native ETH deposit (Robinhood, T-Rex, HPP Sepolia, Edge), each calldata simulated live
+- [x] 9 ERC20Inbox chains deliberately excluded from ETH deposits, with the reason surfaced in the UI
+- [x] 12 new testnets added to the allowlist (SX Toronto, Humanity, Plume, Galactica, HPP, JASMY, Mars, GenLayer, WorldMobile, Xai, Edge; Mandala rejected — RPC unreachable)
+- [x] `npm run test:orbit` covers all 13 (39 checks)
+
 ## Phase 12 — regressions
 
 - [x] `tsc --noEmit`, `vite build`, `npm run test:sim` (28/28), `npm run test:routes` (12/12) all green

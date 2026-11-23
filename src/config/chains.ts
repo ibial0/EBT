@@ -1,4 +1,4 @@
-import type { Chain } from 'viem'
+import { defineChain, type Chain } from 'viem'
 import {
   sepolia,
   avalancheFuji,
@@ -58,7 +58,7 @@ export interface ChainCfg {
   /** verified Uniswap v3 deployment (quoter/router/factory) */
   uniswap?: UniswapDeployment
   /** primary bridge capability used for badges; opStackParent adds ETH deposits on top */
-  bridge: 'cctp' | 'opstack' | 'none'
+  bridge: 'cctp' | 'opstack' | 'orbit' | 'none'
   /** OP Stack L1 parent chain id, enables canonical ETH deposits from that parent */
   opStackParent?: number
   /** true when the native gas asset IS USDC (Arc): 18-decimal native view, 6-decimal ERC-20 view */
@@ -74,6 +74,92 @@ export interface ChainCfg {
 }
 
 const VERIFIED = '2026-11-23'
+
+// --- Arbitrum Orbit testnets (verified deployments, see src/config/orbit.ts) ---
+const o_SXToronto = defineChain({
+  id: 79479957,
+  name: 'SX Toronto',
+  nativeCurrency: { name: 'SX', symbol: 'SX', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc-rollup.toronto.sx.technology'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://explorerl2.toronto.sx.technology' } },
+})
+const o_Humanity = defineChain({
+  id: 7080969,
+  name: 'Humanity Testnet',
+  nativeCurrency: { name: 'tHP', symbol: 'tHP', decimals: 18 },
+  rpcUrls: { default: { http: ['https://humanity-testnet.g.alchemy.com/public'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://humanity-testnet.explorer.alchemy.com' } },
+})
+const o_Plume = defineChain({
+  id: 98867,
+  name: 'Plume Testnet',
+  nativeCurrency: { name: 'PLUME', symbol: 'PLUME', decimals: 18 },
+  rpcUrls: { default: { http: ['https://testnet-rpc.plume.org'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://testnet-explorer.plume.org' } },
+})
+const o_TRex = defineChain({
+  id: 1962,
+  name: 'T-Rex Testnet',
+  nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['https://testnetrpc.trex.xyz'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://testnet.trex.xyz' } },
+})
+const o_GalacticaCas = defineChain({
+  id: 843843,
+  name: 'Galactica Cassiopeia Testnet',
+  nativeCurrency: { name: 'GNET', symbol: 'GNET', decimals: 18 },
+  rpcUrls: { default: { http: ['https://galactica-cassiopeia.g.alchemy.com/public'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://galactica-cassiopeia.explorer.alchemy.com' } },
+})
+const o_HPPSepolia = defineChain({
+  id: 181228,
+  name: 'HPP Sepolia',
+  nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['https://sepolia.hpp.io'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://sepolia-explorer.hpp.io' } },
+})
+const o_JASMY = defineChain({
+  id: 681,
+  name: 'JASMY Chain Testnet',
+  nativeCurrency: { name: 'JASMY', symbol: 'JASMY', decimals: 18 },
+  rpcUrls: { default: { http: ['https://jasmy-chain-testnet.alt.technology'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://jasmy-chain-testnet-explorer.alt.technology' } },
+})
+const o_Mars = defineChain({
+  id: 704852,
+  name: 'Mars Chain Testnet',
+  nativeCurrency: { name: 'MarsC', symbol: 'MarsC', decimals: 18 },
+  rpcUrls: { default: { http: ['https://testnet-rpc.mars-chain.io'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://testnet-explorer.mars-chain.io' } },
+})
+const o_GenLayer = defineChain({
+  id: 4221,
+  name: 'GenLayer Chain Testnet',
+  nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.testnet-chain.genlayer.com'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://scan.testnet-chain.genlayer.com' } },
+})
+const o_WorldMobile = defineChain({
+  id: 323432,
+  name: 'WorldMobile Testnet',
+  nativeCurrency: { name: 'WOMOX', symbol: 'WOMOX', decimals: 18 },
+  rpcUrls: { default: { http: ['https://worldmobile-testnet.g.alchemy.com/public'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://testnet-explorer.worldmobile.net' } },
+})
+const o_Xai = defineChain({
+  id: 37714555429,
+  name: 'Xai Testnet',
+  nativeCurrency: { name: 'sXAI', symbol: 'sXAI', decimals: 18 },
+  rpcUrls: { default: { http: ['https://testnet-v2.xai-chain.net/rpc'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://testnet-explorer-v2.xai-chain.net' } },
+})
+const o_Edge = defineChain({
+  id: 33431,
+  name: 'Edge Testnet',
+  nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['https://edge-testnet.g.alchemy.com/public'] } },
+  blockExplorers: { default: { name: 'Explorer', url: 'https://edge-testnet.explorer.alchemy.com' } },
+})
 
 export const CCTP_TOKEN_MESSENGER_V2: Address = '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA'
 export const CCTP_MESSAGE_TRANSMITTER_V2: Address = '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275'
@@ -420,9 +506,9 @@ export const CHAINS: ChainCfg[] = [
         default: { name: 'Robinhood Chain Testnet Explorer', url: 'https://explorer.testnet.chain.robinhood.com' },
       },
     } as unknown as Chain,
-    bridge: 'none',
+    bridge: 'orbit',
     bridgeNote:
-      'TokenMessengerV2 and MessageTransmitterV2 do exist at the canonical address here (localDomain 35, and the Iris sandbox returns a fee schedule), but Circle does not document this chain and several look-alike USDC tokens exist without a verifiably Circle-issued one. Offering a burn against the wrong USDC would be a fund-loss trap, so no USDC route is exposed.',
+      'No Circle CCTP route: TokenMessengerV2 and MessageTransmitterV2 exist at the canonical addresses (localDomain 35) but Circle does not document this chain, and several look-alike USDC tokens exist without a verifiably Circle-issued one. ETH deposits go through the Arbitrum Orbit inbox instead.',
     color: '#00c853',
     gradient: ['#00c853', '#00522d'],
     faucets: [
@@ -445,6 +531,159 @@ export const CHAINS: ChainCfg[] = [
       { label: 'Nodit GIWA Faucet', url: 'https://faucet.lambda256.io/giwa-sepolia', tokens: ['ETH'], access: 'free', cooldown: '24h', note: '0.01 ETH per wallet every 24 hours. No account, but the page asks you to follow @NoditPlatform on X.', checked: VERIFIED },
       { label: 'Sepolia ETH for L1 gas', url: 'https://cloud.google.com/application/web3/faucet/ethereum/sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
     ],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_SXToronto.id,
+    key: 'o_SXToronto',
+    name: 'SX Toronto',
+    short: 'SXTO',
+    viem: o_SXToronto,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#f59e0b',
+    gradient: ['#f59e0b', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_Humanity.id,
+    key: 'o_Humanity',
+    name: 'Humanity Testnet',
+    short: 'HUM',
+    viem: o_Humanity,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#38bdf8',
+    gradient: ['#38bdf8', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_Plume.id,
+    key: 'o_Plume',
+    name: 'Plume Testnet',
+    short: 'PLUME',
+    viem: o_Plume,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#a78bfa',
+    gradient: ['#a78bfa', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_TRex.id,
+    key: 'o_TRex',
+    name: 'T-Rex Testnet',
+    short: 'TREX',
+    viem: o_TRex,
+    bridge: 'orbit',
+    color: '#fb7185',
+    gradient: ['#fb7185', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_GalacticaCas.id,
+    key: 'o_GalacticaCas',
+    name: 'Galactica Cassiopeia Testnet',
+    short: 'GAL',
+    viem: o_GalacticaCas,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#34d399',
+    gradient: ['#34d399', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_HPPSepolia.id,
+    key: 'o_HPPSepolia',
+    name: 'HPP Sepolia',
+    short: 'HPP',
+    viem: o_HPPSepolia,
+    bridge: 'orbit',
+    color: '#fbbf24',
+    gradient: ['#fbbf24', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_JASMY.id,
+    key: 'o_JASMY',
+    name: 'JASMY Chain Testnet',
+    short: 'JAS',
+    viem: o_JASMY,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#818cf8',
+    gradient: ['#818cf8', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_Mars.id,
+    key: 'o_Mars',
+    name: 'Mars Chain Testnet',
+    short: 'MARS',
+    viem: o_Mars,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#f97316',
+    gradient: ['#f97316', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_GenLayer.id,
+    key: 'o_GenLayer',
+    name: 'GenLayer Chain Testnet',
+    short: 'GEN',
+    viem: o_GenLayer,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#22d3ee',
+    gradient: ['#22d3ee', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_WorldMobile.id,
+    key: 'o_WorldMobile',
+    name: 'WorldMobile Testnet',
+    short: 'WOM',
+    viem: o_WorldMobile,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#e879f9',
+    gradient: ['#e879f9', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_Xai.id,
+    key: 'o_Xai',
+    name: 'Xai Testnet',
+    short: 'XAI',
+    viem: o_Xai,
+    bridge: 'none',
+    bridgeNote: 'Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.',
+    color: '#4ade80',
+    gradient: ['#4ade80', '#0b1120'],
+    faucets: [],
+    verifiedAt: VERIFIED,
+  },
+  {
+    id: o_Edge.id,
+    key: 'o_Edge',
+    name: 'Edge Testnet',
+    short: 'EDGE',
+    viem: o_Edge,
+    bridge: 'orbit',
+    color: '#f43f5e',
+    gradient: ['#f43f5e', '#0b1120'],
+    faucets: [],
     verifiedAt: VERIFIED,
   },
 ]

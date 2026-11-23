@@ -19,7 +19,7 @@ import { executeSwap } from '../lib/swapExec'
 import { startTracking } from '../lib/tracker'
 import { startDepositTracking } from '../lib/depositTrack'
 import { startOrbitTracking } from '../lib/orbitTrack'
-import { orbitBridgeFor } from '../config/orbit'
+import { ORBIT_ETH_NATIVE, orbitBridgeFor } from '../config/orbit'
 import { fmt, safeParseUnits } from '../lib/format'
 import { checkGas, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
@@ -434,9 +434,11 @@ export default function Bridge() {
               <div className="text-[12px] font-medium text-[#ffb4b6]">No bridge route available for this token pair.</div>
               <p className="mt-1 text-[11px] leading-relaxed text-t2">
                 No asset on {from.short} can reach {to.short} with a verified provider.
-                {to.cctpDomain == null
-                  ? ` ${to.short} is not a Circle CCTP chain, so USDC cannot be bridged there, and ETH can only be deposited from its own L1.`
-                  : ' There is no verified bridge or swap route in either direction.'}
+                {orbitBridgeFor(toId) && !ORBIT_ETH_NATIVE.has(toId)
+                  ? ` ${to.short} is an Arbitrum Orbit chain whose gas token is ${to.viem.nativeCurrency.symbol}, not ETH, so its inbox (an ERC20Inbox) prices retryable tickets in that token and a plain ETH deposit does not exist there. It is also not a Circle CCTP chain.`
+                  : to.cctpDomain == null
+                    ? ` ${to.short} is not a Circle CCTP chain, so USDC cannot be bridged there, and ETH can only be deposited from its own L1.`
+                    : ' There is no verified bridge or swap route in either direction.'}
               </p>
               <p className="mt-1 text-[11px] leading-relaxed text-t3">
                 Source assets that do work: {sourceOptions.map((t) => t.symbol).join(', ') || 'none'}.
