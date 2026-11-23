@@ -25,7 +25,51 @@ same factory, `getPool()` returns a pool, and `liquidity()` is non-zero.
 | World Chain Sepolia (4801) | one verified `UniswapV3Factory` `0xE4A6C401…c110` with a single `PoolCreated`, liquidity 0, slot0 all zero. No QuoterV2, no SwapRouter02. | not executable |
 | GIWA Sepolia (91342) | a live v3 pool exists but only against an **unverified mock USDC**, and no quoter maps to that factory | not verifiable |
 | Robinhood Chain Testnet (46630) | the three canonical factories have **no code**; the WETH predeploy has no code | no deployment |
-| Avalanche Fuji, Arbitrum Sepolia, Polygon Amoy, Linea, Codex, Monad, Sei, Plasma, X Layer, Injective | sweep in progress | see the run log |
+### Full sweep of the remaining configured testnets (2026-11-23)
+
+Each chain's RPC answered and `eth_chainId` matched the app. All three canonical Uniswap v3
+factories, all three quoters and all three routers were probed with `eth_getCode` on every chain.
+
+| Chain | id | Native | Canonical deployments | Verdict |
+| --- | --- | --- | --- | --- |
+| Avalanche Fuji | 43113 | AVAX | no code at any address | no deployment |
+| Arbitrum Sepolia | 421614 | ETH | no code | no deployment |
+| Polygon Amoy | 80002 | POL | no code | no deployment |
+| Linea Sepolia | 59141 | ETH | no code | no deployment |
+| Monad Testnet | 10143 | MON | no code | no deployment |
+| Sei Testnet | 1328 | SEI | no code | no deployment |
+| Ink Sepolia | 763373 | ETH | **real v3 deployment, 123 live pools** | not executable with our USDC |
+| Plasma Testnet | 9746 | XPL | no code | no deployment |
+| X Layer Testnet | 1952 | OKB | no code (0x4200…06 is WOKB) | no deployment |
+| Injective Testnet | 1439 | INJ | no code | no deployment |
+
+**Caveat, stated plainly:** only Ink Sepolia exposed a working explorer search API. For the other nine
+chains every explorer endpoint was unreachable (Cloudflare 403, HTML error pages, HTTP 404, DNS
+failure or an SPA with no API), so only the canonical addresses could be enumerated. "No deployment"
+therefore means no deployment at the canonical addresses — a third-party DEX on those chains cannot
+be ruled out by this sweep.
+
+**Ink Sepolia in detail.** The factory `0x56e54E72E22e648A62e1e2a738f24881Db343Ec2` with quoter
+`0x9863560B4C43c545765e1B84ad05dd8A16065c64` and router `0x65e871159aEb64375af9188C461479E4D781487e`
+is live, and real quotes were executed through it (1 mUSDC -> 0.00054945312280762 WETH, 1 DAI ->
+0.003329728071951608 WETH, 1 USDT -> 0.001991682055608161 WETH). But none of its 123 pools, and none of
+133 v4 `Initialize` events across 26 PoolManagers, references the app's USDC
+`0xFabab97dCE620294D2B0b0e46C68964e326300Ac`.
+
+Read on chain, the tokens that *do* have pools are:
+
+| Address | symbol() | name() | decimals |
+| --- | --- | --- | --- |
+| `0xFabab…300Ac` (registered) | USDC | USDC | 6 |
+| `0x314ac…013` | USDC | Tether USDC | 6 |
+| `0x88caf…879e` | USDT | Tether USD | 6 |
+| `0x2e0321…Fd25` | USDT | USDT - Test | 18 |
+
+The pools run on Tether-issued test stablecoins, not the USDC this app registers. The registered
+address is correct: Circle's own contract list names `0xFabab97dCE620294D2B0b0e46C68964e326300Ac`
+as Ink Testnet USDC (`developers.circle.com/stablecoins/usdc-contract-addresses`). Promoting
+"Tether USDC" and "USDT - Test" to swap assets would mean vetting third-party tokens we cannot
+verify, so **Ink is deliberately not offered in Swap** even though its DEX works.
 
 ## How the UI gets its list
 

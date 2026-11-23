@@ -75,7 +75,7 @@ All twelve run green in `npm run test:routes`:
 - [x] Unsupported networks documented, not advertised
 - [x] One registry drives the Swap list; no hardcoded five-item list
 - [x] Robinhood verified and correctly excluded (no deployment)
-- [x] Monad and the remaining chains swept (see `SWAP_NETWORK_DISCOVERY.md`)
+- [x] All remaining chains swept: 9 with no canonical deployment, Ink with a live DEX that has no pool for our USDC (see `SWAP_NETWORK_DISCOVERY.md`)
 
 ## Phase 8 — token and pool discovery per chain
 
