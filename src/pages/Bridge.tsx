@@ -682,6 +682,21 @@ function AssetSelect({
   onSelect: (t: TokenCfg) => void
 }) {
   const chain = getChain(chainId)!
+  // never stay mounted: an always-present overlay swallows every click on the page
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [open, onClose])
+
+  if (!open) return null
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6" onClick={onClose}>
       <div

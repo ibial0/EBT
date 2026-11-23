@@ -65,6 +65,31 @@ Runs the app's own calldata builders against live chain state with `eth_call` an
 | Circle USDC issuance | **not verifiable**; several USDC-named tokens, none documented by Circle |
 | Offered in the UI | wallet, native balance, ERC-20 balance, faucet, explorer only |
 
+## Full-site interaction sweep (after the Bridge modal fix)
+
+Every page visited, then its primary controls exercised.
+
+| Page | Renders | Stray overlays at rest | Clickable controls | Console errors |
+| --- | --- | --- | --- | --- |
+| Overview | yes | 0 | 5 | none |
+| Portfolio | yes | 0 | 4 | none |
+| Bridge | yes | 0 | 9 | none |
+| Swap | yes | 0 | 9 | none |
+| Cross-chain | yes | 0 | 6 | none |
+| Faucets | yes | 0 | 46 | none |
+| Activity | yes | 0 | 6 | none |
+| Recover | yes | 0 | 5 | none |
+| Settings | yes | 0 | 4 | none |
+
+Bridge interactions: send/receive asset pickers open and close, chain switching recomputes the route,
+direction flip recomputes (OP Sepolia to Sepolia correctly becomes a composite because the portal is
+one-way), amount entry produces a live estimate, recipient input works, connected balance is read
+from the chain (0.81368 ETH on Sepolia) and the CTA reads "Bridge ETH".
+
+Modal close paths verified for backdrop, X and Escape.
+
+Mobile (390x844): no horizontal scroll, bottom navigation present.
+
 ## Not verified by automation
 
 Anything that needs a real signature: the actual mint on Arc, an actual swap, a real
