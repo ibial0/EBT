@@ -123,6 +123,24 @@ export function updateStep(id: string, stepKey: string, patch: Partial<TxStep>) 
   emit()
 }
 
+/** Adds a step (used when an older record predates a step the code now expects). */
+export function appendStep(id: string, key: string, step: Omit<TxStep, 'key' | 'updatedAt'> & { updatedAt?: number }) {
+  load()
+  items = items.map((i) => {
+    if (i.id !== id) return i
+    if (i.steps.some((s) => s.key === key)) {
+      return {
+        ...i,
+        updatedAt: Date.now(),
+        steps: i.steps.map((s) => (s.key === key ? { ...s, ...step, updatedAt: Date.now() } : s)),
+      }
+    }
+    return { ...i, updatedAt: Date.now(), steps: [...i.steps, { ...step, key, updatedAt: Date.now() }] }
+  })
+  persist()
+  emit()
+}
+
 /** Anything on chain? Used to tell a plan from a real transaction. */
 export function hasChainActivity(item: ActivityItem): boolean {
   return item.steps.some((s) => Boolean(s.hash))

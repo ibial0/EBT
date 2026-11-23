@@ -95,3 +95,24 @@ Mobile (390x844): no horizontal scroll, bottom navigation present.
 Anything that needs a real signature: the actual mint on Arc, an actual swap, a real
 recovery. Calldata, gas, simulation and on-chain eligibility are verified; the signature
 is the owner's.
+
+
+## OP Stack deposit tracker (v0.5.2)
+
+Found from a real user report: a 0.1 ETH Sepolia -> GIWA Sepolia deposit sat at "pending" for
+3 hours. The deposit had in fact been included on GIWA 59 seconds after the L1 transaction
+(L2 tx `0x81f9c9d4c9e8ec03375bb0588e56b8a7fab209241b1307f98ddd3fa31415a2a6`, block 42084947).
+The app had no way to resolve an OP Stack deposit: the tracker only handled Circle CCTP attestations.
+
+A canonical deposit is derived by the sequencer from the L1 `TransactionDeposited` log, so the
+destination transaction hash is computable locally:
+
+- `sourceHash = keccak256(bytes32(uint256(0)), keccak256(l1BlockHash, bytes32(uint256(l1LogIndex))))`
+- `depositTx  = keccak256(0x7E || rlp([sourceHash, from, to, mint, value, gas, isSystemTx, data]))`
+
+`src/lib/depositTrack.ts` implements this and polls the destination chain. Verified end to end:
+the derived hash equals the hash the destination chain reports, and a record seeded in the exact
+shape of the user's stuck entry flips to `complete` on page load with both hashes recorded.
+
+`npm run test:deposit` re-derives the hash for that real deposit and asserts the destination reports
+it successful, so a regression cannot silently strand another deposit.

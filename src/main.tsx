@@ -7,6 +7,8 @@ import App from './App'
 import './index.css'
 import { wagmiConfig } from './lib/wallet'
 import { resumeTracking } from './lib/tracker'
+import { resumeDepositTracking } from './lib/depositTrack'
+import { getPublicClient } from 'wagmi/actions'
 import { Toaster } from './components/ui'
 
 const queryClient = new QueryClient({
@@ -16,6 +18,7 @@ const queryClient = new QueryClient({
 function Root() {
   useEffect(() => {
     resumeTracking()
+    resumeDepositTracking((chainId) => getPublicClient(wagmiConfig, { chainId: chainId as never }))
   }, [])
   return (
     <WagmiProvider config={wagmiConfig}>

@@ -19,6 +19,7 @@ import {
   useActivity,
 } from '../lib/activity'
 import { startTracking, pollOnce, isTracking } from '../lib/tracker'
+import { startDepositTracking, pollDepositOnce, isDepositTracking } from '../lib/depositTrack'
 import { submitReceiveMessage, isMessageUsed } from '../lib/bridgeExec'
 import { decodeTxError } from '../lib/errors'
 import { shortAddr, timeAgo } from '../lib/format'
@@ -224,6 +225,41 @@ function Detail({ id }: { id: string }) {
                 >
                   Check now
                 </Button>
+              )}
+              {item.provider === 'opstack' && depositStep?.status !== 'done' && item.status !== 'complete' && (
+                <>
+                  {!isDepositTracking(item.id) && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        const l1 = getPublicClient(wagmiConfig, { chainId: item.fromChainId as never })
+                        const l2 = getPublicClient(wagmiConfig, { chainId: item.toChainId as never })
+                        if (!l1 || !l2) return notify('No RPC for one of these chains.', 'error')
+                        startDepositTracking(item.id, { l1, l2 })
+                        notify('Checking the destination chain for the deposit.', 'info')
+                      }}
+                    >
+                      <RefreshCw size={12} /> Resume check
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={async () => {
+                      const l1 = getPublicClient(wagmiConfig, { chainId: item.fromChainId as never })
+                      const l2 = getPublicClient(wagmiConfig, { chainId: item.toChainId as never })
+                      if (!l1 || !l2) return notify('No RPC for one of these chains.', 'error')
+                      const s = await pollDepositOnce(item.id, l1, l2)
+                      notify(
+                        s === 'complete' ? 'Deposit included on the destination chain.' : s === 'idle' ? 'Nothing to check yet.' : 'Not included yet.',
+                        s === 'complete' ? 'success' : 'info',
+                      )
+                    }}
+                  >
+                    Check now
+                  </Button>
+                </>
               )}
             </div>
           </div>

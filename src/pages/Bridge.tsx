@@ -17,6 +17,7 @@ import { quoteBest, applySlippage, erc20Abi } from '../lib/uniswap'
 import { executeCctpBridge, executeOpDeposit } from '../lib/bridgeExec'
 import { executeSwap } from '../lib/swapExec'
 import { startTracking } from '../lib/tracker'
+import { startDepositTracking } from '../lib/depositTrack'
 import { fmt, safeParseUnits } from '../lib/format'
 import { checkGas, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
@@ -203,12 +204,27 @@ export default function Bridge() {
     setLastError(null)
     try {
       await ensureChain(fromId)
-      const steps = route.legs.map((leg, i) => ({
-        key: `leg${i}`,
-        label: legLabel(i, leg),
-        status: 'pending' as const,
-        chainId: leg.kind === 'swap' ? leg.chainId : leg.from,
-      }))
+      const steps = route.legs.flatMap((leg, i) => {
+        const base = {
+          key: `leg${i}`,
+          label: legLabel(i, leg),
+          status: 'pending' as const,
+          chainId: leg.kind === 'swap' ? leg.chainId : leg.from,
+        }
+        // a portal deposit has a second, derived step: the sequencer includes it on L2
+        return leg.kind === 'portal'
+          ? [
+              base,
+              {
+                key: `arrive${i}`,
+                label: `Arrives on ${getChain(leg.to)?.short ?? 'L2'}`,
+                status: 'pending' as const,
+                chainId: leg.to,
+                note: 'Waiting for the sequencer to include the deposit.',
+              },
+            ]
+          : [base]
+      })
       const item = addActivity({
         kind: route.legs.length > 1 ? 'bridge' : route.legs[0].kind === 'portal' ? 'deposit' : 'bridge',
         provider: route.legs.some((l) => l.kind === 'cctp') ? 'cctp' : 'opstack',
@@ -286,6 +302,15 @@ export default function Bridge() {
             onStep: (step, state, hash) =>
               updateStep(item.id, `leg${i}`, { status: state === 'active' ? 'active' : state === 'done' ? 'done' : 'failed', hash }),
           })
+          if (route.legs[i].kind === 'portal') {
+            const l2 = getPublicClient(wagmiConfig, { chainId: leg.to as never })
+            if (l2) {
+              updateStep(item.id, `arrive${i}`, { status: 'active' })
+              startDepositTracking(item.id, { l1: client, l2 }, {
+                onDone: (st) => notify(st === 'complete' ? 'Deposit included on the destination chain.' : 'The deposit was included but reverted.', st === 'complete' ? 'success' : 'error'),
+              })
+            }
+          }
         }
         finalizeFromSteps(item.id)
       }
