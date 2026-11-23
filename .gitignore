@@ -7,3 +7,4 @@ scripts/portfolio-probe.mjs
 *.log
 .DS_Store
 scripts/pools.mjs
+.scratch/
