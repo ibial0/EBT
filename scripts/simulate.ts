@@ -175,6 +175,26 @@ async function main() {
   const baseQuote = await quoteBest(l2 as never, chainBase, USDC_OF(84532)!.address, WETH[84532], 1_000_000n)
   record('swap: quote USDC→WETH on Base Sepolia', Boolean(baseQuote), baseQuote ? `out=${baseQuote.amountOut} fee=${baseQuote.fee}` : 'no quote')
 
+  /* OP Sepolia uses the canonical v3 deployment (same addresses as Base) */
+  const chainOp = getChain(11155420)!
+  const opClient = createPublicClient({ transport: http(RPC[11155420], { timeout: 25000 }) })
+  const opUsdc = USDC_OF(11155420)!
+  const opQuote = await quoteBest(opClient as never, chainOp, opUsdc.address, WETH[11155420], 1_000_000n)
+  record('swap: quote USDC→WETH on OP Sepolia', Boolean(opQuote), opQuote ? `out=${opQuote.amountOut} fee=${opQuote.fee}` : 'no quote')
+  if (opQuote) {
+    const opTx = buildSwapCalldata({
+      chain: chainOp,
+      account: SENDER,
+      tokenIn: { address: opUsdc.address, symbol: 'USDC', decimals: 6 },
+      tokenOut: { address: WETH[11155420], symbol: 'WETH', decimals: 18 },
+      amountIn: 1_000_000n,
+      amountOutMinimum: (opQuote.amountOut * 99n) / 100n,
+      fee: opQuote.fee,
+    })
+    const opSwap = await simulateErc20Call(opTx.to, opTx.data, 1_000_000n, chainOp.uniswap!.router02)
+    record('swap: USDC→WETH executes on OP Sepolia', opSwap.ok, opSwap.detail)
+  }
+
   /* ---------------- 7. pair coverage matrix ---------------- */
   const pairs = await pairCoverage()
   record('swap: executable pair coverage', pairs.live > 0, `${pairs.live} live pairs / ${pairs.tried} probed`)

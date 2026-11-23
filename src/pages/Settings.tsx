@@ -7,6 +7,7 @@ import { PageHeader } from '../components/Layout'
 import { clearActivity, listActivity } from '../lib/activity'
 import { useNetworkHealth } from '../lib/health'
 import { allowlistSummary } from '../lib/guard'
+import { capabilitiesOf } from '../lib/capabilities'
 
 export default function Settings() {
   const health = useNetworkHealth()
@@ -104,6 +105,55 @@ export default function Settings() {
         <div className="mt-3 text-[11px] leading-relaxed text-t3">
           RPC endpoints used ({Object.keys(RPC).length}): public chain endpoints, no API key. Override them in{' '}
           <span className="mono">src/lib/wallet.ts</span> if a public endpoint rate-limits you.
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <h3 className="mb-1 text-sm font-semibold text-white">Capability matrix</h3>
+        <p className="mb-3 text-[11px] leading-relaxed text-t3">
+          Each feature is decided separately. A chain that can receive a bridge but has no swap venue is not
+          reported as swap-capable, and the reverse.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left text-[11px]">
+            <thead className="text-t3">
+              <tr className="border-b border-line">
+                <th className="py-1.5 pr-3 font-medium">Chain</th>
+                {['Wallet', 'Native', 'ERC-20', 'Swap', 'USDC bridge', 'ETH deposit', 'Cross-chain', 'Recovery'].map((h) => (
+                  <th key={h} className="py-1.5 px-2 font-medium">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {CHAINS.map((c) => {
+                const rows = capabilitiesOf(c)
+                return (
+                  <tr key={c.id} className="border-b border-white/4 text-t1">
+                    <td className="py-1.5 pr-3">
+                      <span className="flex items-center gap-1.5">
+                        <ChainLogo chain={c} size={16} /> {c.short}
+                      </span>
+                    </td>
+                    {rows.map((r) => (
+                      <td key={r.key} className="px-2 py-1.5" title={r.note}>
+                        {r.state === 'yes' ? (
+                          <span className="text-[#4cc38a]">yes</span>
+                        ) : r.state === 'partial' ? (
+                          <span className="text-[#e3c07b]" title={r.note}>
+                            partial
+                          </span>
+                        ) : (
+                          <span className="text-t3">no</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       </Card>
 

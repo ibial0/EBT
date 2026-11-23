@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { Check, Copy, Loader2, X } from 'lucide-react'
 import { copy as doCopy } from '../lib/format'
 import type { ChainCfg } from '../config/chains'
+import { chainLogoFile, tokenLogoFile } from '../config/logos'
 
 /* ───────────────────────── toast ───────────────────────── */
 
@@ -153,39 +154,6 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
 
 /* ───────────────────────── logos (real assets) ───────────────────────── */
 
-const CHAIN_LOGO: Record<string, string> = {
-  sepolia: 'tw_ethereum.png',
-  baseSepolia: 'tw_base.png',
-  arbitrumSepolia: 'tw_arbitrum.png',
-  optimismSepolia: 'tw_optimism.png',
-  polygonAmoy: 'tw_polygon.png',
-  avalancheFuji: 'avalanche.webp',
-  unichainSepolia: 'unichain.webp',
-  lineaSepolia: 'linea.webp',
-  worldchainSepolia: 'worldchain.webp',
-  monadTestnet: 'monad.webp',
-  seiTestnet: 'sei.webp',
-  inkSepolia: 'ink.webp',
-  plasmaTestnet: 'plasma.webp',
-  xLayerTestnet: 'xlayer.webp',
-  arcTestnet: 'arc.webp',
-  codexTestnet: 'codex.webp',
-  injectiveTestnet: 'injective.webp',
-  giwaSepolia: 'giwa.png',
-}
-
-const TOKEN_LOGO: Record<string, string> = {
-  USDC: 'usdc.png',
-  USDT: 'usdt.png',
-  DAI: 'dai.png',
-  WETH: 'weth.png',
-  ETH: 'eth.png',
-  UNI: 'uni.png',
-  LINK: 'link.png',
-  WBTC: 'wbtc.png',
-  EURC: 'eurc.png',
-}
-
 function initials(name: string) {
   const parts = name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean)
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
@@ -222,12 +190,30 @@ function LogoShell({ src, size, label }: { src?: string; size: number; label: st
 }
 
 export function ChainLogo({ chain, size = 24 }: { chain: ChainCfg; size?: number }) {
-  const file = CHAIN_LOGO[chain.key]
+  const file = chainLogoFile(chain.key, chain.id)
   return <LogoShell src={file ? `/logos/chains/${file}` : undefined} size={size} label={chain.short} />
 }
 
-export function TokenIcon({ symbol, size = 24 }: { symbol: string; color?: string; size?: number }) {
-  const file = TOKEN_LOGO[symbol.toUpperCase()]
+/**
+ * Token icon. Pass chainId + address whenever they are known: the address decides
+ * which logo is used, so an imported token named USDC cannot borrow Circle's mark.
+ */
+export function TokenIcon({
+  symbol,
+  size = 24,
+  chainId,
+  address,
+  verified = true,
+  color,
+}: {
+  symbol: string
+  size?: number
+  chainId?: number
+  address?: string | null
+  verified?: boolean
+  color?: string
+}) {
+  const file = tokenLogoFile(chainId, address ?? undefined, symbol, verified)
   return <LogoShell src={file ? `/logos/tokens/${file}` : undefined} size={size} label={symbol} />
 }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowUpRight, Droplets, Info, Search } from 'lucide-react'
 import { CHAINS, type ChainCfg, type FaucetLink } from '../config/chains'
-import { Badge, Button, Card, ChainLogo, CopyButton, Modal } from '../components/ui'
+import { Badge, Button, Card, ChainLogo, CopyButton, Modal, TokenIcon } from '../components/ui'
 import { PageHeader } from '../components/Layout'
 
 const ACCESS_LABEL: Record<string, string> = {
@@ -59,26 +59,40 @@ export default function Faucets() {
 
             <div className="mt-3 space-y-1.5">
               {c.faucets.map((f) => (
-                <button
+                <div
                   key={f.url + f.label}
-                  onClick={() => setDetail({ chain: c, faucet: f })}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-ink-850 px-2.5 py-2 text-left transition-colors hover:border-line-strong hover:bg-ink-700"
+                  className="flex items-center gap-2 rounded-lg border border-line bg-ink-850 px-2.5 py-2"
                 >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Droplets size={13} className="shrink-0 text-accent" />
-                    <span className="truncate text-[13px] text-t1">{f.label}</span>
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-ink-700">
+                    <Droplets size={13} className="text-accent" />
                   </span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    {f.access && <span className="chip !text-[10px]">{ACCESS_LABEL[f.access] ?? f.access}</span>}
-                    {f.cooldown && <span className="mono text-[10px] text-t3">{f.cooldown}</span>}
-                    {f.tokens?.map((t) => (
-                      <span key={t} className="chip !px-1.5 !py-0 !text-[9px]">
-                        {t}
-                      </span>
-                    ))}
-                    <ArrowUpRight size={12} className="text-t3" />
-                  </span>
-                </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] text-t1">{f.label}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                      {f.access && <span className="chip !text-[9px]">{ACCESS_LABEL[f.access] ?? f.access}</span>}
+                      {f.cooldown && <span className="mono text-[10px] text-t3">{f.cooldown}</span>}
+                      {f.tokens?.map((t) => (
+                        <span key={t} className="chip !px-1.5 !py-0 !text-[9px]">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setDetail({ chain: c, faucet: f })}
+                    className="shrink-0 rounded-md border border-line px-2 py-1 text-[11px] text-t2 transition-colors hover:border-line-strong hover:text-t1"
+                  >
+                    Requirements
+                  </button>
+                  <a
+                    href={f.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex shrink-0 items-center gap-1 rounded-md bg-ink-700 px-2.5 py-1 text-[11px] text-t1 transition-colors hover:bg-ink-600"
+                  >
+                    Open <ArrowUpRight size={11} />
+                  </a>
+                </div>
               ))}
               {c.faucets.some((f) => f.note) && (
                 <div className="space-y-1 pt-0.5">
@@ -104,6 +118,56 @@ export default function Faucets() {
           </Card>
         ))}
       </div>
+
+      <Modal
+        open={detail !== null}
+        onClose={() => setDetail(null)}
+        title={detail ? `${detail.faucet.label} · ${detail.chain.short}` : ''}
+      >
+        {detail && (
+          <div className="space-y-3 p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="blue">{detail.chain.name}</Badge>
+              {detail.faucet.access && <Badge>{ACCESS_LABEL[detail.faucet.access] ?? detail.faucet.access}</Badge>}
+              {detail.faucet.cooldown && <Badge tone="amber">cooldown {detail.faucet.cooldown}</Badge>}
+            </div>
+            <div>
+              <div className="label mb-1">Dispenses</div>
+              <div className="flex flex-wrap gap-1.5">
+                {(detail.faucet.tokens ?? []).map((t) => (
+                  <span key={t} className="chip">
+                    <TokenIcon symbol={t} size={14} /> {t}
+                  </span>
+                ))}
+                {!detail.faucet.tokens?.length && <span className="text-[12px] text-t3">Not verified</span>}
+              </div>
+            </div>
+            <div>
+              <div className="label mb-1">Verified requirements</div>
+              {detail.faucet.note ? (
+                <p className="text-[12px] leading-5 text-t1">{detail.faucet.note}</p>
+              ) : (
+                <p className="text-[12px] leading-5 text-[#e3c07b]">Requirements not verified for this provider.</p>
+              )}
+              {detail.faucet.access && (
+                <p className="mt-1.5 text-[11px] leading-5 text-t3">
+                  Access: {ACCESS_LABEL[detail.faucet.access] ?? detail.faucet.access}. Cooldown:{' '}
+                  {detail.faucet.cooldown ?? 'not published'}.
+                </p>
+              )}
+            </div>
+            <div className="mono break-all rounded-lg border border-line bg-ink-850 px-3 py-2 text-[11px] text-t2">
+              {detail.faucet.url}
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-t3">
+              <span>Link checked {detail.faucet.checked ?? 'not recorded'}</span>
+              <a href={detail.faucet.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                Open faucet <ArrowUpRight size={11} className="inline" />
+              </a>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Card className="p-4">
         <h3 className="mb-2 text-sm font-semibold text-white">Not listed on purpose</h3>

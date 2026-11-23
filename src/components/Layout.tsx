@@ -9,8 +9,6 @@ import {
   LayoutGrid,
   LogOut,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
   PieChart,
   Repeat,
   Settings as SettingsIcon,
@@ -24,6 +22,9 @@ import { Button, Badge, notify, CopyButton, ChainLogo, StatusDot } from './ui'
 import { shortAddr } from '../lib/format'
 import { WALLETCONNECT_NOTE } from '../lib/wallet'
 import { NotificationBell } from './NotificationBell'
+import pkg from '../../package.json'
+
+const APP_VERSION = pkg.version
 
 const NAV = [
   { to: '/', label: 'Overview', short: 'Overview', icon: LayoutGrid },
@@ -64,31 +65,9 @@ export function Layout() {
           collapsed ? 'w-[76px] px-2' : 'w-[256px] px-3',
         )}
       >
-        <div className={clsx('flex items-center', collapsed ? 'justify-center' : 'justify-between')}>
-          <Brand compact={collapsed} />
-          {!collapsed && (
-            <button
-              onClick={() => setCollapsed(true)}
-              className="rounded-md p-1.5 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
-              title="Collapse sidebar"
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeftClose size={16} />
-            </button>
-          )}
-        </div>
-        {collapsed && (
-          <button
-            onClick={() => setCollapsed(false)}
-            className="mt-3 self-center rounded-md p-1.5 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
-            title="Expand sidebar"
-            aria-label="Expand sidebar"
-          >
-            <PanelLeftOpen size={16} />
-          </button>
-        )}
+        <Brand compact={collapsed} onToggle={() => setCollapsed((v) => !v)} />
 
-        <div className={collapsed ? 'mt-4' : 'mt-6'}>
+        <div className={collapsed ? 'mt-5' : 'mt-7'}>
           {!collapsed && <div className="label mb-2 px-2.5">Navigation</div>}
           <nav className="flex flex-col gap-0.5">
             {NAV.map((n) => (
@@ -99,10 +78,10 @@ export function Layout() {
                 title={collapsed ? n.label : undefined}
                 aria-label={n.label}
                 className={({ isActive }) =>
-                  clsx('nav-item', isActive && 'nav-item-active', collapsed && 'justify-center px-0')
+                  clsx('nav-item nav-item-lg', isActive && 'nav-item-active', collapsed && 'justify-center px-0')
                 }
               >
-                <n.icon size={collapsed ? 18 : 16} strokeWidth={1.5} className="shrink-0" />
+                <n.icon size={collapsed ? 20 : 18} strokeWidth={1.9} className="shrink-0" />
                 {!collapsed && n.label}
               </NavLink>
             ))}
@@ -123,7 +102,7 @@ export function Layout() {
               <p className="mt-2 text-[12px] leading-5 text-t2">
                 Mainnet chains are rejected before a transaction is built. No custody, no backend.
               </p>
-              <div className="mono mt-2 text-[11px] text-t3">build 0.3.0</div>
+              <div className="mono mt-2 text-[11px] text-t3">build {APP_VERSION}</div>
             </>
           )}
         </div>
@@ -153,8 +132,8 @@ export function Layout() {
             </div>
             <nav className="mt-6 flex flex-col gap-0.5">
               {NAV.map((n) => (
-                <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => clsx('nav-item', isActive && 'nav-item-active')}>
-                  <n.icon size={16} strokeWidth={1.5} />
+                <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => clsx('nav-item nav-item-lg', isActive && 'nav-item-active')}>
+                  <n.icon size={18} strokeWidth={1.9} />
                   {n.label}
                 </NavLink>
               ))}
@@ -192,21 +171,39 @@ export function Layout() {
   )
 }
 
-function Brand({ compact }: { compact?: boolean }) {
-  return (
-    <div className={clsx('flex items-center gap-2.5', !compact && 'px-1')}>
-      <div className="grid h-8 w-8 place-items-center rounded-lg bg-ink-700">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M5 7h14M5 12h9M5 17h6" stroke="#ededed" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </div>
+/** The mark is the app's own: mint bars on a dark tile. Clicking it toggles the rail. */
+function Brand({ compact, onToggle }: { compact?: boolean; onToggle?: () => void }) {
+  const inner = (
+    <>
+      <img
+        src="/logos/ebt.svg"
+        alt="EBT"
+        width={34}
+        height={34}
+        className="shrink-0 rounded-[10px] ring-1 ring-white/10"
+        draggable={false}
+      />
       {!compact && (
         <div className="leading-tight">
           <div className="text-[16px] font-medium tracking-tight text-t1">EBT</div>
           <div className="text-[11px] text-t3">Testnet bridge</div>
         </div>
       )}
-    </div>
+    </>
+  )
+  if (!onToggle) return <div className={clsx('flex items-center gap-2.5', !compact && 'px-1')}>{inner}</div>
+  return (
+    <button
+      onClick={onToggle}
+      className={clsx(
+        'flex items-center gap-2.5 rounded-lg py-1 pr-1 transition-colors hover:bg-ink-700',
+        compact ? 'justify-center px-0' : 'px-1.5',
+      )}
+      title="Toggle sidebar"
+      aria-label="Toggle sidebar"
+    >
+      {inner}
+    </button>
   )
 }
 

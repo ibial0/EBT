@@ -1,23 +1,57 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   ArrowUpRight,
   CheckCircle2,
+  ChevronDown,
+  Droplets,
   Layers,
+  Search,
   ShieldCheck,
   Sparkles,
   Zap,
 } from 'lucide-react'
-import { CCTP_CHAINS, CHAINS, SWAP_CHAINS, explorerTx } from '../config/chains'
+import { CCTP_CHAINS, CHAINS, SWAP_CHAINS, getChain } from '../config/chains'
+import { POOLS, pairsForChain } from '../config/pools'
 import { PROVIDERS, NOT_INTEGRATED } from '../config/providers'
-import { TOKENS } from '../config/tokens'
-import { Card, Badge, Button, ChainLogo, StatusDot, Spinner } from '../components/ui'
+import { TOKENS, findToken } from '../config/tokens'
+import { Card, Badge, Button, ChainLogo, StatusDot, Spinner, TokenIcon } from '../components/ui'
 import { PageHeader } from '../components/Layout'
 import { useNetworkHealth } from '../lib/health'
 import { listActivity } from '../lib/activity'
+import { feeLabel, liquidityLabel, loadLiquidity, type PoolSnapshot } from '../lib/liquidity'
+import { fmt } from '../lib/format'
+
+type Level = 'all' | 'active' | 'drained'
+type StatusFilter = 'all' | 'active' | 'drained' | 'unreachable'
 
 export default function Overview() {
   const health = useNetworkHealth()
+  const [level, setLevel] = useState<Level>('all')
+  const [status, setStatus] = useState<StatusFilter>('all')
+  const [chainFilter, setChainFilter] = useState<number | 'all'>('all')
+  const [tokenFilter, setTokenFilter] = useState('')
+  const [dexOnly, setDexOnly] = useState(false)
+  const [pools, setPools] = useState<PoolSnapshot[]>([])
+  const [loading, setLoading] = useState(true)
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    loadLiquidity()
+      .then((rows) => {
+        if (!alive) return
+        setPools(rows)
+        setUpdatedAt(Date.now())
+      })
+      .catch(() => alive && setUpdatedAt(Date.now()))
+      .finally(() => alive && setLoading(false))
+    return () => {
+      alive = false
+    }
+  }, [])
   const okCount = health.data?.filter((h) => h.ok).length ?? 0
   const activity = listActivity()
 
@@ -138,6 +172,76 @@ export default function Overview() {
         </div>
       </div>
 
+
+      {/* liquidity overview */}
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Liquidity by chain</h2>
+            <p className="mt-0.5 text-[11px] text-t3">
+              Reserves read from the pool contracts, not from an aggregator. Testnet tokens have no market
+              price, so depth is shown in tokens, never in dollars.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="mint">{pools.filter((p) => p.status === 'active').length} active</Badge>
+            <Badge tone="red">{pools.filter((p) => p.status === 'drained').length} drained</Badge>
+            <Badge tone="amber">{pools.filter((p) => p.status === 'unreachable').length} unreachable</Badge>
+            <span className="mono text-[11px] text-t3">
+              {loading ? 'reading pools…' : updatedAt ? `updated ${new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : ''}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
+          <div className="flex h-9 min-w-[190px] flex-1 items-center gap-2 rounded-lg border border-line bg-ink-850 px-3">
+            <Search size={14} className="text-t3" />
+            <input
+              value={tokenFilter}
+              onChange={(e) => setTokenFilter(e.target.value)}
+              placeholder="Filter by token symbol"
+              className="input text-[13px]"
+            />
+          </div>
+          <Select
+            value={String(chainFilter)}
+            onChange={(v) => setChainFilter(v === 'all' ? 'all' : Number(v))}
+            label="Network"
+            options={[
+              { value: 'all', label: 'All networks' },
+              ...CHAINS.filter((c) => c.uniswap).map((c) => ({ value: String(c.id), label: c.name })),
+            ]}
+          />
+          <Select
+            value={level}
+            onChange={(v) => setLevel(v as Level)}
+            label="Depth"
+            options={[
+              { value: 'all', label: 'Any state' },
+              { value: 'active', label: 'Active' },
+              { value: 'drained', label: 'Drained' },
+            ]}
+          />
+          <Select
+            value={status}
+            onChange={(v) => setStatus(v as StatusFilter)}
+            label="Status"
+            options={[
+              { value: 'all', label: 'Any status' },
+              { value: 'active', label: 'Active' },
+              { value: 'drained', label: 'Drained' },
+              { value: 'unreachable', label: 'Unreachable' },
+            ]}
+          />
+          <label className="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-line bg-ink-850 px-3 text-[12px] text-t2">
+            <input type="checkbox" checked={dexOnly} onChange={(e) => setDexOnly(e.target.checked)} className="h-3.5 w-3.5 accent-[#6aa6ff]" />
+            Verified venues only
+          </label>
+        </div>
+
+        <LiquidityTable pools={pools} loading={loading} chainFilter={chainFilter} tokenFilter={tokenFilter} level={level} status={status} dexOnly={dexOnly} />
+      </Card>
+
       {/* how it works */}
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-semibold text-white">How a transfer runs</h2>
@@ -196,6 +300,165 @@ export default function Overview() {
             ))}
           </div>
         </Card>
+      </div>
+    </div>
+  )
+}
+
+
+function Select({
+  value,
+  onChange,
+  options,
+  label,
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: Array<{ value: string; label: string }>
+  label: string
+}) {
+  return (
+    <label className="relative flex h-9 items-center">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-full appearance-none rounded-lg border border-line bg-ink-850 pl-3 pr-8 text-[12px] text-t1 outline-none transition-colors hover:border-line-strong focus:border-accent"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="bg-ink-800">
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown size={13} className="pointer-events-none absolute right-2.5 text-t3" />
+    </label>
+  )
+}
+
+function LiquidityTable({
+  pools,
+  loading,
+  chainFilter,
+  tokenFilter,
+  level,
+  status,
+  dexOnly,
+}: {
+  pools: PoolSnapshot[]
+  loading: boolean
+  chainFilter: number | 'all'
+  tokenFilter: string
+  level: Level
+  status: StatusFilter
+  dexOnly: boolean
+}) {
+  const needle = tokenFilter.trim().toUpperCase()
+
+  const rows = useMemo(() => {
+    const filtered = pools.filter((p) => {
+      if (chainFilter !== 'all' && p.chainId !== chainFilter) return false
+      if (needle && !`${p.symbol0} ${p.symbol1}`.toUpperCase().includes(needle)) return false
+      if (level !== 'all' && p.status !== level) return false
+      if (status !== 'all' && p.status !== status) return false
+      if (dexOnly && !getChain(p.chainId)?.uniswap) return false
+      return true
+    })
+    return filtered.sort((a, b) => {
+      const rank = (p: PoolSnapshot) => (p.depth ?? -1)
+      const chainDiff = String(getChain(a.chainId)?.short ?? '').localeCompare(String(getChain(b.chainId)?.short ?? ''))
+      return rank(b) - rank(a) || chainDiff
+    })
+  }, [pools, chainFilter, needle, level, status, dexOnly])
+
+  if (loading && pools.length === 0) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-8 text-[13px] text-t2">
+        <Spinner /> Reading {POOLS.length} verified pools
+      </div>
+    )
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="px-4 py-8 text-[13px] text-t3">
+        No pool matches these filters. Clear them to see every verified pool.
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[860px] text-left">
+        <thead>
+          <tr className="border-b border-line text-[11px] text-t3">
+            <th className="px-4 py-2.5 font-medium">Chain</th>
+            <th className="px-3 py-2.5 font-medium">Pair</th>
+            <th className="px-3 py-2.5 font-medium">Fee</th>
+            <th className="px-3 py-2.5 font-medium text-right">Reserve 0</th>
+            <th className="px-3 py-2.5 font-medium text-right">Reserve 1</th>
+            <th className="px-3 py-2.5 font-medium text-right">Two-sided depth</th>
+            <th className="px-3 py-2.5 font-medium text-right">Liquidity L</th>
+            <th className="px-4 py-2.5 font-medium text-right">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => {
+            const chain = getChain(p.chainId)
+            const t0 = findToken(p.chainId, p.token0)
+            const t1 = findToken(p.chainId, p.token1)
+            return (
+              <tr key={`${p.pool}-${p.fee}`} className="border-b border-line/60 text-[13px] transition-colors last:border-0 hover:bg-ink-850">
+                <td className="px-4 py-2.5">
+                  <span className="flex items-center gap-2">
+                    {chain && <ChainLogo chain={chain} size={18} />}
+                    <span className="text-t1">{chain?.short ?? p.chainId}</span>
+                  </span>
+                </td>
+                <td className="px-3 py-2.5">
+                  <span className="flex items-center gap-1.5">
+                    <TokenIcon symbol={p.symbol0} size={18} chainId={p.chainId} address={p.token0} />
+                    <TokenIcon symbol={p.symbol1} size={18} chainId={p.chainId} address={p.token1} />
+                    <span className="text-t1">
+                      {p.symbol0}/{p.symbol1}
+                    </span>
+                    {(!t0 || !t1) && <Badge tone="amber">unlisted token</Badge>}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 mono text-t2">{feeLabel(p.fee)}</td>
+                <td className="px-3 py-2.5 figure text-right text-t1">
+                  {p.reserve0 == null ? '-' : fmt(p.reserve0, p.decimals0, 4)}
+                  <span className="ml-1 text-[11px] text-t3">{p.symbol0}</span>
+                </td>
+                <td className="px-3 py-2.5 figure text-right text-t1">
+                  {p.reserve1 == null ? '-' : fmt(p.reserve1, p.decimals1, 4)}
+                  <span className="ml-1 text-[11px] text-t3">{p.symbol1}</span>
+                </td>
+                <td className="px-3 py-2.5 figure text-right">
+                  <span className={p.status === 'active' ? 'text-t1' : 'text-[#ffb4b6]'}>
+                    {p.depth == null ? '-' : p.depth.toFixed(4)}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 figure text-right text-t2">{liquidityLabel(p.liquidity)}</td>
+                <td className="px-4 py-2.5 text-right">
+                  {p.status === 'active' ? (
+                    <Badge tone="mint">active</Badge>
+                  ) : p.status === 'drained' ? (
+                    <Badge tone="red">drained</Badge>
+                  ) : (
+                    <Badge tone="red">unreachable</Badge>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <div className="border-t border-line px-4 py-2.5 text-[11px] leading-5 text-t3">
+        Reserves are shown in each token's own units, so the two legs of a pair are not comparable as raw numbers
+        (42 WETH against 208,608 USDC is a healthy pool, not an empty one). Depth is the smaller leg, in that leg's
+        token. A drained pool still has L &gt; 0 but one leg is down to dust, so a swap into it would fail or return
+        almost nothing.
       </div>
     </div>
   )

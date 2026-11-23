@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import { CHAINS, explorerAddress, getChain } from '../config/chains'
-import { Badge, Button, ChainLogo, Empty, Modal, Spinner, TokenIcon, notify } from '../components/ui'
+import { Badge, Button, ChainLogo, CopyButton, Empty, Modal, Spinner, TokenIcon, notify } from '../components/ui'
 import { ConnectButton, PageHeader } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { shortAddr, fmt } from '../lib/format'
@@ -98,7 +98,11 @@ export default function Portfolio() {
   }, [nonZero])
 
   const needle = q.trim().toLowerCase()
-  const visibleChains = (showEmpty ? CHAINS : CHAINS.filter((c) => (networkTotals.get(c.id)?.count ?? 0) > 0))
+  const orderedChains = useMemo(
+    () => [...CHAINS].sort((a, b) => (networkTotals.get(b.id)?.usd ?? 0) - (networkTotals.get(a.id)?.usd ?? 0)),
+    [networkTotals],
+  )
+  const visibleChains = (showEmpty ? orderedChains : orderedChains.filter((c) => (networkTotals.get(c.id)?.count ?? 0) > 0))
     .filter((c) => network === 'all' || c.id === network)
     .filter((c) => {
       if (!needle) return true
@@ -317,7 +321,13 @@ function AssetRow({ row, view }: { row: Row; view: View }) {
   const amountText = row.error ? 'read failed' : row.amount == null ? '-' : fmt(row.amount, row.decimals, 6)
   return (
     <div className="row row-tall ml-2">
-      <TokenIcon symbol={row.symbol} size={36} />
+      <TokenIcon
+        symbol={row.symbol}
+        size={36}
+        chainId={row.chainId}
+        address={row.address ?? undefined}
+        verified={row.verified}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="text-[14px] text-t1">{row.symbol}</span>
@@ -329,14 +339,17 @@ function AssetRow({ row, view }: { row: Row; view: View }) {
           {row.address ? (
             <>
               {' · '}
-              <a
-                href={`${chain.viem.blockExplorers?.default?.url}/token/${row.address}`}
-                target="_blank"
-                rel="noreferrer"
-                className="mono hover:text-t1"
-              >
-                {row.address.slice(0, 6)}…{row.address.slice(-4)}
-              </a>
+              <span className="inline-flex items-center gap-0.5">
+                <a
+                  href={`${chain.viem.blockExplorers?.default?.url}/token/${row.address}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mono hover:text-t1"
+                >
+                  {row.address.slice(0, 6)}…{row.address.slice(-4)}
+                </a>
+                <CopyButton value={row.address} />
+              </span>
             </>
           ) : (
             ' · native'

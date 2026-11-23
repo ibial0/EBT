@@ -1,0 +1,2018 @@
+[
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xFeEd501c2B21D315F04946F85fC6416B640240b5",
+    "fee": 100,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "3212988308162138",
+    "reserve0": "429579893696",
+    "reserve1": "5959801456846468805",
+    "reserve0Human": "429579.893696",
+    "reserve1Human": "5.959801"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x3289680dD4d6C10bb19b899729cda5eEF58AEfF1",
+    "fee": 500,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "16247379226245646",
+    "reserve0": "53481441798010",
+    "reserve1": "119401705596513896128",
+    "reserve0Human": "53481441.798010",
+    "reserve1Human": "119.401706"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x6Ce0896eAE6D4BD668fDe41BB784548fb8F59b50",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "12254435526901025",
+    "reserve0": "3431725151673",
+    "reserve1": "65722329114594688632",
+    "reserve0Human": "3431725.151673",
+    "reserve1Human": "65.722329"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x6418EEC70f50913ff0d756B48d32Ce7C02b47C47",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "476468498667152968",
+    "reserve0": "42485836784454",
+    "reserve1": "1333764216040580066061",
+    "reserve0Human": "42485836.784454",
+    "reserve1Human": "1333.764216"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x294A263412D5Be965b45Bd93121CA58813F68b07",
+    "fee": 100,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "37381231272557",
+    "reserve0": "31704233762",
+    "reserve1": "54958582749590138",
+    "reserve0Human": "31704.233762",
+    "reserve1Human": "0.054959"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x6E81F4a9bE879CE9FCBAD4Eafc9311fB9e766299",
+    "fee": 500,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "71582917029650",
+    "reserve0": "51020132184",
+    "reserve1": "107456147709604103",
+    "reserve0Human": "51020.132184",
+    "reserve1Human": "0.107456"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x349492f65C8B27efEF83456189b85D0Fa32afCcd",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "16242178069",
+    "reserve0": "197740020",
+    "reserve1": "168011091714084",
+    "reserve0Human": "197.740020",
+    "reserve1Human": "0.000168"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x3855551c7c0c9E38e1a936f9939F2e187c22B767",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "6775608728984",
+    "reserve0": "11756579340",
+    "reserve1": "34242001569025153",
+    "reserve0Human": "11756.579340",
+    "reserve1Human": "0.034242"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x2d021e62D1aE41946846462d4bD8A85BB3d49C2c",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "liquidity": "289653463165736",
+    "reserve0": "6170079729",
+    "reserve1": "35912816523503120771",
+    "reserve0Human": "6170.079729",
+    "reserve1Human": "35.912817"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x9C02D38A5A61bdc83b63B73f3776C4622a21d3cc",
+    "fee": 100,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "250505069",
+    "reserve0": "22508834",
+    "reserve1": "2795493373",
+    "reserve0Human": "22.508834",
+    "reserve1Human": "2795.493373"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xfef3Ae91E2050AcCB4dA6033C6EB3b1BC4E3a1a5",
+    "fee": 500,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "58403527933",
+    "reserve0": "448778653",
+    "reserve1": "13303686223601",
+    "reserve0Human": "448.778653",
+    "reserve1Human": "13303686.223601"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xCfDFab545198cC61da2156aA25607023F01814dF",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "356401599",
+    "reserve0": "32295670",
+    "reserve1": "4218851631",
+    "reserve0Human": "32.295670",
+    "reserve1Human": "4218.851631"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x1Ba31Bd4650Cd9720Ee8837Bc6cCa5e1BdB151D4",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "liquidity": "18842372",
+    "reserve0": "19642654",
+    "reserve1": "628857682",
+    "reserve0Human": "19.642654",
+    "reserve1Human": "6.288577"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xFeEd501c2B21D315F04946F85fC6416B640240b5",
+    "fee": 100,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "3212988308162138",
+    "reserve0": "429579893696",
+    "reserve1": "5959801456846468805",
+    "reserve0Human": "429579.893696",
+    "reserve1Human": "5.959801"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x3289680dD4d6C10bb19b899729cda5eEF58AEfF1",
+    "fee": 500,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "16247379226245646",
+    "reserve0": "53481441798010",
+    "reserve1": "119401705596513896128",
+    "reserve0Human": "53481441.798010",
+    "reserve1Human": "119.401706"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x6Ce0896eAE6D4BD668fDe41BB784548fb8F59b50",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "12254435526901025",
+    "reserve0": "3431725151673",
+    "reserve1": "65722329114594688632",
+    "reserve0Human": "3431725.151673",
+    "reserve1Human": "65.722329"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x6418EEC70f50913ff0d756B48d32Ce7C02b47C47",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "476468498667152968",
+    "reserve0": "42485836784454",
+    "reserve1": "1333764216040580066061",
+    "reserve0Human": "42485836.784454",
+    "reserve1Human": "1333.764216"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xb8b672bdd9cFF3D0979e7344c7358CA12E78a1F0",
+    "fee": 100,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "4162579605952486360",
+    "reserve0": "1133013168814814610",
+    "reserve1": "21964909819986693711",
+    "reserve0Human": "1.133013",
+    "reserve1Human": "21.964910"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x224Cc4e5b50036108C1d862442365054600c260C",
+    "fee": 500,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "21076848424143968106",
+    "reserve0": "5719532514076937388",
+    "reserve1": "114604961547648782414",
+    "reserve0Human": "5.719533",
+    "reserve1Human": "114.604962"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x287B0e934ed0439E2a7b1d5F0FC25eA2c24b64f7",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "183852609217938940269",
+    "reserve0": "64823265417907541040",
+    "reserve1": "863760944578764886184",
+    "reserve0Human": "64.823265",
+    "reserve1Human": "863.760945"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x51aDC79e7760aC5317a0d05e7a64c4f9cB2d4369",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "74026054030537731852",
+    "reserve0": "20797636586969661060",
+    "reserve1": "312713682542607439298",
+    "reserve0Human": "20.797637",
+    "reserve1Human": "312.713683"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x8F0630E71579ADa6A26187818A4AB792fF2F62C8",
+    "fee": 3000,
+    "token0": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "112373777156568797",
+    "reserve0": "6416913369123347759066",
+    "reserve1": "28614150895190067",
+    "reserve0Human": "6416.913369",
+    "reserve1Human": "0.028614"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x61F4FC9E845edC6F9E5af4eF82cdD8D9c26B0c90",
+    "fee": 10000,
+    "token0": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "480164877647581189",
+    "reserve0": "211049999999584513349",
+    "reserve1": "377668274619",
+    "reserve0Human": "211.050000",
+    "reserve1Human": "0.000000"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x9e2bCA4c6ac6cC5028403AeC9D2cAF901EbA5D08",
+    "fee": 100,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "4392976228710294218",
+    "reserve0": "177705163295251145994",
+    "reserve1": "330004310629861611",
+    "reserve0Human": "177.705163",
+    "reserve1Human": "0.330004"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x9BB3Ea0b68491F2a0cf2776C850cbB566022B345",
+    "fee": 500,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "2896677403550200023",
+    "reserve0": "123352475905658304440",
+    "reserve1": "374170608650676244",
+    "reserve0Human": "123.352476",
+    "reserve1Human": "0.374171"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xDD7CC9a0dA070fB8B60dC6680b596133fb4A7100",
+    "fee": 3000,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "21010314351091649198",
+    "reserve0": "1481457728158353181821",
+    "reserve1": "2688396282227118368",
+    "reserve0Human": "1481.457728",
+    "reserve1Human": "2.688396"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xA470a353577901AA8cDCb828BB616ef41d58B88a",
+    "fee": 10000,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "111964328774286263864",
+    "reserve0": "13920262518399146945660",
+    "reserve1": "35145573798139944297",
+    "reserve0Human": "13920.262518",
+    "reserve1Human": "35.145574"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xF34a455337252055B0398FB77a091eeBCEd36224",
+    "fee": 100,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "499999449201",
+    "reserve0": "8994571746",
+    "reserve1": "392827503197233",
+    "reserve0Human": "8994.571746",
+    "reserve1Human": "0.000393"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xA8e0af24d703845504b0841e53777793Ea56120b",
+    "fee": 500,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "11624109126784",
+    "reserve0": "288304424548",
+    "reserve1": "14711015649021356",
+    "reserve0Human": "288304.424548",
+    "reserve1Human": "0.014711"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x46bb6bb1b27069C652AA40ddbF47854b1C426428",
+    "fee": 3000,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "73673791643578",
+    "reserve0": "4303196526513",
+    "reserve1": "468137319229272995",
+    "reserve0Human": "4303196.526513",
+    "reserve1Human": "0.468137"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x58D850667c47981a1b6E7cA0b8Dc2eb937Cd4119",
+    "fee": 10000,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "1763470975811579",
+    "reserve0": "730835354608815",
+    "reserve1": "28105863939487609555",
+    "reserve0Human": "730835354.608815",
+    "reserve1Human": "28.105864"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xD1787BA366fea7F69212Dfc0a3637ACfEFdf7f25",
+    "fee": 500,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "23978530621631",
+    "reserve0": "1404337859279",
+    "reserve1": "67557434745940148",
+    "reserve0Human": "14043.378593",
+    "reserve1Human": "0.067557"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x294A263412D5Be965b45Bd93121CA58813F68b07",
+    "fee": 100,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "37381231272557",
+    "reserve0": "31704233762",
+    "reserve1": "54958582749590138",
+    "reserve0Human": "31704.233762",
+    "reserve1Human": "0.054959"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x6E81F4a9bE879CE9FCBAD4Eafc9311fB9e766299",
+    "fee": 500,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "71582917029650",
+    "reserve0": "51020132184",
+    "reserve1": "107456147709604103",
+    "reserve0Human": "51020.132184",
+    "reserve1Human": "0.107456"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x349492f65C8B27efEF83456189b85D0Fa32afCcd",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "16242178069",
+    "reserve0": "197740020",
+    "reserve1": "168011091714084",
+    "reserve0Human": "197.740020",
+    "reserve1Human": "0.000168"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x3855551c7c0c9E38e1a936f9939F2e187c22B767",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "liquidity": "6775608728984",
+    "reserve0": "11756579340",
+    "reserve1": "34242001569025153",
+    "reserve0Human": "11756.579340",
+    "reserve1Human": "0.034242"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xb8b672bdd9cFF3D0979e7344c7358CA12E78a1F0",
+    "fee": 100,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "4162579605952486360",
+    "reserve0": "1133013168814814610",
+    "reserve1": "21964909819986693711",
+    "reserve0Human": "1.133013",
+    "reserve1Human": "21.964910"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x224Cc4e5b50036108C1d862442365054600c260C",
+    "fee": 500,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "21076848424143968106",
+    "reserve0": "5719532514076937388",
+    "reserve1": "114604961547648782414",
+    "reserve0Human": "5.719533",
+    "reserve1Human": "114.604962"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x287B0e934ed0439E2a7b1d5F0FC25eA2c24b64f7",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "183852609217938940269",
+    "reserve0": "64823265417907541040",
+    "reserve1": "863760944578764886184",
+    "reserve0Human": "64.823265",
+    "reserve1Human": "863.760945"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x51aDC79e7760aC5317a0d05e7a64c4f9cB2d4369",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "74026054030537731852",
+    "reserve0": "20797636586969661060",
+    "reserve1": "312713682542607439298",
+    "reserve0Human": "20.797637",
+    "reserve1Human": "312.713683"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xAb3Aa251Ca3E750f630d2EEb6e0d72F65b4865B0",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "liquidity": "814264128199361980",
+    "reserve0": "55258667403973668",
+    "reserve1": "355488692466765791653",
+    "reserve0Human": "0.055259",
+    "reserve1Human": "355.488692"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xa23B8f156d2158836cc815cB35f0f18B853A386e",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "1581188296709",
+    "reserve0": "211193068586640",
+    "reserve1": "12237817326",
+    "reserve0Human": "0.000211",
+    "reserve1Human": "12237.817326"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x8F0630E71579ADa6A26187818A4AB792fF2F62C8",
+    "fee": 3000,
+    "token0": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "112373777156568797",
+    "reserve0": "6416913369123347759066",
+    "reserve1": "28614150895190067",
+    "reserve0Human": "6416.913369",
+    "reserve1Human": "0.028614"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x61F4FC9E845edC6F9E5af4eF82cdD8D9c26B0c90",
+    "fee": 10000,
+    "token0": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "480164877647581189",
+    "reserve0": "211049999999584513349",
+    "reserve1": "377668274619",
+    "reserve0Human": "211.050000",
+    "reserve1Human": "0.000000"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x695F5440917727B19E58D712A2f259dac905B790",
+    "fee": 500,
+    "token0": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "liquidity": "31624354217264859923",
+    "reserve0": "586885864321001461929",
+    "reserve1": "1719526730469639196",
+    "reserve0Human": "586.885864",
+    "reserve1Human": "1.719527"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x39CCc2b87c54c7bA26D7DeDF215652F6a10a7d7c",
+    "fee": 3000,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "liquidity": "49999955935",
+    "reserve0": "10009078",
+    "reserve1": "1078524187662633",
+    "reserve0Human": "0.100091",
+    "reserve1Human": "0.001079"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x2d021e62D1aE41946846462d4bD8A85BB3d49C2c",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "liquidity": "289653463165736",
+    "reserve0": "6170079729",
+    "reserve1": "35912816523503120771",
+    "reserve0Human": "6170.079729",
+    "reserve1Human": "35.912817"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x9e2bCA4c6ac6cC5028403AeC9D2cAF901EbA5D08",
+    "fee": 100,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "4392976228710294218",
+    "reserve0": "177705163295251145994",
+    "reserve1": "330004310629861611",
+    "reserve0Human": "177.705163",
+    "reserve1Human": "0.330004"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x9BB3Ea0b68491F2a0cf2776C850cbB566022B345",
+    "fee": 500,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "2896677403550200023",
+    "reserve0": "123352475905658304440",
+    "reserve1": "374170608650676244",
+    "reserve0Human": "123.352476",
+    "reserve1Human": "0.374171"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xDD7CC9a0dA070fB8B60dC6680b596133fb4A7100",
+    "fee": 3000,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "21010314351091649198",
+    "reserve0": "1481457728158353181821",
+    "reserve1": "2688396282227118368",
+    "reserve0Human": "1481.457728",
+    "reserve1Human": "2.688396"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xA470a353577901AA8cDCb828BB616ef41d58B88a",
+    "fee": 10000,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "111964328774286263864",
+    "reserve0": "13920262518399146945660",
+    "reserve1": "35145573798139944297",
+    "reserve0Human": "13920.262518",
+    "reserve1Human": "35.145574"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xAb3Aa251Ca3E750f630d2EEb6e0d72F65b4865B0",
+    "fee": 10000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "liquidity": "814264128199361980",
+    "reserve0": "55258667403973668",
+    "reserve1": "355488692466765791653",
+    "reserve0Human": "0.055259",
+    "reserve1Human": "355.488692"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x695F5440917727B19E58D712A2f259dac905B790",
+    "fee": 500,
+    "token0": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "liquidity": "31624354217264859923",
+    "reserve0": "586885864321001461929",
+    "reserve1": "1719526730469639196",
+    "reserve0Human": "586.885864",
+    "reserve1Human": "1.719527"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x3C36878e3060AD03bD0B8C03E6DAB2D1686Aa38B",
+    "fee": 100,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "27457595952267139",
+    "reserve0": "262303740925040273",
+    "reserve1": "2945352005",
+    "reserve0Human": "0.262304",
+    "reserve1Human": "2945.352005"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x9C02D38A5A61bdc83b63B73f3776C4622a21d3cc",
+    "fee": 100,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "250505069",
+    "reserve0": "22508834",
+    "reserve1": "2795493373",
+    "reserve0Human": "22.508834",
+    "reserve1Human": "2795.493373"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xfef3Ae91E2050AcCB4dA6033C6EB3b1BC4E3a1a5",
+    "fee": 500,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "58403527933",
+    "reserve0": "448778653",
+    "reserve1": "13303686223601",
+    "reserve0Human": "448.778653",
+    "reserve1Human": "13303686.223601"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xCfDFab545198cC61da2156aA25607023F01814dF",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "356401599",
+    "reserve0": "32295670",
+    "reserve1": "4218851631",
+    "reserve0Human": "32.295670",
+    "reserve1Human": "4218.851631"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xF34a455337252055B0398FB77a091eeBCEd36224",
+    "fee": 100,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "499999449201",
+    "reserve0": "8994571746",
+    "reserve1": "392827503197233",
+    "reserve0Human": "8994.571746",
+    "reserve1Human": "0.000393"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xA8e0af24d703845504b0841e53777793Ea56120b",
+    "fee": 500,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "11624109126784",
+    "reserve0": "288304424548",
+    "reserve1": "14711015649021356",
+    "reserve0Human": "288304.424548",
+    "reserve1Human": "0.014711"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x46bb6bb1b27069C652AA40ddbF47854b1C426428",
+    "fee": 3000,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "73673791643578",
+    "reserve0": "4303196526513",
+    "reserve1": "468137319229272995",
+    "reserve0Human": "4303196.526513",
+    "reserve1Human": "0.468137"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x58D850667c47981a1b6E7cA0b8Dc2eb937Cd4119",
+    "fee": 10000,
+    "token0": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "1763470975811579",
+    "reserve0": "730835354608815",
+    "reserve1": "28105863939487609555",
+    "reserve0Human": "730835354.608815",
+    "reserve1Human": "28.105864"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xa23B8f156d2158836cc815cB35f0f18B853A386e",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "1581188296709",
+    "reserve0": "211193068586640",
+    "reserve1": "12237817326",
+    "reserve0Human": "0.000211",
+    "reserve1Human": "12237.817326"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x3C36878e3060AD03bD0B8C03E6DAB2D1686Aa38B",
+    "fee": 100,
+    "token0": {
+      "address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+      "symbol": "LINK",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "27457595952267139",
+    "reserve0": "262303740925040273",
+    "reserve1": "2945352005",
+    "reserve0Human": "0.262304",
+    "reserve1Human": "2945.352005"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x4b053461dd564CF8e0d2F9E3b73D78BD837de765",
+    "fee": 3000,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "31923504960",
+    "reserve0": "2925071340267",
+    "reserve1": "314371578211",
+    "reserve0Human": "29250.713403",
+    "reserve1Human": "314371.578211"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x1293173e5426C03ba6E9a3067cA235b8C5BC646F",
+    "fee": 10000,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "2994605764",
+    "reserve0": "192917924",
+    "reserve1": "1121846004",
+    "reserve0Human": "1.929179",
+    "reserve1Human": "1121.846004"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x1Ba31Bd4650Cd9720Ee8837Bc6cCa5e1BdB151D4",
+    "fee": 3000,
+    "token0": {
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "liquidity": "18842372",
+    "reserve0": "19642654",
+    "reserve1": "628857682",
+    "reserve0Human": "19.642654",
+    "reserve1Human": "6.288577"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0xD1787BA366fea7F69212Dfc0a3637ACfEFdf7f25",
+    "fee": 500,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "23978530621631",
+    "reserve0": "1404337859279",
+    "reserve1": "67557434745940148",
+    "reserve0Human": "14043.378593",
+    "reserve1Human": "0.067557"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x39CCc2b87c54c7bA26D7DeDF215652F6a10a7d7c",
+    "fee": 3000,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0x68194a729C2450ad26072b3D33ADaCbcef39D574",
+      "symbol": "DAI",
+      "decimals": 18
+    },
+    "liquidity": "49999955935",
+    "reserve0": "10009078",
+    "reserve1": "1078524187662633",
+    "reserve0Human": "0.100091",
+    "reserve1Human": "0.001079"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x4b053461dd564CF8e0d2F9E3b73D78BD837de765",
+    "fee": 3000,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "31923504960",
+    "reserve0": "2925071340267",
+    "reserve1": "314371578211",
+    "reserve0Human": "29250.713403",
+    "reserve1Human": "314371.578211"
+  },
+  {
+    "chainId": 11155111,
+    "chain": "Sepolia",
+    "pool": "0x1293173e5426C03ba6E9a3067cA235b8C5BC646F",
+    "fee": 10000,
+    "token0": {
+      "address": "0x29f2D40B0605204364af54EC677bD022dA425d03",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    "token1": {
+      "address": "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0",
+      "symbol": "USDT",
+      "decimals": 6
+    },
+    "liquidity": "2994605764",
+    "reserve0": "192917924",
+    "reserve1": "1121846004",
+    "reserve0Human": "1.929179",
+    "reserve1Human": "1121.846004"
+  },
+  {
+    "chainId": 11155420,
+    "chain": "OP Sepolia",
+    "pool": "0xEB18BA6D2d8408A87EE5Ac4264C8dbb73ad538eb",
+    "fee": 500,
+    "token0": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "liquidity": "3220205425317",
+    "reserve0": "141435615166534429",
+    "reserve1": "81514024",
+    "reserve0Human": "0.141436",
+    "reserve1Human": "81.514024"
+  },
+  {
+    "chainId": 11155420,
+    "chain": "OP Sepolia",
+    "pool": "0x8955C97261722d87D83D00708Bbe5f6B5b4477d6",
+    "fee": 3000,
+    "token0": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "liquidity": "10193510135",
+    "reserve0": "3292538100106825",
+    "reserve1": "413241",
+    "reserve0Human": "0.003293",
+    "reserve1Human": "0.413241"
+  },
+  {
+    "chainId": 11155420,
+    "chain": "OP Sepolia",
+    "pool": "0xEB18BA6D2d8408A87EE5Ac4264C8dbb73ad538eb",
+    "fee": 500,
+    "token0": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "liquidity": "3220205425317",
+    "reserve0": "141435615166534429",
+    "reserve1": "81514024",
+    "reserve0Human": "0.141436",
+    "reserve1Human": "81.514024"
+  },
+  {
+    "chainId": 11155420,
+    "chain": "OP Sepolia",
+    "pool": "0x8955C97261722d87D83D00708Bbe5f6B5b4477d6",
+    "fee": 3000,
+    "token0": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "token1": {
+      "address": "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "liquidity": "10193510135",
+    "reserve0": "3292538100106825",
+    "reserve1": "413241",
+    "reserve0Human": "0.003293",
+    "reserve1Human": "0.413241"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x57183717A087d2fe3Ad890873877244c3B96156c",
+    "fee": 100,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "11783995457558",
+    "reserve0": "136332682",
+    "reserve1": "52275803144775563",
+    "reserve0Human": "136.332682",
+    "reserve1Human": "0.052276"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x94bfc0574FF48E92cE43d495376C477B1d0EEeC0",
+    "fee": 500,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "491504290223",
+    "reserve0": "503563173",
+    "reserve1": "25926487314142203",
+    "reserve0Human": "503.563173",
+    "reserve1Human": "0.025926"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x46880b404CD35c165EDdefF7421019F8dD25F4Ad",
+    "fee": 3000,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "307521127928396",
+    "reserve0": "44244626292",
+    "reserve1": "4420791961596887455",
+    "reserve0Human": "44244.626292",
+    "reserve1Human": "4.420792"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x4664755562152EDDa3a3073850FB62835451926a",
+    "fee": 10000,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "57734017049",
+    "reserve0": "16507710",
+    "reserve1": "19714730856043871",
+    "reserve0Human": "16.507710",
+    "reserve1Human": "0.019715"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x57183717A087d2fe3Ad890873877244c3B96156c",
+    "fee": 100,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "11783995457558",
+    "reserve0": "136332682",
+    "reserve1": "52275803144775563",
+    "reserve0Human": "136.332682",
+    "reserve1Human": "0.052276"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x94bfc0574FF48E92cE43d495376C477B1d0EEeC0",
+    "fee": 500,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "491504290223",
+    "reserve0": "503563173",
+    "reserve1": "25926487314142203",
+    "reserve0Human": "503.563173",
+    "reserve1Human": "0.025926"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x46880b404CD35c165EDdefF7421019F8dD25F4Ad",
+    "fee": 3000,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "307521127928396",
+    "reserve0": "44244626292",
+    "reserve1": "4420791961596887455",
+    "reserve0Human": "44244.626292",
+    "reserve1Human": "4.420792"
+  },
+  {
+    "chainId": 84532,
+    "chain": "Base Sepolia",
+    "pool": "0x4664755562152EDDa3a3073850FB62835451926a",
+    "fee": 10000,
+    "token0": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "57734017049",
+    "reserve0": "16507710",
+    "reserve1": "19714730856043871",
+    "reserve0Human": "16.507710",
+    "reserve1Human": "0.019715"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0xE87b0A6C6611119deCF5C4e9203E1c46F561BdAE",
+    "fee": 100,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "253859995200226",
+    "reserve0": "42014588378",
+    "reserve1": "3772514428467693984",
+    "reserve0Human": "42014.588378",
+    "reserve1Human": "3.772514"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0xBeAD5792bB6C299AB11Eaa425aC3fE11ebA47b3B",
+    "fee": 500,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "17229229830758",
+    "reserve0": "2076600831",
+    "reserve1": "2673961759605389782",
+    "reserve0Human": "2076.600831",
+    "reserve1Human": "2.673962"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0x8F463126bBEA80A10DF9Bf6FF5455B6B0292B34e",
+    "fee": 3000,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "66007880398556",
+    "reserve0": "13747449155",
+    "reserve1": "12514608542111072502",
+    "reserve0Human": "13747.449155",
+    "reserve1Human": "12.514609"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0xa88bF2bF5583b386B19E73D1a26A5Ab0Fa90f12D",
+    "fee": 10000,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "1136080307623021",
+    "reserve0": "208608076643",
+    "reserve1": "42083414198080918051",
+    "reserve0Human": "208608.076643",
+    "reserve1Human": "42.083414"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0xE87b0A6C6611119deCF5C4e9203E1c46F561BdAE",
+    "fee": 100,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "253859995200226",
+    "reserve0": "42014588378",
+    "reserve1": "3772514428467693984",
+    "reserve0Human": "42014.588378",
+    "reserve1Human": "3.772514"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0xBeAD5792bB6C299AB11Eaa425aC3fE11ebA47b3B",
+    "fee": 500,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "17229229830758",
+    "reserve0": "2076600831",
+    "reserve1": "2673961759605389782",
+    "reserve0Human": "2076.600831",
+    "reserve1Human": "2.673962"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0x8F463126bBEA80A10DF9Bf6FF5455B6B0292B34e",
+    "fee": 3000,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "66007880398556",
+    "reserve0": "13747449155",
+    "reserve1": "12514608542111072502",
+    "reserve0Human": "13747.449155",
+    "reserve1Human": "12.514609"
+  },
+  {
+    "chainId": 1301,
+    "chain": "Unichain",
+    "pool": "0xa88bF2bF5583b386B19E73D1a26A5Ab0Fa90f12D",
+    "fee": 10000,
+    "token0": {
+      "address": "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "liquidity": "1136080307623021",
+    "reserve0": "208608076643",
+    "reserve1": "42083414198080918051",
+    "reserve0Human": "208608.076643",
+    "reserve1Human": "42.083414"
+  },
+  {
+    "chainId": 5042002,
+    "chain": "Arc",
+    "pool": "0x911aFa2C1B51a8fe23511359AB58F73AD7b81D94",
+    "fee": 100,
+    "token0": {
+      "address": "0x3600000000000000000000000000000000000000",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+      "symbol": "EURC",
+      "decimals": 6
+    },
+    "liquidity": "113271219",
+    "reserve0": "4640228",
+    "reserve1": "1000196",
+    "reserve0Human": "4.640228",
+    "reserve1Human": "1.000196"
+  },
+  {
+    "chainId": 5042002,
+    "chain": "Arc",
+    "pool": "0xFC1109e67e39C697819b69A34561c5330c952a8F",
+    "fee": 3000,
+    "token0": {
+      "address": "0x3600000000000000000000000000000000000000",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+      "symbol": "EURC",
+      "decimals": 6
+    },
+    "liquidity": "82094861",
+    "reserve0": "3715075",
+    "reserve1": "543972",
+    "reserve0Human": "3.715075",
+    "reserve1Human": "0.543972"
+  },
+  {
+    "chainId": 5042002,
+    "chain": "Arc",
+    "pool": "0x7A1ccE68c3AA18E02Ad60F68e58c8161fd2CB155",
+    "fee": 10000,
+    "token0": {
+      "address": "0x3600000000000000000000000000000000000000",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+      "symbol": "EURC",
+      "decimals": 6
+    },
+    "liquidity": "134141190",
+    "reserve0": "28684438",
+    "reserve1": "1266691",
+    "reserve0Human": "28.684438",
+    "reserve1Human": "1.266691"
+  },
+  {
+    "chainId": 5042002,
+    "chain": "Arc",
+    "pool": "0x911aFa2C1B51a8fe23511359AB58F73AD7b81D94",
+    "fee": 100,
+    "token0": {
+      "address": "0x3600000000000000000000000000000000000000",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+      "symbol": "EURC",
+      "decimals": 6
+    },
+    "liquidity": "113271219",
+    "reserve0": "4640228",
+    "reserve1": "1000196",
+    "reserve0Human": "4.640228",
+    "reserve1Human": "1.000196"
+  },
+  {
+    "chainId": 5042002,
+    "chain": "Arc",
+    "pool": "0xFC1109e67e39C697819b69A34561c5330c952a8F",
+    "fee": 3000,
+    "token0": {
+      "address": "0x3600000000000000000000000000000000000000",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+      "symbol": "EURC",
+      "decimals": 6
+    },
+    "liquidity": "82094861",
+    "reserve0": "3715075",
+    "reserve1": "543972",
+    "reserve0Human": "3.715075",
+    "reserve1Human": "0.543972"
+  },
+  {
+    "chainId": 5042002,
+    "chain": "Arc",
+    "pool": "0x7A1ccE68c3AA18E02Ad60F68e58c8161fd2CB155",
+    "fee": 10000,
+    "token0": {
+      "address": "0x3600000000000000000000000000000000000000",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "token1": {
+      "address": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+      "symbol": "EURC",
+      "decimals": 6
+    },
+    "liquidity": "134141190",
+    "reserve0": "28684438",
+    "reserve1": "1266691",
+    "reserve0Human": "28.684438",
+    "reserve1Human": "1.266691"
+  }
+]

@@ -201,6 +201,12 @@
   .nav-item-active:hover {
     background: var(--color-ink-700);
   }
+  .nav-item-lg {
+    height: 40px;
+    gap: 12px;
+    padding: 0 12px;
+    border-radius: 10px;
+  }
 
   .row {
     display: flex;

@@ -28,6 +28,7 @@ const t = (
 
 export const WETH: Record<number, Address> = {
   11155111: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
+  11155420: '0x4200000000000000000000000000000000000006',
   84532: '0x4200000000000000000000000000000000000006',
   1301: '0x4200000000000000000000000000000000000006',
 }
@@ -41,6 +42,10 @@ export const TOKENS: TokenCfg[] = [
   t(11155111, '0x779877A7B0D9E8603169DdbD7836e478b4624789', 'LINK', 'ChainLink Token', 18, 'token', '#2a5ada'),
   t(11155111, '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0', 'USDT', 'Tether USD', 6, 'token', '#26a17b'),
   t(11155111, '0x29f2D40B0605204364af54EC677bD022dA425d03', 'WBTC', 'Wrapped BTC', 8, 'token', '#f7931a'),
+
+  // ── OP Sepolia: canonical Uniswap v3 deployment, USDC/WETH 0.05% pool verified live
+  t(11155420, '0x5fd84259d66Cd46123540766Be93DFE6D43130D7', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),
+  t(11155420, '0x4200000000000000000000000000000000000006', 'WETH', 'Wrapped Ether', 18, 'weth', '#627eea'),
 
   // ── Base Sepolia
   t(84532, '0x036CbD53842c5426634e7929541eC2318f3dCF7e', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),
@@ -57,7 +62,6 @@ export const TOKENS: TokenCfg[] = [
 
   // ── USD Coin on the remaining CCTP testnets (needed for bridge balances + portfolio)
   t(43113, '0x5425890298aed601595a70AB815c96711a31Bc65', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),
-  t(11155420, '0x5fd84259d66Cd46123540766Be93DFE6D43130D7', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),
   t(421614, '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),
   t(80002, '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),
   t(59141, '0xFEce4462D57bD51A6A552365A011b95f0E16d9B7', 'USDC', 'USD Coin', 6, 'usdc', '#2775ca'),

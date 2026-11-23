@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowDownUp, Info, ShieldCheck, Wallet } from 'lucide-react'
+import { AlertTriangle, ArrowDownUp, ChevronDown, Info, ShieldCheck, Wallet } from 'lucide-react'
 import { formatUnits } from 'viem'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { getPublicClient, getWalletClient } from 'wagmi/actions'
-import { CCTP_CHAINS, CHAINS, getChain, type Address } from '../config/chains'
+import { CCTP_CHAINS, CHAINS, CCTP_TOKEN_MESSENGER_V2, CCTP_MESSAGE_TRANSMITTER_V2, getChain, type Address } from '../config/chains'
 import { USDC_OF, nativeToken } from '../config/tokens'
 import { Card, Button, Badge, Row, notify, ChainLogo, TokenIcon } from '../components/ui'
 import { ChainSelect, ChainChip } from '../components/ChainSelect'
@@ -15,7 +15,7 @@ import { Timeline } from '../components/Timeline'
 import { addActivity, updateActivity, updateStep, finalizeFromSteps, getActivity } from '../lib/activity'
 import { fetchCctpFees, maxFeeFor, cctpRouteAvailable } from '../lib/cctp'
 import { executeCctpBridge, submitReceiveMessage, executeOpDeposit, isMessageUsed } from '../lib/bridgeExec'
-import { opStackBridgeAvailable } from '../lib/opstack'
+import { getPortalAddress, opStackBridgeAvailable } from '../lib/opstack'
 import { describeBlock, assertCctpRoute } from '../lib/guard'
 import { startTracking } from '../lib/tracker'
 import { fmt, safeParseUnits, pct } from '../lib/format'
@@ -51,14 +51,63 @@ export default function Bridge() {
     return list.length ? list : ['none']
   }, [fromId, toId])
 
-  const [picked, setPicked] = useState<RouteKind>('cctp')
-  const kind: RouteKind = available.includes(picked) ? picked : available[0]
+  const [manual, setManual] = useState<RouteKind | null>(null)
+  const usdc = USDC_OF(fromId)
+
+  const fromClientEarly = useMemo(() => getPublicClient(wagmiConfig, { chainId: fromId as never }), [fromId])
+  const usdcBalance = useQuery({
+    queryKey: ['bridge-usdc-bal', fromId, address],
+    queryFn: async () => {
+      if (!fromClientEarly || !address || !usdc) return null
+      try {
+        return (await fromClientEarly.readContract({
+          address: usdc.address,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [address as Address],
+        })) as bigint
+      } catch {
+        return null
+      }
+    },
+    enabled: Boolean(fromClientEarly && address && usdc),
+    refetchInterval: 20_000,
+  })
+  const nativeBalance = useQuery({
+    queryKey: ['bridge-native-bal', fromId, address],
+    queryFn: async () => {
+      if (!fromClientEarly || !address) return null
+      try {
+        return await fromClientEarly.getBalance({ address: address as Address })
+      } catch {
+        return null
+      }
+    },
+    enabled: Boolean(fromClientEarly && address),
+    refetchInterval: 20_000,
+  })
+
+  /**
+   * Route selection is automatic: use the asset the wallet actually holds on the
+   * source chain. The user can still switch, but never has to understand CCTP vs
+   * OP Stack to get a working route.
+   */
+  const autoKind: RouteKind = useMemo(() => {
+    if (available.length === 1) return available[0]
+    const hasUsdc = (usdcBalance.data ?? 0n) > 0n
+    const hasNative = (nativeBalance.data ?? 0n) > 0n
+    if (hasUsdc && !hasNative) return 'cctp'
+    if (hasNative && !hasUsdc) return 'opstack'
+    if (hasUsdc) return 'cctp'
+    return available.includes('cctp') ? 'cctp' : 'opstack'
+  }, [available, usdcBalance.data, nativeBalance.data])
+
+  const kind: RouteKind = manual && available.includes(manual) ? manual : autoKind
 
   const isOpRoute = kind === 'opstack'
   const isCctp = kind === 'cctp'
   const assetDecimals = isOpRoute ? 18 : 6
   const assetSymbol = isOpRoute ? from.viem.nativeCurrency.symbol : 'USDC'
-  const usdc = USDC_OF(fromId)
   const amountIn = safeParseUnits(amount, assetDecimals)
 
   useEffect(() => {
@@ -77,26 +126,9 @@ export default function Bridge() {
   const fromClient = useMemo(() => getPublicClient(wagmiConfig, { chainId: fromId as never }), [fromId])
   const toClient = useMemo(() => getPublicClient(wagmiConfig, { chainId: toId as never }), [toId])
 
-  const tokenBalance = useQuery({
-    queryKey: ['bridge-bal', fromId, address, isCctp, usdc?.address],
-    queryFn: async () => {
-      if (!fromClient || !address) return null
-      if (isOpRoute) return fromClient.getBalance({ address: address as Address })
-      if (!usdc) return null
-      try {
-        return (await fromClient.readContract({
-          address: usdc.address,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [address as Address],
-        })) as bigint
-      } catch {
-        return null
-      }
-    },
-    enabled: Boolean(fromClient && address && (isOpRoute || usdc)),
-    refetchInterval: 15_000,
-  })
+  const balance: bigint | null = isOpRoute ? (nativeBalance.data ?? null) : (usdcBalance.data ?? null)
+  const balanceLoading = isOpRoute ? nativeBalance.isLoading : usdcBalance.isLoading
+  const balanceError = isOpRoute ? nativeBalance.isError : usdcBalance.isError
 
   const srcGas = useQuery({
     queryKey: ['gas-src', fromId, address],
@@ -117,9 +149,7 @@ export default function Bridge() {
   const receive = amountIn > maxFee ? amountIn - maxFee : 0n
 
   const activity = activeId ? getActivity(activeId) : undefined
-  const balance = tokenBalance.data ?? null
   const insufficient = isConnected && amountIn > 0n && (balance ?? 0n) < amountIn
-  const balanceError = tokenBalance.isError || (tokenBalance.isSuccess && tokenBalance.data === null)
 
   async function ensureChain(id: number) {
     if (chainId !== id) await switchChainAsync({ chainId: id as never })
@@ -214,7 +244,7 @@ export default function Bridge() {
             if (s === 'complete') notify('Attestation ready, finish the mint on the destination.', 'success')
           },
         })
-        tokenBalance.refetch()
+        usdcBalance.refetch()
         notify('Burn confirmed. Circle is attesting the transfer.', 'success')
       }
     } catch (e) {
@@ -299,7 +329,7 @@ export default function Bridge() {
                 <span className={balanceError ? 'text-[#e3c07b]' : ''}>
                   {!isConnected
                     ? '-'
-                    : tokenBalance.isLoading
+                    : balanceLoading
                       ? 'loading…'
                       : balanceError
                         ? 'balance unavailable'
@@ -332,35 +362,74 @@ export default function Bridge() {
             </div>
           </div>
 
-          {available.length > 1 && (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {available.map((r) => (
+          {kind === 'none' ? (
+            <div className="mt-3 rounded-lg border border-[#e5484d]/25 bg-[#e5484d]/8 px-3 py-2.5">
+              <div className="text-[12px] font-medium text-[#ffb4b6]">No direct verified route for this pair</div>
+              <p className="mt-1 text-[11px] leading-relaxed text-t2">
+                {fromId === toId
+                  ? 'Source and destination are the same chain. Use Swap for a same-chain exchange.'
+                  : !to.cctpDomain
+                    ? `${to.short} is not a CCTP chain, so USDC cannot be bridged there. ETH can only be deposited from its own L1 (${getChain(to.opStackParent ?? -1)?.short ?? 'unknown'}), and ${from.short} is not that chain. A two-hop path would need an L2 to L1 withdrawal first, which takes the 7-day challenge window.`
+                    : 'Neither Circle CCTP nor a canonical portal serves this direction.'}
+              </p>
+              {!to.cctpDomain && to.opStackParent != null && (
                 <button
-                  key={r}
                   onClick={() => {
-                    setPicked(r)
+                    setFromId(to.opStackParent!)
+                    setToId(toId)
                     setAmount('')
+                    setManual(null)
                   }}
-                  className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                    kind === r ? 'border-line-strong bg-ink-700' : 'border-line hover:bg-ink-700'
-                  }`}
+                  className="mt-2 rounded-md border border-line px-2.5 py-1.5 text-[11px] text-t1 transition-colors hover:border-line-strong"
                 >
-                  <span
-                    className="mt-1 grid h-4 w-4 shrink-0 place-items-center rounded-full border"
-                    style={{ borderColor: kind === r ? '#ededed' : '#3a3a3e' }}
-                  >
-                    {kind === r && <span className="h-2 w-2 rounded-full bg-[#ededed]" />}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[13px] font-medium text-t1">
-                      {r === 'cctp' ? 'USDC · CCTP' : `${from.viem.nativeCurrency.symbol} · OP Stack`}
-                    </span>
-                    <span className="block text-[11px] leading-4 text-t3">
-                      {r === 'cctp' ? 'burn and mint, Circle attested' : 'canonical L1 to L2 deposit'}
-                    </span>
-                  </span>
+                  Bridge ETH from {getChain(to.opStackParent)?.short} instead
                 </button>
-              ))}
+              )}
+            </div>
+          ) : (
+            <details className="group mt-3 rounded-lg border border-line bg-ink-850 px-3 py-2.5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[12px] text-t2 transition-colors hover:text-t1">
+                <span className="flex items-center gap-2">
+                  <Info size={13} className="text-accent" />
+                  Route details
+                </span>
+                <ChevronDown size={13} className="transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="mt-2 space-y-1 border-t border-line pt-2 text-[11px] leading-5 text-t3">
+                <p>
+                  {isCctp
+                    ? 'Circle CCTP v2. Burn and mint: USDC is burned on the source, Circle attests it, then it is minted on the destination.'
+                    : 'OP Stack canonical portal deposit. The ETH is deposited on the L1 and credited on the L2 by the sequencer.'}
+                </p>
+                <p className="mono">
+                  {isCctp
+                    ? `TokenMessengerV2 ${CCTP_TOKEN_MESSENGER_V2.slice(0, 10)}… · MessageTransmitterV2 ${CCTP_MESSAGE_TRANSMITTER_V2.slice(0, 10)}…`
+                    : `OptimismPortal ${String(getPortalAddress(to) ?? '-').slice(0, 10)}… on ${from.short}`}
+                </p>
+                <p>{isCctp ? 'CCTP moves native USDC only, it cannot move ETH or arbitrary ERC-20s.' : 'Deposits land in about 1 to 3 minutes. Withdrawals need a 7-day challenge window and are not offered.'}</p>
+              </div>
+            </details>
+          )}
+
+          {available.length > 1 && kind !== 'none' && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-[11px] text-t3">Asset</span>
+              <div className="flex flex-1 gap-1 rounded-lg border border-line bg-ink-850 p-0.5">
+                {available.map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => {
+                      setManual(r)
+                      setAmount('')
+                    }}
+                    className={`flex-1 rounded-md px-2 py-1.5 text-[12px] transition-colors ${
+                      kind === r ? 'bg-ink-700 text-t1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : 'text-t3 hover:text-t1'
+                    }`}
+                  >
+                    {r === 'cctp' ? 'USDC' : from.viem.nativeCurrency.symbol}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

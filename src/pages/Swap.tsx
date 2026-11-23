@@ -25,6 +25,7 @@ import { executeSwap, buildSwapCalldata } from '../lib/swapExec'
 import { assertSwapRoute } from '../lib/guard'
 import { decodeTxError } from '../lib/errors'
 import { fmt, safeParseUnits, pct } from '../lib/format'
+import { pairsForChain, poolsForChain } from '../config/pools'
 import { wagmiConfig } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
 
@@ -70,6 +71,36 @@ export default function Swap() {
     const list = tokensForChain(swapChainId)
     return chain.nativeIsUsdc ? list : [nativeToken(swapChainId), ...list]
   }, [swapChainId, chain.nativeIsUsdc])
+
+  /**
+   * Only tokens that appear in a verified pool on this chain are offered, and the
+   * buy list is further narrowed to tokens actually paired with the selected sell
+   * token. A pair with no pool would quote zero and fail at signing, so it is not
+   * shown instead of being shown and rejected.
+   */
+  const poolKey = (t: TokenCfg) =>
+    (isNativeToken(t) ? (WETH[swapChainId] ?? '').toLowerCase() : t.address.toLowerCase())
+
+  const tradeable: TokenCfg[] = useMemo(() => {
+    const addrs = new Set<string>()
+    for (const pool of poolsForChain(swapChainId)) {
+      addrs.add(pool.token0.toLowerCase())
+      addrs.add(pool.token1.toLowerCase())
+    }
+    const kept = selectable.filter((t) => addrs.has(poolKey(t)))
+    return kept.length >= 2 ? kept : selectable
+  }, [selectable, swapChainId])
+
+  const outOptions: TokenCfg[] = useMemo(() => {
+    const inKey = poolKey(tokenIn)
+    const paired = new Set<string>()
+    for (const pair of pairsForChain(swapChainId)) {
+      if (pair.token0.toLowerCase() === inKey) paired.add(pair.token1.toLowerCase())
+      if (pair.token1.toLowerCase() === inKey) paired.add(pair.token0.toLowerCase())
+    }
+    const kept = tradeable.filter((t) => t.address !== tokenIn.address && paired.has(poolKey(t)))
+    return kept.length > 0 ? kept : tradeable.filter((t) => t.address !== tokenIn.address)
+  }, [tradeable, tokenIn, swapChainId])
   const amountIn = safeParseUnits(debounced, tokenIn.decimals)
   const sameToken = tokenIn.address === tokenOut.address
 
@@ -251,7 +282,13 @@ export default function Swap() {
                   onClick={() => setPick('in')}
                   className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-line bg-ink-700 pl-1.5 pr-2.5 transition-colors hover:border-line-strong"
                 >
-                  <TokenIcon symbol={tokenIn.symbol} size={26} />
+                  <TokenIcon
+                    symbol={tokenIn.symbol}
+                    size={26}
+                    chainId={swapChainId}
+                    address={isNativeToken(tokenIn) ? null : tokenIn.address}
+                    verified={tokenIn.verified}
+                  />
                   <span className="text-[14px] font-medium text-t1">{tokenIn.symbol}</span>
                   <ChevronDown size={14} className="text-t3" />
                 </button>
@@ -275,7 +312,13 @@ export default function Swap() {
                   onClick={() => setPick('out')}
                   className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-line bg-ink-700 pl-1.5 pr-2.5 transition-colors hover:border-line-strong"
                 >
-                  <TokenIcon symbol={tokenOut.symbol} size={26} />
+                  <TokenIcon
+                    symbol={tokenOut.symbol}
+                    size={26}
+                    chainId={swapChainId}
+                    address={isNativeToken(tokenOut) ? null : tokenOut.address}
+                    verified={tokenOut.verified}
+                  />
                   <span className="text-[14px] font-medium text-t1">{tokenOut.symbol}</span>
                   <ChevronDown size={14} className="text-t3" />
                 </button>
@@ -414,7 +457,7 @@ export default function Swap() {
       <TokenSelect
         open={pick === 'in' || pick === 'out'}
         onClose={() => setPick(null)}
-        tokens={selectable}
+        tokens={pick === 'in' ? tradeable : outOptions}
         value={pick === 'in' ? tokenIn.address : tokenOut.address}
         chainName={chain.name}
         chainId={swapChainId}

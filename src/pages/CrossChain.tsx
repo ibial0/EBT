@@ -5,7 +5,7 @@ import { formatUnits } from 'viem'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { getPublicClient, getWalletClient } from 'wagmi/actions'
 import { CCTP_CHAINS, getChain, type Address } from '../config/chains'
-import { SWAP_CHAINS } from '../config/chains'
+import { pairsForChain } from '../config/pools'
 import { USDC_OF, tokensForChain, type TokenCfg } from '../config/tokens'
 import { Card, Button, Badge, Row, notify, TokenIcon, ChainLogo, Spinner } from '../components/ui'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
@@ -43,10 +43,23 @@ export default function CrossChain() {
   const to = getChain(toId)!
   const routeOk = cctpRouteAvailable(fromId, toId)
   const destSwapOk = Boolean(to.uniswap)
-  const destTokens = useMemo(
-    () => tokensForChain(toId).filter((t) => t.symbol !== 'USDC'),
-    [toId],
-  )
+  /**
+   * Only tokens that have a verified USDC pool on the destination chain are offered.
+   * A destination asset with no pool would quote as zero and fail at signing, so it is
+   * not listed at all rather than shown and then rejected.
+   */
+  const destTokens = useMemo(() => {
+    if (!to.uniswap) return []
+    const usdc = USDC_OF(toId)
+    if (!usdc) return []
+    const usdcAddr = usdc.address.toLowerCase()
+    const tradeable = new Set<string>()
+    for (const pair of pairsForChain(toId)) {
+      if (pair.token0.toLowerCase() === usdcAddr) tradeable.add(pair.token1.toLowerCase())
+      if (pair.token1.toLowerCase() === usdcAddr) tradeable.add(pair.token0.toLowerCase())
+    }
+    return tokensForChain(toId).filter((t) => tradeable.has(t.address.toLowerCase()))
+  }, [toId, to.uniswap])
   const chosenTarget = target ?? destTokens[0] ?? null
   const amountIn = safeParseUnits(amount, USDC_DECIMALS)
 
@@ -59,6 +72,30 @@ export default function CrossChain() {
   })
 
   const usdcIn = USDC_OF(fromId)
+  const srcClient = useMemo(() => getPublicClient(wagmiConfig, { chainId: fromId as never }), [fromId])
+  const srcUsdcRaw = useQuery({
+    queryKey: ['xc-src-usdc', fromId, address],
+    queryFn: async () => {
+      if (!srcClient || !address || !usdcIn) return null
+      try {
+        return (await srcClient.readContract({
+          address: usdcIn.address,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [address as Address],
+        })) as bigint
+      } catch {
+        return null
+      }
+    },
+    enabled: Boolean(srcClient && address && usdcIn),
+    refetchInterval: 20_000,
+  })
+  const srcUsdcBalance = !isConnected
+    ? null
+    : srcUsdcRaw.data == null
+      ? 'balance unavailable'
+      : `${fmt(srcUsdcRaw.data, 6, 6)} USDC on ${from.short}`
   const destClient = useMemo(() => getPublicClient(wagmiConfig, { chainId: toId as never }), [toId])
 
   const maxFee = maxFeeFor(amountIn, fees.data?.fastBps ?? 0)
@@ -233,8 +270,17 @@ export default function CrossChain() {
         <Card className="p-4">
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="panel p-3">
-              <div className="mb-1 label">Pay with · USDC on</div>
-              <ChainChip chainId={fromId} onClick={() => setPick('from')} />
+              <div className="mb-1 flex items-center justify-between label">
+                <span>Pay with</span>
+                <span>{srcUsdcBalance != null && <span className="mono text-t2">{srcUsdcBalance}</span>}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ChainChip chainId={fromId} onClick={() => setPick('from')} />
+                <span className="flex items-center gap-1.5 rounded-lg border border-line bg-ink-850 px-2 py-1">
+                  <TokenIcon symbol="USDC" size={20} chainId={fromId} address={usdcIn?.address} />
+                  <span className="text-sm font-medium text-t1">USDC</span>
+                </span>
+              </div>
             </div>
             <div className="panel p-3">
               <div className="mb-1 label">Receive on</div>
@@ -256,7 +302,7 @@ export default function CrossChain() {
                 className="input text-2xl font-semibold"
               />
               <div className="flex items-center gap-1.5 rounded-lg border border-line bg-ink-850 px-2 py-1">
-                <TokenIcon symbol="USDC" color="#2775ca" size={20} />
+                <TokenIcon symbol="USDC" color="#2775ca" size={20} chainId={toId} address={USDC_OF(toId)?.address} />
                 <span className="text-sm font-medium text-t1">USDC</span>
               </div>
             </div>
@@ -269,7 +315,18 @@ export default function CrossChain() {
                 onClick={() => setPick('target')}
                 className="flex items-center gap-2 rounded-lg border border-line bg-ink-850 px-2 py-1.5 hover:bg-ink-700"
               >
-                {chosenTarget ? <TokenIcon symbol={chosenTarget.symbol} color={chosenTarget.color} size={20} /> : <Layers size={18} />}
+                {chosenTarget ? (
+                  <TokenIcon
+                    symbol={chosenTarget.symbol}
+                    color={chosenTarget.color}
+                    size={20}
+                    chainId={toId}
+                    address={chosenTarget.address}
+                    verified={chosenTarget.verified}
+                  />
+                ) : (
+                  <Layers size={18} />
+                )}
                 <span className="text-sm font-medium text-t1">{chosenTarget?.symbol ?? 'no venue'}</span>
               </button>
             </div>
@@ -283,8 +340,15 @@ export default function CrossChain() {
 
           {!destSwapOk && (
             <div className="mt-2 rounded-lg border border-[#e3c07b]/25 bg-[#e3c07b]/8 px-3 py-2 text-[11px] leading-relaxed text-[#e3c07b]">
-              {to.short} has no verified Uniswap v3 deployment, so a cross-chain *swap* cannot complete there. You can still bridge
-              USDC to it from the Bridge page.
+              {to.short} has no verified swap venue, so the destination leg cannot complete there. You can still bridge USDC to
+              it from the Bridge page.
+            </div>
+          )}
+
+          {from.uniswap && (
+            <div className="mt-2 rounded-lg border border-line bg-ink-850 px-3 py-2 text-[11px] leading-relaxed text-t3">
+              Only USDC can move cross-chain here: CCTP is the only verified bridge and it is not a general token bridge. A route
+              like {from.short} cirBTC to {to.short} ETH would need a cirBTC bridge that no verified testnet provider offers.
             </div>
           )}
 
@@ -296,7 +360,7 @@ export default function CrossChain() {
                 </>
               ) : (
                 <>
-                  Build route plan <ArrowRight size={15} />
+                  Find available routes <ArrowRight size={15} />
                 </>
               )}
             </Button>
@@ -323,7 +387,7 @@ export default function CrossChain() {
             <Row label="USDC arriving" value={arriving > 0n ? `${fmt(arriving, 6, 6)}` : '-'} />
             <Row label="Dest pool" value={destQuote.data ? `${destQuote.data.fee / 10000}% · impact ${pct(destQuote.data.priceImpactBps, 2)}` : destQuote.isFetching ? '…' : 'no quote'} />
             <Row label="Slippage" value={pct(slippageBps, 2)} />
-            <Row label="Signatures" value={activity ? '4–5 wallet approvals' : '4–5 wallet approvals'} />
+            <Row label="Wallet signatures" value="4 or 5, one per step" />
           </Card>
 
           {activity && (

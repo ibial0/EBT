@@ -127,12 +127,18 @@ export const CHAINS: ChainCfg[] = [
     viem: optimismSepolia,
     cctpDomain: 2,
     usdc: '0x5fd84259d66Cd46123540766Be93DFE6D43130D7',
+    uniswap: {
+      quoter: '0xC5290058841028F1614F3A6F0F5816cAd0df5E27',
+      router02: '0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4',
+      factory: '0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24',
+    },
     bridge: 'cctp',
     opStackParent: sepolia.id,
     color: '#ff0420',
     gradient: ['#ff4a5c', '#c40018'],
     faucets: [
-      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'] },
+      { label: 'Superchain Faucet', url: 'https://console.optimism.io/faucet', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
+      { label: 'Alchemy OP Sepolia', url: 'https://www.alchemy.com/faucets/optimism-sepolia', tokens: ['ETH'], access: 'account', cooldown: '24h', checked: VERIFIED },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -283,7 +289,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#836ef9',
     gradient: ['#a78bfa', '#5b21b6'],
     faucets: [
-      { label: 'Monad Faucet', url: 'https://testnet.monad.xyz/', tokens: ['MON'] },
+      { label: 'Monad Faucet', url: 'https://testnet.monad.xyz/', tokens: ['MON'], access: 'account', cooldown: '24h', checked: VERIFIED },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,
@@ -318,7 +324,7 @@ export const CHAINS: ChainCfg[] = [
     color: '#7c3aed',
     gradient: ['#a78bfa', '#4c1d95'],
     faucets: [
-      { label: 'Ink Faucet', url: 'https://inkonchain.com/faucet', tokens: ['ETH'] },
+      { label: 'Ink Faucet', url: 'https://inkonchain.com/faucet', tokens: ['ETH'], access: 'account', checked: VERIFIED },
       { label: 'Circle USDC Faucet', url: 'https://faucet.circle.com', tokens: ['USDC'] },
     ],
     verifiedAt: VERIFIED,

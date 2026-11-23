@@ -114,7 +114,7 @@ export function TokenSelect({
                   : 'hover:bg-ink-700',
               )}
             >
-              <TokenIcon symbol={t.symbol} size={38} />
+              <TokenIcon symbol={t.symbol} size={38} chainId={chainId} address={t.address} verified={t.verified} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] text-t1">{t.symbol}</span>
                 <span className="block truncate text-[12px] text-t3">{t.name}</span>
