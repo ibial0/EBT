@@ -4,9 +4,10 @@
  * Nothing here assumes "USDC is supported everywhere". A route is built out of legs that
  * were each verified on chain:
  *
- *   cctp   native USDC burn-and-mint, only between two chains that are on Circle's list
- *   portal canonical OP Stack ETH deposit, only from the L1 parent into its own L2
- *   swap   a Uniswap v3 pool that actually holds liquidity (src/config/pools.ts)
+ *   cctp     native USDC burn-and-mint, only between two chains that are on Circle's list
+ *   portal   canonical OP Stack ETH deposit, only from the L1 parent into its own L2
+ *   arbitrum Arbitrum Orbit canonical deposit, only from the parent into its own Orbit chain
+ *   swap     a Uniswap v3 pool that actually holds liquidity (src/config/pools.ts)
  *
  * Routes are found by searching the state space (chain, token) with those legs, so a
  * composite route only appears when every single step is executable. Symbols are never
@@ -16,10 +17,13 @@ import { CHAINS, getChain, mustChain, type Address, type ChainCfg } from '../con
 import { NATIVE_SENTINEL, WETH as WETH_OF, findToken, nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
 import { POOLS, poolsForChain } from '../config/pools'
 import { getPortalAddress } from './opstack'
+import { orbitRouteExists } from './arbitrumOrbit'
 
 export type RouteLeg =
   | { kind: 'cctp'; from: number; to: number; token: Address }
   | { kind: 'portal'; from: number; to: number }
+  /** Arbitrum Orbit canonical deposit; `token` is set for an ERC-20 deposit */
+  | { kind: 'arbitrum'; from: number; to: number; token?: Address }
   | { kind: 'swap'; chainId: number; tokenIn: Address; tokenOut: Address; fee: number }
 
 export type RouteType = 'direct' | 'composite'
@@ -131,6 +135,15 @@ function bridgeEdges(chainId: number): BridgeEdge[] {
       leg: { kind: 'portal', from: chainId, to: l2.id },
     })
   }
+  // Arbitrum Orbit chains settle to a parent chain through the Arbitrum gateway set.
+  for (const l2 of CHAINS) {
+    if (!orbitRouteExists(chainId, l2.id)) continue
+    edges.push({
+      toChain: l2.id,
+      token: nativeOf(l2.id),
+      leg: { kind: 'arbitrum', from: chainId, to: l2.id },
+    })
+  }
   return edges
 }
 
@@ -148,19 +161,33 @@ export function directRoute(fromId: number, toId: number, token: TokenCfg): Rout
   })()
   if (!dest) return null
 
-  // native -> native only through the canonical portal, and only L1 -> L2
+  // native -> native through the canonical portal (OP Stack) or the Arbitrum Orbit bridge
   if (token.address.toLowerCase() === NATIVE_SENTINEL.toLowerCase()) {
-    if (to.opStackParent !== fromId || !getPortalAddress(to)) return null
-    return {
-      id: `portal-${fromId}-${toId}`,
-      type: 'direct',
-      legs: [{ kind: 'portal', from: fromId, to: toId }],
-      inToken: token,
-      outToken: dest,
-      txCount: 1,
-      label: `${token.symbol} → Native bridge → ${dest.symbol}`,
-      detail: `Canonical OP Stack deposit from ${from.short} into ${to.short}. Deposits are one-way; the 7-day withdrawal window is not offered.`,
+    if (to.opStackParent === fromId && getPortalAddress(to)) {
+      return {
+        id: `portal-${fromId}-${toId}`,
+        type: 'direct',
+        legs: [{ kind: 'portal', from: fromId, to: toId }],
+        inToken: token,
+        outToken: dest,
+        txCount: 1,
+        label: `${token.symbol} → Native bridge → ${dest.symbol}`,
+        detail: `Canonical OP Stack deposit from ${from.short} into ${to.short}. Deposits are one-way; the 7-day withdrawal window is not offered.`,
+      }
     }
+    if (orbitRouteExists(fromId, toId)) {
+      return {
+        id: `orbit-${fromId}-${toId}`,
+        type: 'direct',
+        legs: [{ kind: 'arbitrum', from: fromId, to: toId }],
+        inToken: token,
+        outToken: dest,
+        txCount: 1,
+        label: `${token.symbol} → Arbitrum bridge → ${dest.symbol}`,
+        detail: `Canonical Arbitrum Orbit deposit from ${from.short} into ${to.short}. It is a retryable ticket: the sequencer usually redeems it within minutes, and the 7-day withdrawal window is not offered.`,
+      }
+    }
+    return null
   }
 
   // USDC -> USDC only through CCTP
@@ -224,6 +251,7 @@ export function findRoutes(fromId: number, toId: number, inToken: TokenCfg, outT
       const curIsNative = assetKey(cur.chainId, cur.token.address) === assetKey(cur.chainId, NATIVE_SENTINEL)
       if (leg.kind === 'cctp' && !curIsUsdc) continue
       if (leg.kind === 'portal' && !curIsNative) continue
+      if (leg.kind === 'arbitrum' && !curIsNative) continue
       if (assetKey(edge.toChain, edge.token.address) === assetKey(cur.chainId, cur.token.address) && edge.toChain === cur.chainId) continue
       push(cur, { chainId: edge.toChain, token: edge.token }, cur.legs.concat([leg]), goalKey, visited, queue, found, fromId, toId, inToken, outToken)
     }
@@ -273,7 +301,7 @@ function push(
     queue.push({ chainId: next.chainId, token: next.token, legs })
   }
   if (assetKey(next.chainId, next.token.address) !== goalKey) return
-  const type = legs.length === 1 && (legs[0].kind === 'cctp' || legs[0].kind === 'portal') ? 'direct' : 'composite'
+  const type = legs.length === 1 && (legs[0].kind === 'cctp' || legs[0].kind === 'portal' || legs[0].kind === 'arbitrum') ? 'direct' : 'composite'
   const txCount = legs.length
   found.push({
     id: `${type}-${legs.map((l) => `${l.kind}${l.kind === 'swap' ? l.fee : ''}`).join('-')}-${fromId}-${toId}`,
@@ -292,6 +320,7 @@ function describeLegs(legs: RouteLeg[], fromId: number, toId: number): string {
   for (const leg of legs) {
     if (leg.kind === 'cctp') parts.push(`${getChain(leg.from)?.short} USDC → CCTP → ${getChain(leg.to)?.short} USDC`)
     else if (leg.kind === 'portal') parts.push(`${getChain(leg.from)?.short} ETH → Native bridge → ${getChain(leg.to)?.short} ETH`)
+    else if (leg.kind === 'arbitrum') parts.push(`${getChain(leg.from)?.short} ETH → Arbitrum bridge → ${getChain(leg.to)?.short} ETH`)
     else {
       const a = findToken(leg.chainId, leg.tokenIn)
       const b = findToken(leg.chainId, leg.tokenOut)

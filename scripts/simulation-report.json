@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-23T14:56:20.067Z",
+  "ranAt": "2026-11-23T16:16:56.591Z",
   "results": [
     {
       "id": "guard: mainnet rejected",
@@ -34,12 +34,12 @@
     {
       "id": "swap: quote WETH→USDC on Sepolia",
       "ok": true,
-      "detail": "out=31950270 fee=100 impact=1bps"
+      "detail": "out=31627627 fee=500 impact=5bps"
     },
     {
       "id": "swap: native ETH→USDC executes",
       "ok": true,
-      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001e785be"
+      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001e2996b"
     },
     {
       "id": "opstack: GIWA deposit accepted",
@@ -49,7 +49,7 @@
     {
       "id": "swap: quote USDC→WETH on Sepolia",
       "ok": true,
-      "detail": "out=31481457925030 fee=3000"
+      "detail": "out=31922642172933 fee=100"
     },
     {
       "id": "swap: USDC.approve(router, exact)",
@@ -89,12 +89,12 @@
     {
       "id": "arc: USDC ERC-20 view is 6dp",
       "ok": true,
-      "detail": "decimals=6, gasPrice=20000000000"
+      "detail": "decimals=6, gasPrice=23106142245"
     },
     {
       "id": "arc: gas floor ≥20 gwei",
       "ok": true,
-      "detail": "20 gwei"
+      "detail": "23 gwei"
     },
     {
       "id": "opstack: ETH deposit targets from Sepolia",

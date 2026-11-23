@@ -5921,6 +5921,46 @@ var portalAbi = parseAbi([
   "function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bool _isCreation, bytes _data) payable"
 ]);
 
+// src/config/orbit.ts
+var ORBIT_BRIDGES = {
+  // Robinhood Chain Testnet — Arbitrum Orbit chain settling to Ethereum Sepolia.
+  // https://docs.robinhood.com/chain/protocol-contracts/
+  46630: {
+    chainId: 46630,
+    parentChainId: 11155111,
+    rollup: "0xdc5F8E399DBd8a9F5F87AeC4C23Beb12431b386D",
+    inbox: "0xF2939afA86F6f933A3CE17fCAB007907B6b0B7a4",
+    bridge: "0x96295BDad104eaD97cC08797b3dC68efF59CcF30",
+    outbox: "0x8D180Caf588f3Da027BEf1F42a106Da93F90b166",
+    l1GatewayRouter: "0xF6F11aAEE80875776C264d93B37B34cE437382D1",
+    l1Erc20Gateway: "0x52C2976cbDEf48BcC51d07d3c523769F76ECBd09",
+    l1WethGateway: "0x8f8A6799F2b1978c6586318543c73D8Fb12f218f",
+    l1Weth: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+    l2GatewayRouter: "0x77bF00A6A90c600f214b34BAFBB7918c0cF113A8",
+    l2Weth: "0x7943e237c7F95DA44E0301572D358911207852Fa",
+    source: "https://docs.robinhood.com/chain/protocol-contracts/"
+  }
+};
+function orbitBridgeFor(chainId) {
+  return ORBIT_BRIDGES[chainId] ?? null;
+}
+
+// src/lib/arbitrumOrbit.ts
+var orbitInboxAbi = parseAbi([
+  "function createRetryableTicket(address to, uint256 l2CallValue, uint256 maxSubmissionCost, address excessFeeRefundAddress, address callValueRefundAddress, uint256 gasLimit, uint256 maxFeePerGas, bytes data) payable returns (uint256)"
+]);
+var orbitRouterAbi = parseAbi([
+  "function outboundTransfer(address _token, address _to, uint256 _amount, uint256 _maxGas, uint256 _gasPriceBid, bytes _data) payable returns (bytes)",
+  "function getGateway(address l1Token) view returns (address)",
+  "function defaultGateway() view returns (address)"
+]);
+var orbitGatewayAbi = parseAbi(["function calculateL2TokenAddress(address l1Token) view returns (address)"]);
+var erc20ApproveAbi = parseAbi(["function approve(address spender, uint256 amount) returns (bool)"]);
+function orbitRouteExists(fromId, toId) {
+  const cfg = orbitBridgeFor(toId);
+  return Boolean(cfg) && cfg.parentChainId === fromId;
+}
+
 // src/lib/routes.ts
 function assetKey(chainId, address) {
   const a = address.toLowerCase();
@@ -5975,6 +6015,14 @@ function bridgeEdges(chainId) {
       leg: { kind: "portal", from: chainId, to: l2.id }
     });
   }
+  for (const l2 of CHAINS) {
+    if (!orbitRouteExists(chainId, l2.id)) continue;
+    edges.push({
+      toChain: l2.id,
+      token: nativeOf(l2.id),
+      leg: { kind: "arbitrum", from: chainId, to: l2.id }
+    });
+  }
   return edges;
 }
 function directRoute(fromId, toId, token) {
@@ -5990,17 +6038,31 @@ function directRoute(fromId, toId, token) {
   })();
   if (!dest) return null;
   if (token.address.toLowerCase() === NATIVE_SENTINEL.toLowerCase()) {
-    if (to.opStackParent !== fromId || !getPortalAddress(to)) return null;
-    return {
-      id: `portal-${fromId}-${toId}`,
-      type: "direct",
-      legs: [{ kind: "portal", from: fromId, to: toId }],
-      inToken: token,
-      outToken: dest,
-      txCount: 1,
-      label: `${token.symbol} \u2192 Native bridge \u2192 ${dest.symbol}`,
-      detail: `Canonical OP Stack deposit from ${from.short} into ${to.short}. Deposits are one-way; the 7-day withdrawal window is not offered.`
-    };
+    if (to.opStackParent === fromId && getPortalAddress(to)) {
+      return {
+        id: `portal-${fromId}-${toId}`,
+        type: "direct",
+        legs: [{ kind: "portal", from: fromId, to: toId }],
+        inToken: token,
+        outToken: dest,
+        txCount: 1,
+        label: `${token.symbol} \u2192 Native bridge \u2192 ${dest.symbol}`,
+        detail: `Canonical OP Stack deposit from ${from.short} into ${to.short}. Deposits are one-way; the 7-day withdrawal window is not offered.`
+      };
+    }
+    if (orbitRouteExists(fromId, toId)) {
+      return {
+        id: `orbit-${fromId}-${toId}`,
+        type: "direct",
+        legs: [{ kind: "arbitrum", from: fromId, to: toId }],
+        inToken: token,
+        outToken: dest,
+        txCount: 1,
+        label: `${token.symbol} \u2192 Arbitrum bridge \u2192 ${dest.symbol}`,
+        detail: `Canonical Arbitrum Orbit deposit from ${from.short} into ${to.short}. It is a retryable ticket: the sequencer usually redeems it within minutes, and the 7-day withdrawal window is not offered.`
+      };
+    }
+    return null;
   }
   if (token.kind === "usdc" && from.cctpDomain != null && to.cctpDomain != null && from.usdc && to.usdc) {
     return {
@@ -6045,6 +6107,7 @@ function findRoutes(fromId, toId, inToken, outToken) {
       const curIsNative = assetKey(cur.chainId, cur.token.address) === assetKey(cur.chainId, NATIVE_SENTINEL);
       if (leg.kind === "cctp" && !curIsUsdc) continue;
       if (leg.kind === "portal" && !curIsNative) continue;
+      if (leg.kind === "arbitrum" && !curIsNative) continue;
       if (assetKey(edge.toChain, edge.token.address) === assetKey(cur.chainId, cur.token.address) && edge.toChain === cur.chainId) continue;
       push(cur, { chainId: edge.toChain, token: edge.token }, cur.legs.concat([leg]), goalKey, visited, queue, found, fromId, toId, inToken, outToken);
     }
@@ -6073,7 +6136,7 @@ function push(cur, next, legs, goalKey, visited, queue, found, fromId, toId, inT
     queue.push({ chainId: next.chainId, token: next.token, legs });
   }
   if (assetKey(next.chainId, next.token.address) !== goalKey) return;
-  const type = legs.length === 1 && (legs[0].kind === "cctp" || legs[0].kind === "portal") ? "direct" : "composite";
+  const type = legs.length === 1 && (legs[0].kind === "cctp" || legs[0].kind === "portal" || legs[0].kind === "arbitrum") ? "direct" : "composite";
   const txCount = legs.length;
   found.push({
     id: `${type}-${legs.map((l) => `${l.kind}${l.kind === "swap" ? l.fee : ""}`).join("-")}-${fromId}-${toId}`,
@@ -6091,6 +6154,7 @@ function describeLegs(legs, fromId, toId) {
   for (const leg of legs) {
     if (leg.kind === "cctp") parts.push(`${getChain(leg.from)?.short} USDC \u2192 CCTP \u2192 ${getChain(leg.to)?.short} USDC`);
     else if (leg.kind === "portal") parts.push(`${getChain(leg.from)?.short} ETH \u2192 Native bridge \u2192 ${getChain(leg.to)?.short} ETH`);
+    else if (leg.kind === "arbitrum") parts.push(`${getChain(leg.from)?.short} ETH \u2192 Arbitrum bridge \u2192 ${getChain(leg.to)?.short} ETH`);
     else {
       const a = findToken(leg.chainId, leg.tokenIn);
       const b = findToken(leg.chainId, leg.tokenOut);
@@ -6148,7 +6212,9 @@ var CASES = [
   { name: "Base ETH -> GIWA ETH", from: 84532, to: 91342, in: N(84532), out: N(91342), expect: "composite", expectTx: 4 },
   { name: "Base USDC -> GIWA ETH", from: 84532, to: 91342, in: U(84532), out: N(91342), expect: "composite", expectTx: 3 },
   { name: "Sepolia ETH -> GIWA ETH", from: 11155111, to: 91342, in: N(11155111), out: N(91342), expect: "direct", expectTx: 1 },
-  { name: "Robinhood -> GIWA (no provider)", from: 46630, to: 91342, in: N(46630), out: N(91342), expect: "none" }
+  { name: "Robinhood -> GIWA (no provider)", from: 46630, to: 91342, in: N(46630), out: N(91342), expect: "none" },
+  { name: "Sepolia ETH -> Robinhood ETH", from: 11155111, to: 46630, in: N(11155111), out: N(46630), expect: "direct", expectTx: 1 },
+  { name: "Base ETH -> Robinhood ETH", from: 84532, to: 46630, in: N(84532), out: N(46630), expect: "composite", expectTx: 4 }
 ];
 var pass = 0;
 var failures = [];

@@ -18,6 +18,7 @@
 import { CHAINS, getChain, type ChainCfg } from '../config/chains'
 import { pairsForChain } from '../config/pools'
 import { getPortalAddress } from './opstack'
+import { ORBIT_BRIDGES, orbitBridgeFor } from '../config/orbit'
 
 export type Capability =
   | 'wallet'
@@ -26,6 +27,7 @@ export type Capability =
   | 'swap'
   | 'bridgeUsdc'
   | 'bridgeEth'
+  | 'orbitEth'
   | 'crossChain'
   | 'recovery'
 
@@ -45,6 +47,7 @@ const LABELS: Record<Capability, string> = {
   swap: 'Same-chain swap',
   bridgeUsdc: 'USDC bridge (CCTP)',
   bridgeEth: 'ETH deposit (OP Stack)',
+  orbitEth: 'ETH deposit (Arbitrum Orbit)',
   crossChain: 'Cross-chain swap',
   recovery: 'Transfer recovery',
 }
@@ -58,6 +61,8 @@ export function capabilitiesOf(chain: ChainCfg): CapabilityRow[] {
   const portal = chain.opStackParent != null ? getPortalAddress(chain) : null
   const canDepositEth = Boolean(portal) && chain.opStackParent != null
   const isL1Source = CHAINS.some((c) => c.opStackParent === chain.id && getPortalAddress(c))
+  const orbit = orbitBridgeFor(chain.id)
+  const orbitSource = CHAINS.some((c) => ORBIT_BRIDGES[c.id]?.parentChainId === chain.id)
 
   return [
     { key: 'wallet', label: LABELS.wallet, state: 'yes', note: 'Any injected EVM wallet. No separate account.' },
@@ -102,6 +107,16 @@ export function capabilitiesOf(chain: ChainCfg): CapabilityRow[] {
           : 'No canonical portal on this chain and it is not an L1 source for any allowlisted chain.',
     },
     {
+      key: 'orbitEth',
+      label: LABELS.orbitEth,
+      state: orbit ? 'yes' : orbitSource ? 'partial' : 'no',
+      note: orbit
+        ? `Arbitrum Orbit chain settling to ${getChain(orbit.parentChainId)?.short}. Deposit through the Inbox retryable ticket.`
+        : orbitSource
+          ? `Acts as the parent for ${CHAINS.filter((c) => ORBIT_BRIDGES[c.id]?.parentChainId === chain.id).length} Arbitrum Orbit testnet(s). Withdrawals are not offered.`
+          : 'Not an Arbitrum Orbit chain and not a parent of one.',
+    },
+    {
       key: 'crossChain',
       label: LABELS.crossChain,
       state: chain.uniswap && hasPools && CCTP_COUNTERPART.has(chain.id) ? 'yes' : chain.uniswap ? 'partial' : 'no',
@@ -138,5 +153,6 @@ export function badgesFor(chain: ChainCfg): string[] {
   if (caps.swap.state === 'yes') out.push('SWAP')
   if (caps.bridgeUsdc.state === 'yes') out.push('CCTP')
   if (caps.bridgeEth.state === 'yes') out.push('ETH DEPOSIT')
+  if (caps.orbitEth.state === 'yes') out.push('ORBIT DEPOSIT')
   return out
 }

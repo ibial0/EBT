@@ -13,6 +13,7 @@ import { buildDepositForBurnArgs, messageTransmitterV2Abi, tokenMessengerV2Abi }
 import { assertCctpRoute } from './guard'
 import { erc20Allowance } from './uniswap'
 import { depositArgs, getPortalAddress } from './opstack'
+import { buildOrbitEthDeposit, orbitGasParams, type OrbitBridgeCfg } from './arbitrumOrbit'
 import { AlreadyMintedError, messageNonce } from './errors'
 import { checkGas, prepareTx, type PreparedTx } from './tx'
 import { encodeFunctionData as enc } from 'viem'
@@ -210,6 +211,50 @@ export async function executeOpDeposit(params: {
     throw new Error('Deposit transaction reverted on the source chain.')
   }
   params.onStep('deposit', 'done', hash)
+  return hash
+}
+
+/* ─────────────────── Arbitrum Orbit deposit ─────────────────── */
+
+/**
+ * Canonical Arbitrum Orbit deposit of the native asset. One signature: the Inbox creates
+ * a retryable ticket that mints the ETH on the Orbit chain.
+ */
+export async function executeOrbitDeposit(p: {
+  cfg: OrbitBridgeCfg
+  recipient: Address
+  mint: bigint
+  wallet: TxSender
+  l1Client: PublicClient
+  l2Client: PublicClient
+  onStep: (step: 'deposit' | 'arrive', state: 'active' | 'done' | 'failed', hash?: string) => void
+}) {
+  const l1 = getChain(p.cfg.parentChainId)!
+  const l2 = getChain(p.cfg.chainId)!
+  const params = await orbitGasParams(p.l1Client, p.l2Client)
+  const built = buildOrbitEthDeposit(p.cfg, p.recipient, p.mint, params)
+
+  p.onStep('deposit', 'active')
+  let hash: `0x${string}`
+  try {
+    const tx = await prepareTx(p.l1Client, l1, {
+      to: built.to,
+      data: built.data,
+      value: built.value,
+      account: p.recipient,
+    })
+    hash = await p.wallet.sendTransaction(tx)
+  } catch (e) {
+    p.onStep('deposit', 'failed')
+    throw e
+  }
+  const rc = await p.l1Client.waitForTransactionReceipt({ hash })
+  if (rc.status !== 'success') {
+    p.onStep('deposit', 'failed', hash)
+    throw new Error('The Arbitrum deposit transaction reverted on the source chain.')
+  }
+  p.onStep('deposit', 'done', hash)
+  void l2
   return hash
 }
 

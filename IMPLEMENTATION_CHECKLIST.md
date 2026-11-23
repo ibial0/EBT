@@ -95,6 +95,22 @@ All twelve run green in `npm run test:routes`:
 - [x] Swap matrix automated (`scripts/simulate.ts`, 28 checks)
 - [x] Browser pass on Bridge, Swap, Portfolio, Cross-chain, Activity, Recovery, Settings, Faucets
 
+## Arbitrum Orbit provider (v0.6.0)
+
+- [x] Diagnosed why Robinhood Chain could not be bridged: the app only had Circle CCTP and the
+      OP Stack portal; Robinhood is an Arbitrum Orbit chain and needs Arbitrum's gateway set
+- [x] Verified the full Robinhood Chain Testnet deployment on Sepolia (7 contracts with bytecode,
+      official Robinhood docs as source)
+- [x] Confirmed the native ETH deposit formula against a real deposit transaction
+- [x] `Inbox.createRetryableTicket` calldata executed successfully with `eth_call`
+- [x] ERC-20 path implemented (approval + `L1GatewayRouter.outboundTransfer`), gateway lookup and
+      L2 token address derivation available
+- [x] Route engine extended with an `arbitrum` leg, wired into selectors, execution, steps and
+      capabilities
+- [x] Retryable-ticket arrival tracking (balance comparison against the pre-deposit balance)
+- [x] `npm run test:orbit` regression check (6/6, includes a live simulation)
+- [x] Withdrawals still not offered (7-day challenge period)
+
 ## Phase 12 — regressions
 
 - [x] `tsc --noEmit`, `vite build`, `npm run test:sim` (28/28), `npm run test:routes` (12/12) all green

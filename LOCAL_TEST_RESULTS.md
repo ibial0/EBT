@@ -116,3 +116,16 @@ shape of the user's stuck entry flips to `complete` on page load with both hashe
 
 `npm run test:deposit` re-derives the hash for that real deposit and asserts the destination reports
 it successful, so a regression cannot silently strand another deposit.
+
+
+## Arbitrum Orbit bridge (v0.6.0)
+
+| check | result |
+| --- | --- |
+| `tsc --noEmit` | clean |
+| `vite build` | ok |
+| `test:sim` | 28/28 |
+| `test:routes` | 14/14 (new: Sepolia ETH → Robinhood ETH direct, Base ETH → Robinhood ETH composite) |
+| `test:deposit` | 5/5 |
+| `test:orbit` | 6/6, including a live `eth_call` of the ETH deposit calldata |
+| browser: Bridge Sepolia → Robinhood | route card renders, Direct, 1 signature |

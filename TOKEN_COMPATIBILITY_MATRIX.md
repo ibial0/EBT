@@ -9,6 +9,7 @@ Identity is `chainId + contract address`. The native asset has its own id
 | --- | --- | --- |
 | USDC | every chain in `NETWORK_CAPABILITIES.md` marked "USDC bridge: yes" | Circle CCTP v2 burn-and-mint |
 | Native ETH | Sepolia → Base, OP Sepolia, Unichain, World Chain, Ink, GIWA | canonical OP Stack portal deposit (one-way) |
+| Native ETH | Sepolia → Robinhood Chain Testnet | Arbitrum Orbit retryable ticket (one-way) |
 | USDT, DAI, UNI, LINK, WBTC, WETH, EURC, cirBTC | none as bridge assets | no provider moves them |
 
 The consequence: USDT on Sepolia can leave Sepolia only by being **swapped** into USDC (or ETH) first.
@@ -36,7 +37,7 @@ That is a composite route, and the app labels it as such.
 | Plasma Testnet | 9746 | XPL | USDC | none verified | USDC |
 | X Layer Testnet | 1952 | OKB | USDC | none verified | USDC |
 | GIWA Sepolia | 91342 | ETH | none | none | ETH (deposit from Sepolia) |
-| Robinhood Chain Testnet | 46630 | ETH | none verified | none | none |
+| Robinhood Chain Testnet | 46630 | ETH | none verified | none | ETH (Arbitrum Orbit deposit) |
 
 ## Arc specifics
 

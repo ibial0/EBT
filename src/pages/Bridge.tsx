@@ -18,6 +18,8 @@ import { executeCctpBridge, executeOpDeposit } from '../lib/bridgeExec'
 import { executeSwap } from '../lib/swapExec'
 import { startTracking } from '../lib/tracker'
 import { startDepositTracking } from '../lib/depositTrack'
+import { startOrbitTracking } from '../lib/orbitTrack'
+import { orbitBridgeFor } from '../config/orbit'
 import { fmt, safeParseUnits } from '../lib/format'
 import { checkGas, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
@@ -211,8 +213,8 @@ export default function Bridge() {
           status: 'pending' as const,
           chainId: leg.kind === 'swap' ? leg.chainId : leg.from,
         }
-        // a portal deposit has a second, derived step: the sequencer includes it on L2
-        return leg.kind === 'portal'
+        // portal and Orbit deposits have a second step: the destination chain credits it
+        return leg.kind === 'portal' || leg.kind === 'arbitrum'
           ? [
               base,
               {
@@ -227,7 +229,11 @@ export default function Bridge() {
       })
       const item = addActivity({
         kind: route.legs.length > 1 ? 'bridge' : route.legs[0].kind === 'portal' ? 'deposit' : 'bridge',
-        provider: route.legs.some((l) => l.kind === 'cctp') ? 'cctp' : 'opstack',
+        provider: route.legs.some((l) => l.kind === 'cctp')
+          ? 'cctp'
+          : route.legs.some((l) => l.kind === 'arbitrum')
+            ? 'orbit'
+            : 'opstack',
         fromChainId: fromId,
         toChainId: toId,
         owner: address,
@@ -309,6 +315,17 @@ export default function Bridge() {
               startDepositTracking(item.id, { l1: client, l2 }, {
                 onDone: (st) => notify(st === 'complete' ? 'Deposit included on the destination chain.' : 'The deposit was included but reverted.', st === 'complete' ? 'success' : 'error'),
               })
+            }
+          }
+          if (route.legs[i].kind === 'arbitrum') {
+            const cfg = orbitBridgeFor(leg.to)!
+            const l2 = getPublicClient(wagmiConfig, { chainId: leg.to as never })
+            if (l2) {
+              // record the destination balance so arrival can be detected by comparison
+              const before = await l2.getBalance({ address: recipient as Address }).catch(() => 0n)
+              updateActivity(item.id, { meta: { ...(item.meta ?? {}), orbitExpected: String(current), orbitBaseline: String(before) } })
+              updateStep(item.id, `arrive${i}`, { status: 'active', note: 'Retryable ticket submitted. Waiting for the sequencer to redeem it.' })
+              startOrbitTracking(item.id, l2, { maxMinutes: 60 })
             }
           }
         }

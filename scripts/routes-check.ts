@@ -37,6 +37,8 @@ const CASES: Case[] = [
   { name: 'Base USDC -> GIWA ETH', from: 84532, to: 91342, in: U(84532), out: N(91342), expect: 'composite', expectTx: 3 },
   { name: 'Sepolia ETH -> GIWA ETH', from: 11155111, to: 91342, in: N(11155111), out: N(91342), expect: 'direct', expectTx: 1 },
   { name: 'Robinhood -> GIWA (no provider)', from: 46630, to: 91342, in: N(46630), out: N(91342), expect: 'none' },
+  { name: 'Sepolia ETH -> Robinhood ETH', from: 11155111, to: 46630, in: N(11155111), out: N(46630), expect: 'direct', expectTx: 1 },
+  { name: 'Base ETH -> Robinhood ETH', from: 84532, to: 46630, in: N(84532), out: N(46630), expect: 'composite', expectTx: 4 },
 ]
 
 let pass = 0
