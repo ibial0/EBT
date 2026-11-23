@@ -32,6 +32,7 @@ const CHAIN_LOGOS: Record<string, string> = {
   codexTestnet: 'codex.webp',
   injectiveTestnet: 'injective.webp',
   giwaSepolia: 'giwa.png',
+  robinhoodTestnet: 'robinhood.png',
 }
 
 /** chainId -> file, for chains whose viem key is enough */
@@ -54,6 +55,7 @@ const CHAIN_LOGOS_BY_ID: Record<number, string> = {
   812242: 'codex.webp',
   1439: 'injective.webp',
   91342: 'giwa.png',
+  46630: 'robinhood.png',
 }
 
 /**
