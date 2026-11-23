@@ -1,0 +1,8 @@
+node_modules/
+dist/
+scripts/simulate.mjs
+scripts/portfolio-probe.mjs
+.env
+.env.local
+*.log
+.DS_Store

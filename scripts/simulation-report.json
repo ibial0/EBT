@@ -1,0 +1,139 @@
+{
+  "ranAt": "2026-11-23T10:14:56.705Z",
+  "results": [
+    {
+      "id": "guard: mainnet rejected",
+      "ok": true,
+      "detail": "Blocked: 1 is a mainnet. EBT is testnet-only."
+    },
+    {
+      "id": "guard: unknown chain rejected",
+      "ok": true,
+      "detail": "unknown testnet id throws"
+    },
+    {
+      "id": "guard: GIWA has no CCTP route",
+      "ok": true,
+      "detail": "CCTP is not available for GIWA Sepolia → Base Sepolia."
+    },
+    {
+      "id": "cctp: Iris fee API (0 → 6)",
+      "ok": true,
+      "detail": "fast=1bps standard=0bps"
+    },
+    {
+      "id": "cctp: burn reaches token transfer",
+      "ok": true,
+      "detail": "revert: Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: depositForBurn succeeds with funds",
+      "ok": true,
+      "detail": "layout balance=9 allowance=10, maxFee=125"
+    },
+    {
+      "id": "swap: quote WETH→USDC on Sepolia",
+      "ok": true,
+      "detail": "out=31409862 fee=500 impact=5bps"
+    },
+    {
+      "id": "swap: native ETH→USDC executes",
+      "ok": true,
+      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001df46c6"
+    },
+    {
+      "id": "opstack: GIWA deposit accepted",
+      "ok": true,
+      "detail": "portal 0x956962C34687A954e611A83619ABaA37Ce6bC78A"
+    },
+    {
+      "id": "swap: quote USDC→WETH on Sepolia",
+      "ok": true,
+      "detail": "out=32054395753000 fee=3000"
+    },
+    {
+      "id": "swap: USDC.approve(router, exact)",
+      "ok": true,
+      "detail": "returned 0x0000000000000000"
+    },
+    {
+      "id": "swap: USDC→ETH executes with funds",
+      "ok": true,
+      "detail": "returned 0x0000000000000000"
+    },
+    {
+      "id": "swap: quote USDC→WETH on Base Sepolia",
+      "ok": true,
+      "detail": "out=438216910194011 fee=100"
+    },
+    {
+      "id": "swap: executable pair coverage",
+      "ok": true,
+      "detail": "36 live pairs / 46 probed"
+    },
+    {
+      "id": "arc: MessageTransmitter localDomain",
+      "ok": true,
+      "detail": "domain=26"
+    },
+    {
+      "id": "arc: USDC ERC-20 view is 6dp",
+      "ok": true,
+      "detail": "decimals=6, gasPrice=25000000000"
+    },
+    {
+      "id": "arc: gas floor ≥20 gwei",
+      "ok": true,
+      "detail": "25 gwei"
+    },
+    {
+      "id": "opstack: ETH deposit targets from Sepolia",
+      "ok": true,
+      "detail": "OP Sepolia, Base Sepolia, Unichain, World, Ink, GIWA"
+    },
+    {
+      "id": "opstack: portal has code (OP Sepolia)",
+      "ok": true,
+      "detail": "0x16Fc5058F25648194471939df75CF27A2fdC48BC"
+    },
+    {
+      "id": "opstack: portal has code (Base Sepolia)",
+      "ok": true,
+      "detail": "0x49f53e41452c74589e85ca1677426ba426459e85"
+    },
+    {
+      "id": "opstack: portal has code (Unichain)",
+      "ok": true,
+      "detail": "0x0d83dab629f0e0F9d36c0Cbc89B69a489f0751bD"
+    },
+    {
+      "id": "cctp: message decoder (real message)",
+      "ok": true,
+      "detail": "amount=20000000 → domain 26"
+    },
+    {
+      "id": "cctp: Arc mint simulation",
+      "ok": true,
+      "detail": "return=0x0000000000000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "id": "swap: quote USDC→EURC on Arc",
+      "ok": true,
+      "detail": "out=927591 fee=100 impact=235bps"
+    },
+    {
+      "id": "swap: Arc router accepts calldata",
+      "ok": true,
+      "detail": "Execution reverted with reason: STF. (STF = decoded, reached token transfer)"
+    },
+    {
+      "id": "swap: Arc empty tier rejected",
+      "ok": true,
+      "detail": "Execution reverted with reason: SPL."
+    }
+  ],
+  "pairs": {
+    "tried": 46,
+    "live": 36
+  }
+}

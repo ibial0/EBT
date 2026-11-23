@@ -1,0 +1,292 @@
+import { useEffect, useMemo, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import clsx from 'clsx'
+import {
+  Activity,
+  ArrowLeftRight,
+  ChevronDown,
+  Droplets,
+  LayoutGrid,
+  LogOut,
+  Menu,
+  PieChart,
+  Repeat,
+  Settings as SettingsIcon,
+  ShieldCheck,
+  Wallet,
+  X,
+} from 'lucide-react'
+import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from 'wagmi'
+import { getChain } from '../config/chains'
+import { Button, Badge, notify, CopyButton, ChainLogo, StatusDot } from './ui'
+import { shortAddr } from '../lib/format'
+import { WALLETCONNECT_NOTE } from '../lib/wallet'
+
+const NAV = [
+  { to: '/', label: 'Overview', short: 'Overview', icon: LayoutGrid },
+  { to: '/portfolio', label: 'Portfolio', short: 'Wallet', icon: PieChart },
+  { to: '/bridge', label: 'Bridge', short: 'Bridge', icon: Repeat },
+  { to: '/swap', label: 'Swap', short: 'Swap', icon: ArrowLeftRight },
+  { to: '/cross-chain', label: 'Cross-chain', short: 'Cross', icon: ShieldCheck },
+  { to: '/faucets', label: 'Faucets', short: 'Faucets', icon: Droplets },
+  { to: '/activity', label: 'Activity', short: 'Activity', icon: Activity },
+  { to: '/settings', label: 'Settings', short: 'Settings', icon: SettingsIcon },
+]
+
+export function Layout() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
+  useEffect(() => setMobileOpen(false), [location.pathname])
+
+  return (
+    <div className="min-h-dvh">
+      {/* desktop sidebar */}
+      <aside className="fixed left-0 top-0 z-40 hidden h-dvh w-[256px] flex-col border-r border-line bg-ink-950 px-3 py-4 lg:flex">
+        <Brand />
+        <div className="mt-6">
+          <div className="label mb-2 px-2.5">Navigation</div>
+          <nav className="flex flex-col gap-0.5">
+            {NAV.map((n) => (
+              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => clsx('nav-item', isActive && 'nav-item-active')}>
+                <n.icon size={16} strokeWidth={1.5} className="shrink-0" />
+                {n.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+        <div className="mt-auto space-y-3 px-2.5 pb-1">
+          <div className="hairline" />
+          <div className="flex items-center gap-2 text-[12px] text-t3">
+            <StatusDot tone="mint" />
+            Testnet only
+          </div>
+          <p className="text-[12px] leading-5 text-t2">
+            Mainnet chains are rejected before a transaction is built. No custody, no backend.
+          </p>
+          <div className="mono text-[11px] text-t3">build 0.2.0</div>
+        </div>
+      </aside>
+
+      {/* mobile bar */}
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-2 border-b border-line bg-ink-900 px-3 lg:hidden">
+        <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-t2 transition-colors hover:bg-ink-700 hover:text-t1">
+          <Menu size={18} />
+        </button>
+        <Brand compact />
+        <ConnectButton compact />
+      </header>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setMobileOpen(false)} />
+          <div className="enter absolute left-0 top-0 h-full w-[80%] max-w-[300px] border-r border-line bg-ink-900 p-4">
+            <div className="flex items-center justify-between">
+              <Brand />
+              <button onClick={() => setMobileOpen(false)} className="rounded-lg p-2 text-t2 hover:bg-ink-700">
+                <X size={18} />
+              </button>
+            </div>
+            <nav className="mt-6 flex flex-col gap-0.5">
+              {NAV.map((n) => (
+                <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => clsx('nav-item', isActive && 'nav-item-active')}>
+                  <n.icon size={16} strokeWidth={1.5} />
+                  {n.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      <main className="lg:pl-[256px]">
+        <div className="sticky top-0 z-30 hidden h-14 items-center justify-end gap-3 border-b border-line bg-ink-900 px-6 lg:flex">
+          <span className="chip">
+            <StatusDot tone="mint" /> Testnet
+          </span>
+          <ConnectButton />
+        </div>
+        <div className="mx-auto w-full max-w-[1240px] px-4 pb-24 pt-6 sm:px-8 lg:pb-16">
+          <Outlet />
+        </div>
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-line bg-ink-900 pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {NAV.filter((n) => ['/', '/portfolio', '/bridge', '/swap', '/activity'].includes(n.to)).map((n) => (
+          <NavLink
+            key={n.to}
+            to={n.to}
+            end={n.to === '/'}
+            className={({ isActive }) =>
+              clsx('flex flex-col items-center gap-1 py-2 text-[11px]', isActive ? 'text-t1' : 'text-t3')
+            }
+          >
+            <n.icon size={18} strokeWidth={1.5} />
+            <span className="max-w-full truncate px-0.5">{n.short}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </div>
+  )
+}
+
+function Brand({ compact }: { compact?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5 px-1">
+      <div className="grid h-8 w-8 place-items-center rounded-lg bg-ink-700">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M5 7h14M5 12h9M5 17h6" stroke="#ededed" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </div>
+      <div className="leading-tight">
+        <div className={clsx('font-medium tracking-tight text-t1', compact ? 'text-[15px]' : 'text-[16px]')}>EBT</div>
+        {!compact && <div className="text-[11px] text-t3">Testnet bridge</div>}
+      </div>
+    </div>
+  )
+}
+
+/* ───────────── wallet ───────────── */
+
+export function ConnectButton({ compact, full }: { compact?: boolean; full?: boolean }) {
+  const { address, isConnected } = useAccount()
+  const chainId = useChainId()
+  const { connectors, connect, isPending } = useConnect()
+  const { disconnect } = useDisconnect()
+  const { switchChain } = useSwitchChain()
+  const [open, setOpen] = useState(false)
+  const chain = getChain(chainId)
+
+  const injected = useMemo(() => connectors.filter((c) => c.id === 'injected' || c.type === 'injected'), [connectors])
+
+  if (!isConnected) {
+    return (
+      <>
+        <Button
+          size={full ? 'lg' : compact ? 'sm' : 'md'}
+          variant={full || compact ? (full ? 'primary' : 'secondary') : 'secondary'}
+          full={full}
+          onClick={() => setOpen(true)}
+          loading={isPending}
+        >
+          <Wallet size={15} /> Connect a wallet
+        </Button>
+        {open && (
+          <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 sm:items-center sm:p-6">
+            <div className="absolute inset-0" onClick={() => setOpen(false)} />
+            <div className="enter relative z-10 w-full max-w-sm rounded-b-none border border-line bg-ink-800 p-5 sm:rounded-[14px]">
+              <div className="mb-1 text-[14px] font-medium text-t1">Connect a wallet</div>
+              <p className="mb-4 text-[12px] leading-5 text-t2">{WALLETCONNECT_NOTE}</p>
+              <div className="space-y-2">
+                {injected.length === 0 && (
+                  <div className="rounded-lg border border-[#e3c07b]/30 bg-[#1a1710] p-3 text-[12px] leading-5 text-[#e3c07b]">
+                    No browser wallet detected. Install MetaMask, Rabby or Coinbase Wallet, then reload.
+                  </div>
+                )}
+                {injected.map((c) => (
+                  <button
+                    key={c.uid}
+                    onClick={() =>
+                      connect(
+                        { connector: c },
+                        {
+                          onSuccess: () => {
+                            setOpen(false)
+                            notify('Wallet connected', 'success')
+                          },
+                          onError: (e) => notify(e.message, 'error'),
+                        },
+                      )
+                    }
+                    className="flex w-full items-center gap-3 rounded-lg border border-line bg-ink-850 px-3 py-3 text-left transition-colors hover:border-line-strong hover:bg-ink-700"
+                  >
+                    {c.icon ? <img src={c.icon} alt="" className="h-7 w-7 rounded-md" /> : <Wallet size={22} />}
+                    <span className="text-[14px] text-t1">{c.name === 'Injected' ? 'Browser wallet' : c.name}</span>
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => setOpen(false)} className="mt-4 w-full py-2 text-[13px] text-t3 transition-colors hover:text-t1">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-9 items-center gap-2 rounded-lg border border-line bg-ink-800 px-2.5 transition-colors hover:border-line-strong hover:bg-ink-700"
+      >
+        {chain ? <ChainLogo chain={chain} size={18} /> : <StatusDot tone="red" />}
+        <span className="hidden text-[13px] text-t2 sm:inline">{chain?.short ?? `Chain ${chainId}`}</span>
+        <span className="mono text-[12px] text-t1">{shortAddr(address, 3)}</span>
+        <ChevronDown size={13} className="text-t3" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="enter absolute right-0 top-[calc(100%+6px)] z-[70] w-64 overflow-hidden rounded-[10px] border border-line bg-ink-800 p-1.5">
+            <div className="px-2.5 py-2">
+              <div className="label">Connected</div>
+              <div className="mono mt-0.5 flex items-center gap-1 text-t1">
+                {shortAddr(address, 6)} <CopyButton value={address ?? ''} />
+              </div>
+            </div>
+            <div className="hairline my-1" />
+            <div className="label px-2.5 py-1.5">Switch network</div>
+            <div className="max-h-56 overflow-y-auto">
+              {['11155111', '84532', '1301', '421614', '11155420', '80002', '43113', '5042002', '91342'].map((id) => {
+                const c = getChain(Number(id))
+                if (!c) return null
+                return (
+                  <button
+                    key={id}
+                    onClick={() =>
+                      switchChain(
+                        { chainId: c.id },
+                        { onError: (e) => notify(e.message, 'error'), onSuccess: () => setOpen(false) },
+                      )
+                    }
+                    className={clsx(
+                      'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-ink-700',
+                      chainId === c.id ? 'text-accent' : 'text-t2',
+                    )}
+                  >
+                    <ChainLogo chain={c} size={16} /> {c.name}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="hairline my-1" />
+            <button
+              onClick={() => {
+                disconnect()
+                setOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#ffb4b6] transition-colors hover:bg-[#e5484d]/10"
+            >
+              <LogOut size={14} /> Disconnect
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
+  return (
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="text-[26px] leading-8 font-medium tracking-[-0.015em] text-t1">{title}</h1>
+        {subtitle && <p className="mt-1.5 max-w-[62ch] text-[13px] leading-5 text-t2">{subtitle}</p>}
+      </div>
+      {right}
+    </div>
+  )
+}
+
+export { Badge }
