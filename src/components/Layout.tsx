@@ -31,7 +31,6 @@ const NAV = [
   { to: '/portfolio', label: 'Portfolio', short: 'Wallet', icon: PieChart },
   { to: '/bridge', label: 'Bridge', short: 'Bridge', icon: Repeat },
   { to: '/swap', label: 'Swap', short: 'Swap', icon: ArrowLeftRight },
-  { to: '/cross-chain', label: 'Cross-chain', short: 'Cross', icon: ShieldCheck },
   { to: '/faucets', label: 'Faucets', short: 'Faucets', icon: Droplets },
   { to: '/activity', label: 'Activity', short: 'Activity', icon: Activity },
   { to: '/settings', label: 'Settings', short: 'Settings', icon: SettingsIcon },

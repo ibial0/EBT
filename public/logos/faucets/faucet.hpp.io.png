@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HPP Sepolia Faucet</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script type="module" crossorigin src="/assets/index-Oy9RT8rK.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BhgMgDaZ.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  <!-- Cloudflare Pages Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "a6a90c7f2bea4f3bbb33f5a3608bc5ee"}'></script><!-- Cloudflare Pages Analytics --></body>
+</html>

@@ -5221,7 +5221,7 @@ var CHAINS = [
     color: "#e7e3d4",
     gradient: ["#fef3c7", "#a1803f"],
     faucets: [
-      { label: "Codex explorer", url: "https://explorer.codex-stg.xyz/", tokens: ["ETH"], note: "No official Codex Testnet faucet was found. The explorer is linked so you can check gas and transactions; get Sepolia ETH and bridge if a route is ever listed." },
+      { label: "No native ETH faucet found", url: "", tokens: ["ETH"], missing: "ETH", note: "Checked 2026-11-25: only an explorer could be found for Codex, no faucet. The explorer is listed on the chain card instead.", note: "No official Codex Testnet faucet was found. The explorer is linked so you can check gas and transactions; get Sepolia ETH and bridge if a route is ever listed." },
       { label: "Circle USDC Faucet", url: "https://faucet.circle.com", tokens: ["USDC"] }
     ],
     verifiedAt: VERIFIED
@@ -5257,7 +5257,7 @@ var CHAINS = [
     gradient: ["#a78bfa", "#5b21b6"],
     faucets: [
       { label: "Monad Faucet", url: "https://faucet.monad.xyz/", tokens: ["MON"], access: "free", cooldown: "24h", checked: VERIFIED, note: "Up to 50 testnet MON every 24 hours." },
-      { label: "Monad developer docs", url: "https://testnet.monad.xyz/", tokens: ["MON"], note: "Redirects to the Monad developer docs, kept as the fallback entry point." },
+      { label: "Monad Faucet", url: "https://testnet.monad.xyz/", tokens: ["MON"], note: "Redirects to the Monad developer docs, kept as the fallback entry point." },
       { label: "Circle USDC Faucet", url: "https://faucet.circle.com", tokens: ["USDC"] }
     ],
     verifiedAt: VERIFIED
@@ -5274,7 +5274,7 @@ var CHAINS = [
     color: "#9e1f19",
     gradient: ["#ef4444", "#7f1d1d"],
     faucets: [
-      { label: "Sei Faucet", url: "https://docs.sei.io/learn/faucet", tokens: ["SEI"], access: "account", cooldown: "24h", checked: VERIFIED, note: "The official faucet page embeds a third-party widget; the amount is not published." },
+      { label: "Sei Faucet (official page)", url: "https://docs.sei.io/learn/faucet", tokens: ["SEI"], access: "account", cooldown: "24h", checked: VERIFIED, note: "The official faucet page embeds a third-party widget; the amount is not published." },
       { label: "Circle USDC Faucet", url: "https://faucet.circle.com", tokens: ["USDC"] }
     ],
     verifiedAt: VERIFIED
@@ -5419,7 +5419,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#f59e0b",
     gradient: ["#f59e0b", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "SX Toronto Faucet", url: "https://faucet.sx.technology", tokens: ["SX"], access: "free", note: "Official SX faucet for the Toronto testnet.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5432,7 +5434,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#38bdf8",
     gradient: ["#38bdf8", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native tHP faucet found", url: "", tokens: ["tHP"], missing: "tHP", note: "Checked 2026-11-25: no public faucet for tHP could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5445,7 +5449,10 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#a78bfa",
     gradient: ["#a78bfa", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "Plume Faucet", url: "https://faucet.plume.org", tokens: ["PLUME"], access: "free", cooldown: "24h", note: "Official Plume testnet faucet for the native gas token.", checked: "2026-11-25" },
+      { label: "Circle USDC Faucet", url: "https://faucet.circle.com", tokens: ["USDC"], access: "account", cooldown: "24h", note: "The official Circle faucet for testnet USDC. One claim per network per day.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5457,7 +5464,9 @@ var CHAINS = [
     bridge: "orbit",
     color: "#fb7185",
     gradient: ["#fb7185", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native ETH faucet found", url: "", tokens: ["ETH"], missing: "ETH", note: "Checked 2026-11-25: no public faucet for ETH could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5470,7 +5479,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#34d399",
     gradient: ["#34d399", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native GNET faucet found", url: "", tokens: ["GNET"], missing: "GNET", note: "Checked 2026-11-25: no public faucet for GNET could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5482,7 +5493,9 @@ var CHAINS = [
     bridge: "orbit",
     color: "#fbbf24",
     gradient: ["#fbbf24", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "HPP Faucet", url: "https://faucet.hpp.io", tokens: ["ETH"], access: "free", note: "Official HPP testnet faucet.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5495,7 +5508,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#818cf8",
     gradient: ["#818cf8", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native JASMY faucet found", url: "", tokens: ["JASMY"], missing: "JASMY", note: "Checked 2026-11-25: no public faucet for JASMY could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5508,7 +5523,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#f97316",
     gradient: ["#f97316", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "MarsChain Faucet (thirdweb)", url: "https://thirdweb.com/marschain-testnet", tokens: ["MarsC"], access: "account", note: "thirdweb hosts a faucet page for MarsChain.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5521,7 +5538,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#22d3ee",
     gradient: ["#22d3ee", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native GEN faucet found", url: "", tokens: ["GEN"], missing: "GEN", note: "Checked 2026-11-25: no public faucet for GEN could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5534,7 +5553,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#e879f9",
     gradient: ["#e879f9", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native WOMOX faucet found", url: "", tokens: ["WOMOX"], missing: "WOMOX", note: "Checked 2026-11-25: no public faucet for WOMOX could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5547,7 +5568,9 @@ var CHAINS = [
     bridgeNote: "Arbitrum Orbit testnet, but its native gas token is not ETH: the Orbit inbox is an ERC20Inbox that prices retryable tickets in that token, so a plain ETH deposit is not offered.",
     color: "#4ade80",
     gradient: ["#4ade80", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native sXAI faucet found", url: "", tokens: ["sXAI"], missing: "sXAI", note: "Checked 2026-11-25: no public faucet for sXAI could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   },
   {
@@ -5559,7 +5582,9 @@ var CHAINS = [
     bridge: "orbit",
     color: "#f43f5e",
     gradient: ["#f43f5e", "#0b1120"],
-    faucets: [],
+    faucets: [
+      { label: "No native ETH faucet found", url: "", tokens: ["ETH"], missing: "ETH", note: "Checked 2026-11-25: no public faucet for ETH could be verified. Bridge it from its parent chain, or ask in the network Discord.", checked: "2026-11-25" }
+    ],
     verifiedAt: VERIFIED
   }
 ];

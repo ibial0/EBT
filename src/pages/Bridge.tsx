@@ -6,7 +6,7 @@ import { formatUnits } from 'viem'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { getPublicClient, getWalletClient } from 'wagmi/actions'
 import { CHAINS, getChain, type Address } from '../config/chains'
-import { tokensForChain, type TokenCfg } from '../config/tokens'
+import { nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
 import { Card, Button, Badge, Row, notify, ChainLogo, TokenIcon } from '../components/ui'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
 import { ConnectButton, PageHeader } from '../components/Layout'
@@ -24,7 +24,7 @@ import { fmt, safeParseUnits } from '../lib/format'
 import { checkGas, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
 import { wagmiConfig } from '../lib/wallet'
-import { findRoutes, reachableDestTokens, usableSourceTokens, type RouteCandidate, type RouteLeg } from '../lib/routes'
+import { findRoutes, noRouteReason, reachableDestTokens, usableSourceTokens, type RouteCandidate, type RouteLeg } from '../lib/routes'
 
 const NATIVE = '0x0000000000000000000000000000000000000000'
 const keyOf = (chainId: number, address: string) => `${chainId}:${address.toLowerCase()}`
@@ -111,6 +111,8 @@ export default function Bridge() {
   const [destId, setDestId] = useState(keyOf(84532, NATIVE))
   const [amount, setAmount] = useState('')
   const [fast, setFast] = useState(true)
+  /** tolerance applied to every swap leg of a composite route */
+  const [slippageBps, setSlippageBps] = useState(100)
   const [recipient, setRecipient] = useState('')
   const [pick, setPick] = useState<'from' | 'to' | 'source' | 'dest' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -121,16 +123,52 @@ export default function Bridge() {
   const to = getChain(toId)!
 
   /** Every source asset that can actually reach the destination, directly or through a swap. */
-  const sourceOptions = useMemo(() => usableSourceTokens(fromId, toId), [fromId, toId])
+  const reachableSources = useMemo(() => usableSourceTokens(fromId, toId), [fromId, toId])
+  /**
+   * Every asset on the source chain, not only the ones that can move right now. A chain
+   * that only receives deposits still has a balance worth showing, and hiding the asset
+   * made it look like the app had lost it.
+   */
+  const sourceOptions = useMemo(() => {
+    const all = [nativeToken(fromId), ...tokensForChain(fromId)]
+    const ok = new Set(reachableSources.map((t) => t.address.toLowerCase()))
+    return [...all].sort((a, b) => Number(ok.has(b.address.toLowerCase())) - Number(ok.has(a.address.toLowerCase())))
+  }, [fromId, reachableSources])
+  const sourceNotes = useMemo(() => {
+    const ok = new Set(reachableSources.map((t) => t.address.toLowerCase()))
+    const out: Record<string, string> = {}
+    for (const t of sourceOptions) {
+      if (!ok.has(t.address.toLowerCase())) out[t.address.toLowerCase()] = noRouteReason(fromId, toId, t)
+    }
+    return out
+  }, [sourceOptions, reachableSources, fromId, toId])
   const source = useMemo(
-    () => sourceOptions.find((t) => keyOf(fromId, t.address) === sourceId) ?? sourceOptions[0],
+    () =>
+      sourceOptions.find((t) => keyOf(fromId, t.address) === sourceId) ??
+      reachableSources[0] ??
+      nativeToken(fromId),
     [sourceOptions, sourceId, fromId],
   )
 
   /** Destination assets reachable from the selected source asset. */
-  const destOptions = useMemo(() => (source ? reachableDestTokens(fromId, toId, source) : []), [fromId, toId, source])
+  const reachableDests = useMemo(() => (source ? reachableDestTokens(fromId, toId, source) : []), [fromId, toId, source])
+  const destOptions = useMemo(() => {
+    const all = [nativeToken(toId), ...tokensForChain(toId)]
+    const ok = new Set(reachableDests.map((t) => t.address.toLowerCase()))
+    return [...all].sort((a, b) => Number(ok.has(b.address.toLowerCase())) - Number(ok.has(a.address.toLowerCase())))
+  }, [toId, reachableDests])
+  const destNotes = useMemo(() => {
+    const ok = new Set(reachableDests.map((t) => t.address.toLowerCase()))
+    const out: Record<string, string> = {}
+    for (const t of destOptions) {
+      if (!ok.has(t.address.toLowerCase())) {
+        out[t.address.toLowerCase()] = `${t.symbol} cannot be delivered to ${getChain(toId)?.short}. ${noRouteReason(fromId, toId, t)}`
+      }
+    }
+    return out
+  }, [destOptions, reachableDests, fromId, toId])
   const dest = useMemo(
-    () => destOptions.find((t) => keyOf(toId, t.address) === destId) ?? destOptions[0],
+    () => destOptions.find((t) => keyOf(toId, t.address) === destId) ?? reachableDests[0] ?? nativeToken(toId),
     [destOptions, destId, toId],
   )
 
@@ -140,14 +178,14 @@ export default function Bridge() {
   // a chain change invalidates selections that no longer have a route
   useEffect(() => {
     if (source && !sourceOptions.some((t) => t.address.toLowerCase() === source.address.toLowerCase())) {
-      const first = sourceOptions[0]
+      const first = reachableSources[0] ?? sourceOptions[0]
       if (first) setSourceId(keyOf(fromId, first.address))
     }
   }, [fromId, sourceOptions, source])
 
   useEffect(() => {
     if (dest && !destOptions.some((t) => t.address.toLowerCase() === dest.address.toLowerCase())) {
-      const first = destOptions[0]
+      const first = reachableDests[0] ?? destOptions[0]
       if (first) setDestId(keyOf(toId, first.address))
     }
   }, [toId, destOptions, dest])
@@ -319,7 +357,7 @@ export default function Bridge() {
             },
             tokenOut: { address: leg.tokenOut as Address, symbol: outTok.symbol, decimals: outTok.decimals },
             amountIn: current,
-            amountOutMinimum: applySlippage(q.amountOut, 50),
+            amountOutMinimum: applySlippage(q.amountOut, slippageBps),
             fee: q.fee,
             wallet: sender,
             publicClient: client as never,
@@ -407,7 +445,6 @@ export default function Bridge() {
   }
 
   const hasRoute = Boolean(route) && Boolean(dest)
-  const noSourceRoute = sourceOptions.length === 0
 
   return (
     <div className="space-y-5">
@@ -475,20 +512,30 @@ export default function Bridge() {
             </div>
           </div>
 
-          {noSourceRoute ? (
+          {!route ? (
             <div className="mt-3 rounded-lg border border-[#e5484d]/25 bg-[#e5484d]/8 px-3 py-2.5">
-              <div className="text-[12px] font-medium text-[#ffb4b6]">No bridge route available for this token pair.</div>
+              <div className="text-[12px] font-medium text-[#ffb4b6]">
+                No route from {from.short} to {to.short} for {source?.symbol ?? 'this asset'}.
+              </div>
               <p className="mt-1 text-[11px] leading-relaxed text-t2">
-                No asset on {from.short} can reach {to.short} with a verified provider.
-                {orbitBridgeFor(toId) && !ORBIT_ETH_NATIVE.has(toId)
-                  ? ` ${to.short} is an Arbitrum Orbit chain whose gas token is ${to.viem.nativeCurrency.symbol}, not ETH, so its inbox (an ERC20Inbox) prices retryable tickets in that token and a plain ETH deposit does not exist there. It is also not a Circle CCTP chain.`
-                  : to.cctpDomain == null
-                    ? ` ${to.short} is not a Circle CCTP chain, so USDC cannot be bridged there, and ETH can only be deposited from its own L1.`
-                    : ' There is no verified bridge or swap route in either direction.'}
+                {source
+                  ? (sourceNotes[source.address.toLowerCase()] ??
+                    (orbitBridgeFor(toId) && !ORBIT_ETH_NATIVE.has(toId)
+                      ? `${to.short} is an Arbitrum Orbit chain whose gas token is ${to.viem.nativeCurrency.symbol}, not ETH, so its inbox prices retryable tickets in that token and a plain ETH deposit does not exist there.`
+                      : 'No verified provider covers this pair in this direction.'))
+                  : 'Pick an asset to see whether it can move.'}
               </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-t3">
-                Source assets that do work: {sourceOptions.map((t) => t.symbol).join(', ') || 'none'}.
-              </p>
+              {reachableSources.length > 0 && (
+                <p className="mt-1 text-[11px] leading-relaxed text-t3">
+                  Assets that can leave {from.short} for {to.short}:{' '}
+                  {reachableSources.map((t) => t.symbol).join(', ')}.
+                </p>
+              )}
+              {reachableSources.length === 0 && (
+                <p className="mt-1 text-[11px] leading-relaxed text-t3">
+                  Nothing can leave {from.short} for {to.short}. The reverse direction may still work.
+                </p>
+              )}
             </div>
           ) : (
             <div className="mt-3 rounded-xl border border-line bg-ink-850 p-3">
@@ -553,6 +600,30 @@ export default function Bridge() {
               </div>
             )}
           </div>
+
+          {route?.legs.some((l) => l.kind === 'swap') && (
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-line bg-ink-850 px-3 py-2">
+              <div>
+                <div className="text-[12px] font-medium text-t1">Slippage tolerance</div>
+                <div className="text-[10px] text-t3">Applied to every swap leg before it is signed.</div>
+              </div>
+              <div className="flex gap-1">
+                {[50, 100, 200].map((bps) => (
+                  <button
+                    key={bps}
+                    onClick={() => setSlippageBps(bps)}
+                    className={`rounded-md border px-2 py-1 text-[11px] transition ${
+                      slippageBps === bps
+                        ? 'border-accent/50 bg-accent/10 text-t1'
+                        : 'border-line text-t2 hover:border-line-strong'
+                    }`}
+                  >
+                    {(bps / 100).toFixed(bps === 50 ? 1 : 0)}%
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {route?.legs.some((l) => l.kind === 'cctp') && (
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -651,9 +722,7 @@ export default function Bridge() {
               </>
             ) : (
               <p className="text-[12px] leading-5 text-t3">
-                {noSourceRoute
-                  ? `Nothing on ${from.short} can reach ${to.short}.`
-                  : `${source?.symbol ?? 'The selected asset'} has no verified route to ${to.short}.`}
+                {`${source?.symbol ?? 'The selected asset'} has no verified route from ${from.short} to ${to.short}.`}
               </p>
             )}
           </Card>
@@ -742,6 +811,7 @@ export default function Bridge() {
         tokens={sourceOptions}
         chainId={fromId}
         value={source?.address}
+        notes={sourceNotes}
         onClose={() => setPick(null)}
         onSelect={(t) => setSourceId(keyOf(fromId, t.address))}
       />
@@ -751,6 +821,7 @@ export default function Bridge() {
         tokens={destOptions}
         chainId={toId}
         value={dest?.address}
+        notes={destNotes}
         onClose={() => setPick(null)}
         onSelect={(t) => setDestId(keyOf(toId, t.address))}
       />
@@ -766,6 +837,7 @@ function AssetSelect({
   value,
   onClose,
   onSelect,
+  notes,
 }: {
   open: boolean
   title: string
@@ -774,6 +846,8 @@ function AssetSelect({
   value?: string
   onClose: () => void
   onSelect: (t: TokenCfg) => void
+  /** why an asset cannot move right now; shown inline instead of hiding the asset */
+  notes?: Record<string, string>
 }) {
   const chain = getChain(chainId)!
   // never stay mounted: an always-present overlay swallows every click on the page
@@ -805,32 +879,46 @@ function AssetSelect({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {tokens.length === 0 && (
-            <div className="px-3 py-8 text-center text-[12px] text-t3">No asset on {chain.short} can reach the destination.</div>
+            <div className="px-3 py-8 text-center text-[12px] text-t3">This chain has no registered assets.</div>
           )}
-          {tokens.map((t) => (
-            <button
-              key={t.address}
-              onClick={() => {
-                onSelect(t)
-                onClose()
-              }}
-              className={`flex w-full items-center gap-3 rounded-[10px] px-2.5 py-2 text-left ${
-                value?.toLowerCase() === t.address.toLowerCase() ? 'bg-ink-700' : 'hover:bg-ink-700'
-              }`}
-            >
-              <TokenIcon symbol={t.symbol} size={38} chainId={chainId} address={t.address} verified={t.verified} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14px] text-t1">{t.symbol}</span>
-                <span className="block truncate text-[12px] text-t3">{t.name}</span>
-              </span>
-              <span className="mono shrink-0 text-[10px] text-t3">
-                {t.address.slice(0, 6)}…{t.address.slice(-4)}
-              </span>
-            </button>
-          ))}
+          {tokens.map((t) => {
+            const note = notes?.[t.address.toLowerCase()]
+            return (
+              <button
+                key={t.address}
+                onClick={() => {
+                  onSelect(t)
+                  onClose()
+                }}
+                className={`flex w-full items-start gap-3 rounded-[10px] px-2.5 py-2 text-left ${
+                  value?.toLowerCase() === t.address.toLowerCase() ? 'bg-ink-700' : 'hover:bg-ink-700'
+                }`}
+              >
+                <span className={note ? 'opacity-45' : ''}>
+                  <TokenIcon symbol={t.symbol} size={38} chainId={chainId} address={t.address} verified={t.verified} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className={`text-[14px] ${note ? 'text-t2' : 'text-t1'}`}>{t.symbol}</span>
+                    {note && (
+                      <span className="rounded border border-line px-1 text-[9px] uppercase tracking-wide text-t3">no route</span>
+                    )}
+                  </span>
+                  <span className="block truncate text-[12px] text-t3">{t.name}</span>
+                  {note && <span className="mt-1 block text-[10px] leading-4 text-t3">{note}</span>}
+                </span>
+                {!note && (
+                  <span className="mono shrink-0 pt-0.5 text-[10px] text-t3">
+                    {t.address.slice(0, 6)}…{t.address.slice(-4)}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
         <div className="border-t border-line px-4 py-2.5 text-[11px] leading-5 text-t3">
-          Only assets with a verified route are listed. Balances are read from {chain.short}.
+          Every asset on {chain.short} is listed. Those marked “no route” cannot move with a verified provider
+          right now, and the reason is shown instead of hiding them.
         </div>
       </div>
     </div>

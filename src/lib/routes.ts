@@ -18,6 +18,7 @@ import { NATIVE_SENTINEL, WETH as WETH_OF, findToken, nativeToken, tokensForChai
 import { POOLS, poolsForChain } from '../config/pools'
 import { getPortalAddress } from './opstack'
 import { orbitRouteExists } from './arbitrumOrbit'
+import { orbitBridgeFor } from '../config/orbit'
 
 export type RouteLeg =
   | { kind: 'cctp'; from: number; to: number; token: Address }
@@ -382,3 +383,44 @@ export function reachableDestTokens(fromId: number, toId: number, inToken: Token
 
 export { CHAINS, getChain }
 export type { ChainCfg }
+
+/**
+ * Why a specific token cannot leave `fromId` for `toId`.
+ *
+ * Used to explain the gap instead of silently hiding the asset: a chain that only receives
+ * deposits is the normal case, because both OP Stack and Arbitrum withdraw after a 7-day
+ * challenge period that this app deliberately does not implement.
+ */
+export function noRouteReason(fromId: number, toId: number, token: TokenCfg): string {
+  const from = getChain(fromId)
+  const to = getChain(toId)
+  if (!from || !to) return 'Unknown chain.'
+  const isNative = token.address.toLowerCase() === NATIVE_SENTINEL.toLowerCase()
+
+  // is the destination the parent that this chain deposits into?
+  const orbitCfg = orbitBridgeFor(toId)
+  const toIsParentOfFrom =
+    to.opStackParent === fromId ||
+    orbitCfg?.chainId === fromId ||
+    false
+  if (toIsParentOfFrom) {
+    return `Withdrawals from ${from.short} back to ${to.short} need a 7-day challenge period, so this app does not offer them. Deposits only run the other way, ${to.short} → ${from.short}.`
+  }
+  const fromZig = orbitBridgeFor(fromId)
+  if (fromZig && fromZig.parentChainId === toId) {
+    return `Withdrawals from ${from.short} back to ${to.short} need a 7-day challenge period, so this app does not offer them.`
+  }
+
+  if (isNative) {
+    const parentId = from.opStackParent ?? orbitBridgeFor(fromId)?.parentChainId
+    const parent = parentId != null ? getChain(parentId) : undefined
+    if (parentId != null && parent) {
+      return `${token.symbol} on ${from.short} can only go back to its own L1 parent (${parent.short}), and only through a 7-day withdrawal, which this app does not offer. It cannot reach ${to.short} at all.`
+    }
+    return `No verified provider moves ${token.symbol} from ${from.short} to ${to.short}.`
+  }
+  if (!from.cctpDomain || !to.cctpDomain) {
+    return `${token.symbol} has no bridge on ${from.short}. Only USDC has a provider here (Circle CCTP), and both chains must be on Circle's list.`
+  }
+  return `No verified route for ${token.symbol} from ${from.short} to ${to.short}.`
+}

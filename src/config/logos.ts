@@ -33,6 +33,18 @@ const CHAIN_LOGOS: Record<string, string> = {
   injectiveTestnet: 'injective.webp',
   giwaSepolia: 'giwa.png',
   robinhoodTestnet: 'robinhood.png',
+  // Arbitrum Orbit testnets
+  o_SXToronto: 'sxtoronto.png',
+  o_Humanity: 'humanity.png',
+  o_Plume: 'plume.png',
+  o_TRex: 'trex.png',
+  o_GalacticaCas: 'galactica.png',
+  o_HPPSepolia: 'hpp.png',
+  o_JASMY: 'jasmy.png',
+  o_GenLayer: 'genlayer.png',
+  o_WorldMobile: 'worldmobile.png',
+  o_Xai: 'xai.png',
+  o_Edge: 'edge.png',
 }
 
 /** chainId -> file, for chains whose viem key is enough */
@@ -56,6 +68,18 @@ const CHAIN_LOGOS_BY_ID: Record<number, string> = {
   1439: 'injective.webp',
   91342: 'giwa.png',
   46630: 'robinhood.png',
+  // Arbitrum Orbit testnets
+  79479957: 'sxtoronto.png',
+  7080969: 'humanity.png',
+  98867: 'plume.png',
+  1962: 'trex.png',
+  843843: 'galactica.png',
+  181228: 'hpp.png',
+  681: 'jasmy.png',
+  4221: 'genlayer.png',
+  323432: 'worldmobile.png',
+  37714555429: 'xai.png',
+  33431: 'edge.png',
 }
 
 /**

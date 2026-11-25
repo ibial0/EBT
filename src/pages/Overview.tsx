@@ -21,12 +21,35 @@ import { PageHeader } from '../components/Layout'
 import { useNetworkHealth } from '../lib/health'
 import { listActivity } from '../lib/activity'
 import { feeLabel, liquidityLabel, loadLiquidity, type PoolSnapshot } from '../lib/liquidity'
+import { buildCoverage, coverageCounts } from '../lib/coverage'
 import { fmt } from '../lib/format'
 
 type Level = 'all' | 'active' | 'drained'
 type StatusFilter = 'all' | 'active' | 'drained' | 'unreachable'
 
+/** small provider pills used by the coverage matrix */
+function Tags({ tags, empty }: { tags: { key: string; label: string }[]; empty: string }) {
+  if (tags.length === 0) return <span className="text-t3">{empty}</span>
+  const tone: Record<string, string> = {
+    cctp: 'border-accent/30 text-accent',
+    portal: 'border-[#e3c07b]/30 text-[#e3c07b]',
+    orbit: 'border-[#a78bfa]/30 text-[#c4b5fd]',
+    swap: 'border-[#4cc38a]/30 text-[#7fd6a8]',
+  }
+  return (
+    <span className="flex flex-wrap gap-1">
+      {tags.map((t) => (
+        <span key={t.key} className={`rounded border px-1 text-[9px] leading-4 ${tone[t.key] ?? 'border-line text-t3'}`}>
+          {t.label}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export default function Overview() {
+  const coverage = useMemo(() => buildCoverage(), [])
+  const counts = useMemo(() => coverageCounts(coverage), [coverage])
   const health = useNetworkHealth()
   const [level, setLevel] = useState<Level>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
@@ -112,56 +135,55 @@ export default function Overview() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-        {/* network grid */}
-        <Card className="p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Network coverage</h2>
-            <Link to="/settings" className="text-[11px] text-t2 hover:text-accent">
-              see allowlist →
-            </Link>
+        {/* bridge coverage: which chains can move value, and through what */}
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Bridge coverage</h2>
+              <p className="mt-0.5 text-[11px] text-t3">
+                Which chains can send, which can only receive, and which provider does it. Built from the
+                registry, so it cannot drift from what the app will actually let you sign.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Badge tone="mint">{counts.canSend} send</Badge>
+              <Badge tone="blue">{counts.canReceive} receive</Badge>
+              <Badge tone={counts.isolated ? 'amber' : 'default'}>{counts.isolated} isolated</Badge>
+            </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {[...CHAINS]
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((c) => {
-                const h = health.data?.find((x) => x.id === c.id)
-                const live = h?.ok
-                return (
-                  <div
-                    key={c.id}
-                    className="group flex min-h-[58px] items-center gap-2.5 rounded-xl border border-line bg-ink-850/60 px-2.5 py-2 transition hover:border-line-strong hover:bg-ink-800"
-                  >
-                    <ChainLogo chain={c} size={24} />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12px] font-medium leading-[15px] text-t1" title={c.name}>
-                        {c.name}
+          <div className="max-h-[420px] overflow-y-auto">
+            <table className="w-full text-[12px]">
+              <thead className="sticky top-0 bg-ink-800/95 backdrop-blur">
+                <tr className="text-left text-[10px] uppercase tracking-wide text-t3">
+                  <th className="px-4 py-2 font-medium">Chain</th>
+                  <th className="px-2 py-2 font-medium">Can send</th>
+                  <th className="px-2 py-2 font-medium">Can receive</th>
+                </tr>
+              </thead>
+              <tbody>
+                {coverage.map((row) => (
+                  <tr key={row.chain.id} className="border-t border-line/60 hover:bg-ink-850/60">
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <ChainLogo chain={row.chain} size={20} />
+                        <span className="truncate text-t1">{row.chain.name}</span>
+                        <span className="mono shrink-0 text-[10px] text-t3">{row.chain.id}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] leading-4 text-t3">
-                        <span
-                          className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${live ? 'bg-[#4cc38a]' : health.isLoading ? 'bg-[#e3c07b]' : 'bg-[#e5484d]'}`}
-                        />
-                        <span className="mono truncate">
-                          {h?.ok ? `${h.latencyMs}ms` : health.isLoading ? 'checking' : 'no rpc'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      {c.bridge === 'cctp' && (
-                        <span className="rounded border border-accent/25 px-1 text-[9px] leading-4 text-accent">CCTP</span>
-                      )}
-                      {c.bridge === 'orbit' && (
-                        <span className="rounded border border-[#a78bfa]/30 px-1 text-[9px] leading-4 text-[#c4b5fd]">ORBIT</span>
-                      )}
-                      {c.bridge === 'opstack' && (
-                        <span className="rounded border border-[#e3c07b]/30 px-1 text-[9px] leading-4 text-[#e3c07b]">OP</span>
-                      )}
-                      {c.uniswap && (
-                        <span className="rounded border border-[#4cc38a]/30 px-1 text-[9px] leading-4 text-[#7fd6a8]">SWAP</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+                    </td>
+                    <td className="px-2 py-2">
+                      <Tags tags={row.send} empty="—" />
+                    </td>
+                    <td className="px-2 py-2">
+                      <Tags tags={row.receive} empty="—" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-line px-4 py-2.5 text-[11px] leading-5 text-t3">
+            A chain with no badge in either column cannot move value yet: no verified provider covers it. Nothing
+            is faked to fill the gap.
           </div>
         </Card>
 

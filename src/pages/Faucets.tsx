@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ArrowUpRight, Droplets, Info, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowUpRight, Ban, Droplets, Info, Search } from 'lucide-react'
 import { CHAINS, type ChainCfg, type FaucetLink } from '../config/chains'
 import { Badge, Button, Card, ChainLogo, CopyButton, Modal, TokenIcon } from '../components/ui'
 import { PageHeader } from '../components/Layout'
@@ -9,6 +9,21 @@ const ACCESS_LABEL: Record<string, string> = {
   account: 'Account needed',
   pow: 'Proof of work',
   tasks: 'Tasks required',
+}
+
+/** favicon of the faucet's own site, so a source is recognisable before it is clicked */
+function FaucetLogo({ url, fallback }: { url: string; fallback: React.ReactNode }) {
+  const [bad, setBad] = useState(false)
+  let host = ''
+  try {
+    host = new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return <>{fallback}</>
+  }
+  const src = `/logos/faucets/${host}.png`
+  useEffect(() => setBad(false), [src])
+  if (bad) return <>{fallback}</>
+  return <img src={src} alt="" className="h-5 w-5 object-contain" onError={() => setBad(true)} />
 }
 
 export default function Faucets() {
@@ -61,10 +76,16 @@ export default function Faucets() {
               {c.faucets.map((f) => (
                 <div
                   key={f.url + f.label}
-                  className="flex items-center gap-2 rounded-lg border border-line bg-ink-850 px-2.5 py-2"
+                  className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 ${
+                    f.missing ? 'border-dashed border-[#e3c07b]/30 bg-[#e3c07b]/5' : 'border-line bg-ink-850'
+                  }`}
                 >
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-ink-700">
-                    <Droplets size={13} className="text-accent" />
+                  <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-md bg-ink-700">
+                    {f.missing ? (
+                      <Ban size={13} className="text-[#e3c07b]" />
+                    ) : (
+                      <FaucetLogo url={f.url} fallback={<Droplets size={13} className="text-accent" />} />
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] text-t1">{f.label}</div>
@@ -78,20 +99,28 @@ export default function Faucets() {
                       ))}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setDetail({ chain: c, faucet: f })}
-                    className="shrink-0 rounded-md border border-line px-2 py-1 text-[11px] text-t2 transition-colors hover:border-line-strong hover:text-t1"
-                  >
-                    Requirements
-                  </button>
-                  <a
-                    href={f.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex shrink-0 items-center gap-1 rounded-md bg-ink-700 px-2.5 py-1 text-[11px] text-t1 transition-colors hover:bg-ink-600"
-                  >
-                    Open <ArrowUpRight size={11} />
-                  </a>
+                  {f.missing ? (
+                    <span className="shrink-0 rounded-md border border-[#e3c07b]/30 px-2 py-1 text-[10px] uppercase tracking-wide text-[#e3c07b]">
+                      not available
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setDetail({ chain: c, faucet: f })}
+                        className="shrink-0 rounded-md border border-line px-2 py-1 text-[11px] text-t2 transition-colors hover:border-line-strong hover:text-t1"
+                      >
+                        Requirements
+                      </button>
+                      <a
+                        href={f.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex shrink-0 items-center gap-1 rounded-md bg-ink-700 px-2.5 py-1 text-[11px] text-t1 transition-colors hover:bg-ink-600"
+                      >
+                        Open <ArrowUpRight size={11} />
+                      </a>
+                    </>
+                  )}
                 </div>
               ))}
               {c.faucets.length === 0 && (
