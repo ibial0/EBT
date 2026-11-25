@@ -725,8 +725,7 @@ export default function Bridge() {
           </div>
         </Card>
 
-        <div className="space-y-3">
-          <ActiveTransfers />
+        <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
           <Card className="p-4">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-t1">Route</h3>
@@ -773,6 +772,8 @@ export default function Bridge() {
               </p>
             )}
           </Card>
+
+          <ActiveTransfers />
 
 
           {lastError && (
@@ -895,61 +896,78 @@ function TransferCard({ item }: { item: ActivityItem }) {
   const total = Math.max(item.steps.length, 1)
   const pctDone = Math.round((done / total) * 100)
   const current = item.steps.find((s) => s.status === 'active') ?? item.steps.find((s) => s.status === 'pending')
+
   return (
-    <Card className="enter overflow-hidden">
+    <Card className="enter shrink-0">
       <div className="flex items-center justify-between px-4 pt-3">
         <span className="col-head">Bridging</span>
         <span className="flex items-center gap-1.5">
           <span className="dot bg-accent" style={{ animation: 'pulse 1.4s ease-in-out infinite' }} />
-          <span className="mono text-[11px] text-t2">{pctDone}%</span>
+          <span className="mono text-[13px] font-semibold text-t1">{pctDone}%</span>
         </span>
       </div>
 
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div className="flex flex-col items-center gap-1">
-          <TokenIcon symbol={item.tokenIn.symbol} size={34} chainId={item.fromChainId} address={item.tokenIn.address} />
-          {from && <ChainLogo chain={from} size={15} />}
-        </div>
-
+      <div className="flex items-center gap-4 px-4 py-4">
+        <TokenBadge symbol={item.tokenIn.symbol} chain={from} chainId={item.fromChainId} address={item.tokenIn.address} />
         <div className="relative h-px flex-1 bg-line-strong">
           <span
             className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-accent"
             style={{ animation: 'flow 1.8s linear infinite' }}
           />
         </div>
-
-        <div className="flex flex-col items-center gap-1">
-          <TokenIcon
-            symbol={item.tokenOut?.symbol ?? item.tokenIn.symbol}
-            size={34}
-            chainId={item.toChainId}
-            address={item.tokenOut?.address}
-          />
-          {to && <ChainLogo chain={to} size={15} />}
-        </div>
+        <TokenBadge
+          symbol={item.tokenOut?.symbol ?? item.tokenIn.symbol}
+          chain={to}
+          chainId={item.toChainId}
+          address={item.tokenOut?.address}
+        />
       </div>
 
-      <div className="px-4 pb-3">
-        <div className="h-1 overflow-hidden rounded-full bg-ink-600">
+      <div className="px-4 pb-4 text-center">
+        <div className="mono text-[13px] text-t1">
+          {item.amountIn} {item.tokenIn.symbol} → {item.tokenOut?.symbol ?? item.tokenIn.symbol}
+        </div>
+        {from && to && (
+          <div className="mt-1 text-[12px] text-t2">
+            {from.short} → {to.short}
+          </div>
+        )}
+        <div className="mt-3 h-1 overflow-hidden rounded-full bg-ink-600">
           <div
             className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
             style={{ width: `${Math.max(pctDone, 6)}%` }}
           />
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="mono truncate text-[11px] text-t2">
-            {item.amountIn} {item.tokenIn.symbol} → {item.tokenOut?.symbol ?? item.tokenIn.symbol}
-          </span>
-          <span className="mono shrink-0 text-[11px] text-t3">
-            {done}/{total}
-          </span>
-        </div>
         {current && (
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-t3">
+          <div className="mt-2 flex items-center justify-center gap-1.5 text-[12px] text-t3">
             <Spinner size={11} /> <span className="truncate">{current.label}</span>
           </div>
         )}
       </div>
     </Card>
+  )
+}
+
+/** token mark with the chain badge tucked into its bottom-right corner, like the portfolio list */
+function TokenBadge({
+  symbol,
+  chain,
+  chainId,
+  address,
+}: {
+  symbol: string
+  chain?: ReturnType<typeof getChain>
+  chainId: number
+  address?: string
+}) {
+  return (
+    <div className="relative shrink-0">
+      <TokenIcon symbol={symbol} size={38} chainId={chainId} address={address} />
+      {chain && (
+        <span className="absolute -bottom-1 -right-1 grid size-[18px] place-items-center overflow-hidden rounded-full border border-ink-850 bg-ink-800">
+          <ChainLogo chain={chain} size={12} />
+        </span>
+      )}
+    </div>
   )
 }
