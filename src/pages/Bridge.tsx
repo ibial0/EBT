@@ -484,7 +484,7 @@ export default function Bridge() {
                   onBlur={() => setAmountFocused(false)}
                   className="input display text-[56px] leading-[66px] tracking-[-0.02em]"
                 />
-                <div className="flex shrink-0 flex-col items-center gap-1.5">
+                <div className="relative flex shrink-0 flex-col items-center gap-1.5">
                 <button
                   onClick={() => setPick('source')}
                   className="flex h-16 shrink-0 items-center gap-2.5 rounded-full border border-line-strong bg-ink-700 pl-2 pr-4 transition-colors hover:border-accent/50 hover:bg-ink-600"
@@ -504,7 +504,7 @@ export default function Bridge() {
                 </span>
                 <div
                   className={
-                    'mt-1 grid w-full grid-cols-2 gap-1 transition-opacity duration-150 ' +
+                    'absolute right-0 top-full mt-1 flex items-center gap-1 transition-opacity duration-150 ' +
                     (amountFocused || amount !== '' ? 'opacity-100' : 'pointer-events-none opacity-0')
                   }
                 >
@@ -517,7 +517,7 @@ export default function Bridge() {
                         const keep = source.address.toLowerCase() === NATIVE ? balance / 50n : 0n
                         setAmount(formatUnits(raw > keep ? raw - keep : 0n, source.decimals))
                       }}
-                      className="mono rounded border border-line px-1 py-[3px] text-[9px] leading-none text-t3 transition-colors hover:border-line-strong hover:text-t1"
+                      className="mono rounded border border-line px-1.5 py-[2px] text-[10px] leading-none text-t3 transition-colors hover:border-line-strong hover:text-t1"
                     >
                       {pct}%
                     </button>
@@ -532,7 +532,7 @@ export default function Bridge() {
                         setAmount(formatUnits(balance, source.decimals))
                       }
                     }}
-                    className="mono rounded border border-line px-1 py-[3px] text-[9px] leading-none text-t2 transition-colors hover:border-accent/50 hover:text-accent"
+                    className="mono rounded border border-line px-1.5 py-[2px] text-[10px] leading-none text-t2 transition-colors hover:border-accent/50 hover:text-accent"
                   >
                     MAX
                   </button>
