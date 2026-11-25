@@ -11,7 +11,7 @@ import { isNativeToken, type TokenCfg } from '../config/tokens'
 import { getPublicClient } from 'wagmi/actions'
 import { useAccount } from 'wagmi'
 import { wagmiConfig } from '../lib/wallet'
-import { TokenIcon } from './ui'
+import { ChainLogo, TokenIcon } from './ui'
 
 export interface PickerGroup {
   chain: ChainCfg
@@ -170,7 +170,7 @@ export function TokenPicker({
                             ? value?.chainId === c.id
                             : chainFilter === c.id) && <Check size={13} className="text-accent" />}
                         </span>
-                        <TokenIcon symbol={c.viem.nativeCurrency.symbol} size={16} chainId={c.id} />
+                        <ChainLogo chain={c} size={20} />
                         <span className="truncate">{c.short}</span>
                       </button>
                     ))}
@@ -210,7 +210,7 @@ export function TokenPicker({
           {visible.map((g) => (
             <div key={g.chain.id} className="mb-1">
               <div className="sticky top-0 z-10 flex items-center gap-2 bg-ink-800/95 px-3 py-2 backdrop-blur">
-                <TokenIcon symbol={g.chain.viem.nativeCurrency.symbol} size={15} chainId={g.chain.id} />
+                <ChainLogo chain={g.chain} size={16} />
                 <span className="col-head">{g.chain.name}</span>
                 <span className="mono text-[11px] text-t3">{g.chain.id}</span>
               </div>

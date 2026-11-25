@@ -76,26 +76,26 @@ function RoutePath({
   return (
     <div className="grid grid-cols-[auto_minmax(40px,1fr)_auto] items-center gap-3">
       <div className="flex min-w-0 items-center gap-2.5">
-        {fromChain ? <ChainLogo chain={fromChain} size={28} /> : null}
+        {fromChain ? <ChainLogo chain={fromChain} size={36} /> : null}
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-semibold leading-5 text-t1">{source?.symbol ?? '—'}</div>
+          <div className="display truncate text-[16px] leading-6 text-t1">{source?.symbol ?? '—'}</div>
           <div className="truncate text-[10px] leading-4 text-t2">{fromChain?.short}</div>
         </div>
       </div>
 
       <div className="relative flex items-center justify-center">
         <span className="absolute inset-x-0 top-1/2 -z-0 h-px -translate-y-1/2 bg-line-strong" />
-        <span className="relative z-10 whitespace-nowrap rounded-full border border-line bg-ink-900 px-2 py-[2px] text-[9px] font-medium uppercase tracking-[0.08em] text-t2">
+        <span className="relative z-10 whitespace-nowrap rounded-full border border-line-strong bg-ink-900 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-t2">
           {label}
         </span>
       </div>
 
       <div className="flex min-w-0 items-center justify-end gap-2.5">
         <div className="min-w-0 text-right">
-          <div className="truncate text-[13px] font-semibold leading-5 text-t1">{dest?.symbol ?? '—'}</div>
+          <div className="display truncate text-[16px] leading-6 text-t1">{dest?.symbol ?? '—'}</div>
           <div className="truncate text-[10px] leading-4 text-t2">{toChain?.short}</div>
         </div>
-        {toChain ? <ChainLogo chain={toChain} size={28} /> : null}
+        {toChain ? <ChainLogo chain={toChain} size={36} /> : null}
       </div>
     </div>
   )
@@ -115,6 +115,8 @@ export default function Bridge() {
   /** tolerance applied to every swap leg of a composite route */
   const [slippageBps, setSlippageBps] = useState(100)
   const [recipient, setRecipient] = useState('')
+  /** off by default: the destination is your own wallet unless you ask otherwise */
+  const [editRecipient, setEditRecipient] = useState(false)
   const [pick, setPick] = useState<'from' | 'to' | 'source' | 'dest' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | undefined>()
@@ -450,7 +452,7 @@ export default function Bridge() {
   return (
     <div className="space-y-5">
 
-      <div className="mx-auto w-full max-w-[560px] space-y-4">
+      <div className="mx-auto grid w-full max-w-[980px] gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <Card className="p-5">
           <div className="relative">
             <div className="rounded-[14px] border border-line-strong bg-ink-850 p-4">
@@ -466,15 +468,21 @@ export default function Bridge() {
                         : `${fmt(balance, source?.decimals ?? 18, 5)} ${source?.symbol ?? ''}`}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <ChainChip chainId={fromId} onClick={() => setPick('from')} />
+              <div className="flex items-center gap-3">
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                  placeholder="0.0"
+                  inputMode="decimal"
+                  className="input display text-[40px] leading-[48px] tracking-[-0.02em]"
+                />
                 <button
                   onClick={() => setPick('source')}
-                  className="flex h-11 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
+                  className="flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {source ? <TokenIcon symbol={source.symbol} size={26} chainId={fromId} address={source.address} verified={source.verified} /> : null}
+                  {source ? <TokenIcon symbol={source.symbol} size={30} chainId={fromId} address={source.address} verified={source.verified} /> : null}
                   <span className="display text-[15px] text-t1">{source?.symbol ?? 'select'}</span>
-                  <ChevronDown size={13} className="text-t3" />
+                  <ChevronDown size={15} className="text-t2" />
                 </button>
               </div>
             </div>
@@ -495,15 +503,21 @@ export default function Bridge() {
                 <span className="col-head">You receive</span>
                 <span>{estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : '-'}</span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <ChainChip chainId={toId} onClick={() => setPick('to')} />
+              <div className="flex items-center gap-3">
+                <div className="input display flex-1 truncate text-[40px] leading-[48px] tracking-[-0.02em] text-t1">
+                  {estimate.data && dest ? (
+                    fmt(estimate.data.amountOut, dest.decimals, 6)
+                  ) : (
+                    <span className="text-t3">0.0</span>
+                  )}
+                </div>
                 <button
                   onClick={() => setPick('dest')}
-                  className="flex h-11 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
+                  className="flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {dest ? <TokenIcon symbol={dest.symbol} size={26} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
-                  <span className="display text-[15px] text-t1">{dest?.symbol ?? 'nothing reachable'}</span>
-                  <ChevronDown size={13} className="text-t3" />
+                  {dest ? <TokenIcon symbol={dest.symbol} size={30} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
+                  <span className="display text-[15px] text-t1">{dest?.symbol ?? 'pick'}</span>
+                  <ChevronDown size={15} className="text-t2" />
                 </button>
               </div>
             </div>
@@ -545,16 +559,7 @@ export default function Bridge() {
                     dest={dest}
                     kind={route.legs[route.legs.length - 1]?.kind}
                   />
-                  <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5">
-                    <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
-                      {route.txCount} signature{route.txCount === 1 ? '' : 's'} ·{' '}
-                      {(estimate.data?.lines.length ?? route.legs.length)} verified step
-                      {(estimate.data?.lines.length ?? route.legs.length) === 1 ? '' : 's'}
-                    </span>
-                    <Badge tone={route.type === 'direct' ? 'mint' : 'blue'}>
-                      {route.type === 'direct' ? 'Direct' : 'Bridge + swap'}
-                    </Badge>
-                  </div>
+                  
                 </>
               ) : (
                 <span className="text-[12px] text-t3">Select an asset to see the route.</span>
@@ -562,40 +567,29 @@ export default function Bridge() {
             </div>
           )}
 
-          <div className="field mt-3 p-3">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="label">Amount</span>
-              <button
-                onClick={() => {
-                  if (balance == null || !source) return
-                  if (source.address.toLowerCase() === NATIVE) {
-                    const keep = balance / 50n
-                    setAmount(formatUnits(balance > keep ? balance - keep : 0n, source.decimals))
-                  } else {
-                    setAmount(formatUnits(balance, source.decimals))
-                  }
-                }}
-                className="rounded-md border border-line px-2 py-0.5 text-[11px] text-t1 transition-colors hover:border-line-strong"
-              >
-                MAX
-              </button>
+          <div className="mt-2 flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              {insufficient && <div className="text-[11px] text-[#ffb4b6]">Amount exceeds your balance on {from.short}.</div>}
+              {srcGas.data && !srcGas.data.ok && (
+                <div className="text-[11px] text-[#e6c17a]">
+                  No {srcGas.data.symbol} for gas on {from.short}, get some from the Faucets page.
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                placeholder="0.0"
-                inputMode="decimal"
-                className="input text-2xl font-semibold"
-              />
-              <span className="shrink-0 text-sm font-medium text-t1">{source?.symbol ?? ''}</span>
-            </div>
-            {insufficient && <div className="mt-1 text-[11px] text-[#ffb4b6]">Amount exceeds your balance on {from.short}.</div>}
-            {srcGas.data && !srcGas.data.ok && (
-              <div className="mt-1 text-[11px] text-[#e6c17a]">
-                No {srcGas.data.symbol} for gas on {from.short}, get some from the Faucets page.
-              </div>
-            )}
+            <button
+              onClick={() => {
+                if (balance == null || !source) return
+                if (source.address.toLowerCase() === NATIVE) {
+                  const keep = balance / 50n
+                  setAmount(formatUnits(balance > keep ? balance - keep : 0n, source.decimals))
+                } else {
+                  setAmount(formatUnits(balance, source.decimals))
+                }
+              }}
+              className="mono shrink-0 text-[11px] text-t2 transition-colors hover:text-accent"
+            >
+              MAX
+            </button>
           </div>
 
           {route?.legs.some((l) => l.kind === 'swap') && (
@@ -641,14 +635,36 @@ export default function Bridge() {
             </div>
           )}
 
-          <div className="field mt-3 p-3">
-            <div className="mb-1 label">Recipient on {to.short}</div>
-            <input
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value.trim())}
-              placeholder="0x…"
-              className="input mono rounded-md border border-line bg-ink-800 px-2.5 py-2 text-[12px] text-t1"
-            />
+          <div className="mt-3">
+            {!editRecipient ? (
+              <button
+                onClick={() => setEditRecipient(true)}
+                className="mono text-[11px] text-t3 transition-colors hover:text-accent"
+              >
+                send to a different wallet
+              </button>
+            ) : (
+              <div className="field p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="col-head">Recipient on {to.short}</span>
+                  <button
+                    onClick={() => {
+                      setEditRecipient(false)
+                      if (address) setRecipient(address)
+                    }}
+                    className="mono text-[11px] text-t3 hover:text-t1"
+                  >
+                    use my wallet
+                  </button>
+                </div>
+                <input
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value.trim())}
+                  placeholder="0x…"
+                  className="input mono text-[13px] text-t1"
+                />
+              </div>
+            )}
           </div>
 
           {!isConnected ? (

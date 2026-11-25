@@ -41,7 +41,10 @@ export default function Swap() {
    * Disconnected, it previews Sepolia so the panel is not empty.
    */
   const chainSupported = !isConnected || supportedSwap.has(chainId)
-  const swapChainId = isConnected && supportedSwap.has(chainId) ? chainId : 11155111
+  // preview chain, used when there is no wallet to switch; the picker is the only place a
+  // network is chosen on this page
+  const [previewChain, setPreviewChain] = useState(11155111)
+  const swapChainId = isConnected && supportedSwap.has(chainId) ? chainId : previewChain
   const [tokenIn, setTokenIn] = useState<TokenCfg>(() => tokensForChain(11155111)[0])
   const [tokenOut, setTokenOut] = useState<TokenCfg>(() => tokensForChain(11155111)[1])
   const [amount, setAmount] = useState('')
@@ -274,14 +277,7 @@ export default function Swap() {
           </Card>
         )}
         <Card className="p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="col-head">Swap on</span>
-              <span className="flex items-center gap-1.5 text-[14px] font-medium text-t1">
-                <ChainLogo chain={chain} size={18} />
-                {chain.short}
-              </span>
-            </div>
+          <div className="mb-4 flex items-center justify-end">
             <button onClick={() => setShowSlip(true)} className="chip chip-accent hover:border-accent">
               <Settings2 size={11} /> {pct(slippageBps, 2)}
             </button>
@@ -478,8 +474,12 @@ export default function Swap() {
         open={pick !== null}
         onClose={() => setPick(null)}
         title={pick === 'in' ? 'Sell token' : 'Buy token'}
-        multiChain={false}
         groups={[{ chain, tokens: pick === 'in' ? tradeable : outOptions }]}
+        chains={SWAP_CHAINS}
+        onChainChange={(id) => {
+          if (isConnected) switchChainAsync({ chainId: id as never }).catch(() => undefined)
+          else setPreviewChain(id)
+        }}
         value={
           pick === 'in'
             ? { chainId: swapChainId, address: tokenIn.address }

@@ -335,7 +335,7 @@
   }
   @media (min-width: 1024px) {
     .dash-2 {
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
       align-items: start;
     }
   }

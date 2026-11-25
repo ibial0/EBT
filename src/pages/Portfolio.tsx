@@ -15,7 +15,7 @@ import { readTokenMeta } from '../lib/tokenImport'
 import { loadPrices, priceOf, usd } from '../lib/prices'
 import { loadHistory, recordSnapshot, sliceRange } from '../lib/history'
 
-type View = 'overview' | 'tokens'
+type View = 'overview' | 'tokens' | 'recovery'
 type Range = '1D' | '1W' | '1M'
 
 interface Row {
@@ -240,7 +240,7 @@ export default function Portfolio() {
       {/* ── right: Overview | Tokens ──────────────────────── */}
       <div className="card flex flex-col overflow-hidden">
         <div className="flex items-center gap-1 border-b border-line-strong px-4">
-          {(['overview', 'tokens'] as View[]).map((t) => (
+          {(['overview', 'tokens', 'recovery'] as View[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -268,7 +268,11 @@ export default function Portfolio() {
           <div className="px-5 py-6 text-[13px] text-neg">Portfolio failed: {(portfolio.error as Error).message}</div>
         )}
 
-        {tab === 'overview' ? (
+        {tab === 'recovery' ? (
+          <div className="p-3">
+            <RecoveryPanel compact />
+          </div>
+        ) : tab === 'overview' ? (
           /* the ring strip: icon wrapped in its share of the portfolio */
           <div className="grid grid-cols-2 gap-x-2 gap-y-5 p-5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
             {top.length === 0 && !portfolio.isLoading && (
@@ -450,10 +454,6 @@ export default function Portfolio() {
                 })}
               </div>
 
-              {/* recovery sits inside the Tokens tab, on its right */}
-              <div className="hidden w-[268px] shrink-0 border-l border-line-strong p-3 xl:block">
-                <RecoveryPanel compact />
-              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
@@ -545,6 +545,18 @@ function RingIcon({
 
 /** Value over time, built only from the snapshots this browser actually recorded. */
 function ValueChart({ points }: { points: { t: number; v: number }[] }) {
+  if (points.length === 1) {
+    return (
+      <div className="relative h-[132px] w-full rounded-[12px] border border-line bg-ink-850/40">
+        <svg viewBox="0 0 900 132" preserveAspectRatio="none" className="h-full w-full">
+          <line x1="0" y1="66" x2="900" y2="66" stroke="var(--color-accent)" strokeWidth="2" strokeDasharray="6 6" opacity="0.7" />
+        </svg>
+        <p className="absolute inset-x-0 bottom-2 text-center text-[11px] text-t3">
+          one point recorded — the line is flat because nothing has been observed to change yet
+        </p>
+      </div>
+    )
+  }
   if (points.length < 2) {
     return (
       <div className="mt-5 grid h-[132px] place-items-center rounded-[12px] border border-dashed border-line">
@@ -603,42 +615,79 @@ function NetworkPicker({
   onSelect: (v: number | 'all') => void
   totals: Map<number, { usd: number; count: number }>
 }) {
+  const [q, setQ] = useState('')
+  useEffect(() => {
+    if (open) setQ('')
+  }, [open])
+  if (!open) return null
+  const needle = q.trim().toLowerCase()
+  const list = needle ? CHAINS.filter((c) => `${c.name} ${c.short} ${c.id}`.toLowerCase().includes(needle)) : CHAINS
+  const pick = (v: number | 'all') => {
+    onSelect(v)
+    onClose()
+  }
   return (
-    <Modal open={open} onClose={onClose} title="Network">
-      <div className="p-2">
-        <button
-          onClick={() => {
-            onSelect('all')
-            onClose()
-          }}
-          className={`row w-full ${value === 'all' ? 'bg-ink-700' : ''}`}
-        >
-          <span className="size-1.5 rotate-45 border border-t3" />
-          <span className="flex-1 text-left text-[14px] text-t1">All networks</span>
-          <span className="mono text-[12px] text-t3">{totals.size}</span>
-        </button>
-        {CHAINS.map((c) => {
-          const t = totals.get(c.id)
-          return (
-            <button
-              key={c.id}
-              onClick={() => {
-                onSelect(c.id)
-                onClose()
-              }}
-              className={`row w-full ${value === c.id ? 'bg-ink-700' : ''}`}
-            >
-              <ChainLogo chain={c} size={22} />
-              <span className="min-w-0 flex-1 text-left">
-                <span className="block truncate text-[14px] text-t1">{c.name}</span>
-                <span className="mono block text-[11px] text-t3">{c.id}</span>
-              </span>
-              <span className="mono text-[12px] text-t3">{t ? usd(t.usd) : '—'}</span>
-            </button>
-          )
-        })}
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 px-3 backdrop-blur-[2px]">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="enter relative z-10 flex max-h-[min(80vh,620px)] w-full max-w-[440px] flex-col overflow-hidden rounded-[16px] border border-line-strong bg-ink-800 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+        <div className="flex items-center justify-between px-5 pt-4">
+          <h2 className="display text-[18px] leading-7 text-t1">Network</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="grid size-9 place-items-center rounded-lg text-t2 transition-colors hover:bg-ink-700 hover:text-t1"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="px-5 pt-3">
+          <div className="field flex h-10 items-center gap-2 px-3">
+            <Search size={15} className="text-t2" />
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search chains"
+              className="input text-[14px]"
+            />
+          </div>
+        </div>
+        <div className="mt-2 flex-1 overflow-y-auto px-2 pb-3">
+          <button
+            onClick={() => pick('all')}
+            className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors ${
+              value === 'all' ? 'bg-ink-600' : 'hover:bg-ink-700'
+            }`}
+          >
+            <span className="grid size-[30px] place-items-center">
+              <span className="size-2.5 rotate-45 border border-t2" />
+            </span>
+            <span className="flex-1 text-[14px] text-t1">All chains</span>
+            <span className="mono text-[12px] text-t2">{totals.size}</span>
+          </button>
+          {list.map((c) => {
+            const t = totals.get(c.id)
+            return (
+              <button
+                key={c.id}
+                onClick={() => pick(c.id)}
+                className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors ${
+                  value === c.id ? 'bg-ink-600' : 'hover:bg-ink-700'
+                }`}
+              >
+                <ChainLogo chain={c} size={30} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-medium text-t1">{c.name}</span>
+                  <span className="mono block text-[11px] text-t3">{c.id}</span>
+                </span>
+                <span className="mono shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
+              </button>
+            )
+          })}
+          {list.length === 0 && <div className="px-4 py-10 text-center text-[13px] text-t2">No chain matches “{q}”.</div>}
+        </div>
       </div>
-    </Modal>
+    </div>
   )
 }
 
