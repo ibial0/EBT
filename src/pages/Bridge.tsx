@@ -482,7 +482,7 @@ export default function Bridge() {
                   inputMode="decimal"
                   onFocus={() => setAmountFocused(true)}
                   onBlur={() => setAmountFocused(false)}
-                  className="input display text-[56px] leading-[66px] tracking-[-0.02em]"
+                  className="input display text-[50px] leading-[58px] tracking-[-0.02em]"
                 />
                 <div className="relative flex shrink-0 flex-col items-center gap-1.5">
                 <button
@@ -504,7 +504,7 @@ export default function Bridge() {
                 </span>
                 <div
                   className={
-                    'absolute right-0 top-full mt-1 flex items-center gap-1 transition-opacity duration-150 ' +
+                    'absolute right-0 top-full mt-3 flex items-center gap-1.5 transition-opacity duration-150 ' +
                     (amountFocused || amount !== '' ? 'opacity-100' : 'pointer-events-none opacity-0')
                   }
                 >
@@ -563,7 +563,7 @@ export default function Bridge() {
                 <span className="col-head">You receive</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="input display flex-1 truncate text-[56px] leading-[66px] tracking-[-0.02em] text-t1">
+                <div className="input display flex-1 truncate text-[50px] leading-[58px] tracking-[-0.02em] text-t1">
                   {estimate.data && dest ? (
                     fmt(estimate.data.amountOut, dest.decimals, 6)
                   ) : (
