@@ -499,8 +499,14 @@ export default function Bridge() {
 
             <button
               onClick={() => {
+                // flip the chains *and* keep the same assets: ETH/ETH must stay ETH/ETH,
+                // not silently fall back to whatever token happens to sit first on the new chain
+                const srcToken = source
+                const dstToken = dest
                 setFromId(toId)
                 setToId(fromId)
+                if (dstToken) setSourceId(keyOf(toId, dstToken.address))
+                if (srcToken) setDestId(keyOf(fromId, srcToken.address))
               }}
               className="absolute left-1/2 top-1/2 z-10 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-800 text-t1 transition-all duration-150 hover:scale-110 hover:border-accent/60 hover:text-accent"
               title="Swap direction"
@@ -729,7 +735,7 @@ export default function Bridge() {
                 {route ? (
                   <span className="flex items-center gap-1.5">
                     {`Bridge ${source?.symbol ?? ''}`}
-                    {route.legs.some((l) => l.kind === 'swap') && (
+                    {source && dest && source.symbol !== dest.symbol && (
                       <span className="text-[13px] font-medium opacity-70">+ swap</span>
                     )}
                   </span>
