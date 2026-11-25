@@ -774,18 +774,6 @@ export default function Bridge() {
                         : 'a few seconds per swap'
                   }
                 />
-                <div className="mt-2 space-y-1.5 border-t border-line pt-2">
-                  {(estimate.data?.lines?.length ? estimate.data.lines : route.legs.map((l, i) => ({ leg: legLabel(i, l), detail: '' }))).map(
-                    (l, i) => (
-                      <div key={i} className="text-[11px] leading-5">
-                        <div className="text-t1">
-                          {i + 1}. {l.leg}
-                        </div>
-                        {l.detail && <div className="text-t3">{l.detail}</div>}
-                      </div>
-                    ),
-                  )}
-                </div>
                 {estimate.data?.failed && <p className="mt-2 text-[11px] text-[#ffb4b6]">{estimate.data.failed}</p>}
               </>
             ) : (

@@ -6576,7 +6576,7 @@ function push(cur, next, legs, goalKey, visited, queue, found, fromId, toId, inT
     outToken,
     txCount,
     label: describeLegs(legs, fromId, toId),
-    detail: legs.length === 1 ? "Single verified operation." : "Composite route: every step below is a verified operation you sign yourself."
+    detail: legs.length === 1 ? "Single verified operation." : "Composite route: you sign each operation yourself, one at a time."
   });
 }
 function nativeSymbolOf(chainId) {
