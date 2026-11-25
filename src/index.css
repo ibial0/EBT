@@ -371,6 +371,19 @@
       transform: scale(1.15);
     }
   }
+  .toast-leave {
+    animation: sink 220ms var(--ease) forwards;
+  }
+  @keyframes sink {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
   @keyframes rise {
     from {
       opacity: 0;

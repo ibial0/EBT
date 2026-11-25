@@ -12,6 +12,7 @@ interface ToastItem {
   id: number
   msg: string
   tone: ToastTone
+  leaving?: boolean
 }
 let toasts: ToastItem[] = []
 let toastId = 0
@@ -24,8 +25,13 @@ export function notify(msg: string, tone: ToastTone = 'info') {
   emitToasts()
   setTimeout(
     () => {
-      toasts = toasts.filter((t) => t.id !== id)
+      // fade/slide out before unmounting so the toast never just vanishes
+      toasts = toasts.map((t) => (t.id === id ? { ...t, leaving: true } : t))
       emitToasts()
+      setTimeout(() => {
+        toasts = toasts.filter((t) => t.id !== id)
+        emitToasts()
+      }, 220)
     },
     tone === 'error' ? 7000 : 4200,
   )
@@ -46,7 +52,8 @@ export function Toaster() {
         <div
           key={t.id}
           className={clsx(
-            'enter rounded-[10px] border px-4 py-3 text-[13px] leading-5',
+            'rounded-[10px] border px-4 py-3 text-[13px] leading-5',
+            t.leaving ? 'toast-leave' : 'enter',
             t.tone === 'error'
               ? 'border-[#ff8f8f]/40 bg-[#241519] text-[#ffb4b4]'
               : t.tone === 'success'

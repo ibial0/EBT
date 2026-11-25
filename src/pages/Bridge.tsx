@@ -122,7 +122,6 @@ export default function Bridge() {
   const [pick, setPick] = useState<'from' | 'to' | 'source' | 'dest' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | undefined>()
-  const [lastError, setLastError] = useState<ReturnType<typeof decodeTxError> | null>(null)
 
   const from = getChain(fromId)!
   const to = getChain(toId)!
@@ -289,7 +288,6 @@ export default function Bridge() {
     if (insufficient) return notify(`Not enough ${source.symbol} on ${from.short}.`, 'error')
 
     setBusy('start')
-    setLastError(null)
     try {
       await ensureChain(fromId)
       const steps = route.legs.flatMap((leg, i) => {
@@ -435,7 +433,6 @@ export default function Bridge() {
       notify('Transfer submitted. Each step is a signature you approve.', 'success')
     } catch (e) {
       const d = decodeTxError(e, chainId)
-      setLastError(d)
       notify(`${d.title}: ${d.detail}`, 'error')
       if (activeId) {
         if (d.kind === 'rejected') updateActivity(activeId, { status: 'cancelled', error: 'Rejected in wallet' })
@@ -773,29 +770,6 @@ export default function Bridge() {
             )}
           </Card>
 
-
-          {lastError && (
-            <Card className="border-[#ff8f8f]/30 p-4">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-[#ffb4b6]">
-                <AlertTriangle size={13} /> {lastError.title}
-              </div>
-              <p className="text-[11px] leading-relaxed text-t1">{lastError.detail}</p>
-              {lastError.hint && <p className="mt-1 text-[11px] leading-relaxed text-t3">{lastError.hint}</p>}
-            </Card>
-          )}
-
-          {activity && (
-            <Card className="p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-t1">Progress</h3>
-                <Badge tone={activity.status === 'complete' ? 'mint' : activity.status === 'failed' ? 'red' : 'amber'}>{activity.status}</Badge>
-              </div>
-              <Timeline steps={activity.steps} />
-              <Link to={`/activity/${activity.id}`} className="mt-2 block text-center text-[11px] text-t2 hover:text-accent">
-                open full record
-              </Link>
-            </Card>
-          )}
 
           <Card className="p-4">
             <div className="flex items-start gap-2 text-[11px] leading-relaxed text-t2">
