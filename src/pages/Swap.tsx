@@ -18,7 +18,7 @@ import { Card, Button, Badge, Row, notify, TokenIcon, Modal, Spinner, ChainLogo 
 import { ConnectButton } from '../components/Layout'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
 import { TokenPicker } from '../components/TokenPicker'
-import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity } from '../lib/activity'
+import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity, useActivity } from '../lib/activity'
 import { quoteBest, maxFillable, applySlippage, erc20Balance, formatAmount, erc20Abi } from '../lib/uniswap'
 import { executeSwap, buildSwapCalldata } from '../lib/swapExec'
 import { assertSwapRoute } from '../lib/guard'
@@ -293,7 +293,22 @@ export default function Swap() {
           </Card>
         )}
         <Card className="p-5">
-          <div className="mb-4 flex items-center justify-end">
+          <div className="mb-4 flex items-center justify-end gap-2">
+            <div className="group relative">
+              <span
+                tabIndex={0}
+                aria-label="Approval policy"
+                className="grid size-7 cursor-help place-items-center rounded-lg border border-line text-t3 transition-colors hover:border-line-strong hover:text-accent"
+              >
+                <Info size={13} />
+              </span>
+              <div className="pointer-events-none absolute right-0 top-full z-30 mt-2 hidden w-[260px] rounded-lg border border-line-strong bg-ink-800 p-2.5 text-[11px] leading-5 text-t2 shadow-[0_12px_32px_rgba(0,0,0,0.5)] group-hover:block group-focus-within:block">
+                Approvals are always for the exact amount, never unlimited.{' '}
+                {chain.nativeIsUsdc
+                  ? `On ${chain.short} the gas token is USDC; swaps use its 6-decimal ERC-20 interface at 0x3600…0000.`
+                  : `Native ${chain.viem.nativeCurrency.symbol} is wrapped by the router inside the same transaction.`}
+              </div>
+            </div>
             <button onClick={() => setShowSlip(true)} className="chip chip-accent hover:border-accent">
               <Settings2 size={11} /> {pct(slippageBps, 2)}
             </button>
@@ -504,17 +519,7 @@ export default function Swap() {
             </Card>
           )}
 
-          <Card className="p-4">
-            <div className="flex items-start gap-2 text-[11px] leading-relaxed text-t2">
-              <Info size={14} className="mt-0.5 shrink-0 text-accent" />
-              <p>
-                Approvals are always for the exact amount, never unlimited.
-                {chain.nativeIsUsdc
-                  ? ` On ${chain.short} the gas token is USDC; swaps use its 6-decimal ERC-20 interface at 0x3600…0000.`
-                  : ` Native ${chain.viem.nativeCurrency.symbol} is wrapped by the router inside the same transaction.`}
-              </p>
-            </div>
-          </Card>
+          <LiveStrip />
         </div>
       </div>
 
@@ -573,5 +578,43 @@ export default function Swap() {
         </div>
       </Modal>
     </div>
+  )
+}
+
+/** A short, live tail of this wallet's swaps: what is running and how far along it is. */
+function LiveStrip() {
+  const items = useActivity()
+  const { address } = useAccount()
+  const recent = items
+    .filter((i) => i.kind === 'swap' && address && i.owner?.toLowerCase() === address.toLowerCase())
+    .slice(0, 2)
+  if (recent.length === 0) return null
+  return (
+    <Card className="p-3">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="col-head">Live</span>
+        <span className="mono text-[10px] text-t3">{recent.length}</span>
+      </div>
+      <div className="space-y-1.5">
+        {recent.map((i) => {
+          const done = i.steps.filter((s) => s.status === 'done' || s.status === 'skipped').length
+          const total = Math.max(i.steps.length, 1)
+          const active = i.steps.some((s) => s.status === 'active')
+          const pctv = Math.round(((done + (active ? 0.5 : 0)) / total) * 100)
+          const label =
+            i.steps.find((s) => s.status === 'active')?.label ??
+            (i.status === 'complete' ? 'Complete' : i.status === 'failed' ? 'Failed' : 'Queued')
+          const tone =
+            i.status === 'complete' ? 'bg-[#6adbb6]' : i.status === 'failed' ? 'bg-[#ff8f8f]' : 'bg-accent'
+          return (
+            <div key={i.id} className="flex items-center gap-2 text-[11px]">
+              <span className={`dot ${tone}`} style={i.status === 'pending' ? { animation: 'pulse 1.4s ease-in-out infinite' } : undefined} />
+              <span className="flex-1 truncate text-t2">{label}</span>
+              <span className="mono text-t3">{pctv}%</span>
+            </div>
+          )
+        })}
+      </div>
+    </Card>
   )
 }
