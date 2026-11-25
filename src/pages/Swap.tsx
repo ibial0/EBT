@@ -249,6 +249,17 @@ export default function Swap() {
         onStep: (step, state, hash) => {
           updateStep(item.id, step, { status: state === 'active' ? 'active' : state === 'done' ? 'done' : 'failed', hash })
           finalizeFromSteps(item.id)
+
+          if (step === 'approve' && state === 'active') {
+            setFlow('out')
+          } else if (step === 'approve' && state === 'done') {
+            setFlow('back')
+          } else if (step === 'swap' && state === 'active') {
+            setFlow('inR')
+          } else if (step === 'swap' && state === 'done') {
+            setFlow('done')
+            window.setTimeout(() => setFlow('idle'), 4000)
+          }
         },
       })
       notify('Swap confirmed on-chain.', 'success')
@@ -258,6 +269,7 @@ export default function Swap() {
     } catch (e) {
       const d = decodeTxError(e, swapChainId)
       notify(`${d.title}: ${d.detail}`, 'error')
+      setFlow('idle')
       if (activeId) {
         if (d.kind === 'rejected') updateActivity(activeId, { status: 'cancelled', error: 'Rejected in wallet' })
         else finalizeFromSteps(activeId)
@@ -266,16 +278,6 @@ export default function Swap() {
       setBusy(null)
     }
   }
-
-  useEffect(() => {
-    if (busy !== 'start') return
-    setFlow('out')
-    const t1 = window.setTimeout(() => setFlow('back'), 1400)
-    const t2 = window.setTimeout(() => setFlow('inR'), 2700)
-    const t3 = window.setTimeout(() => setFlow('done'), 4100)
-    const t4 = window.setTimeout(() => setFlow('idle'), 7000)
-    return () => [t1, t2, t3, t4].forEach((t) => window.clearTimeout(t))
-  }, [busy])
 
   return (
     <div className="space-y-5">
@@ -311,10 +313,10 @@ export default function Swap() {
           </Card>
         )}
         <Card className="relative overflow-hidden p-5">
-          {flow !== 'idle' && (
+          {flow === 'back' && (
             <div
-              key={flow}
-              className="card-flash pointer-events-none absolute inset-0 z-0 bg-[rgba(171,184,255,0.10)] ring-1 ring-inset ring-[rgba(198,208,255,0.55)]"
+              key="flash-center"
+              className="card-flash pointer-events-none absolute inset-0 z-0 bg-[rgba(171,184,255,0.08)] ring-1 ring-inset ring-[rgba(198,208,255,0.4)]"
             />
           )}
           <div className="mb-4 flex items-center justify-end gap-2">
@@ -548,12 +550,15 @@ export default function Swap() {
         <div className="relative hidden flex-1 items-center justify-center xl:flex">
           <Wire side="right" dir={flow === 'inR' ? 'out' : null} />
           <Plug side="right" live={flow === 'inR'} />
-          <WallToken token={tokenOut} pulse={flow === 'done'} />
-          {flow === 'done' && (
-            <span className="amount-rise pointer-events-none absolute right-2 top-6 text-[13px] font-semibold text-[#6adbb6]">
-              +{fmt(quote.data?.amountOut ?? 0n, tokenOut.decimals, 4)} {tokenOut.symbol}
-            </span>
-          )}
+          <WallToken
+            token={tokenOut}
+            pulse={flow === 'done'}
+            amountBadge={
+              flow === 'done' && (quote.data?.amountOut || out > 0n)
+                ? `${fmt(quote.data?.amountOut ?? out, tokenOut.decimals, 4)} ${tokenOut.symbol}`
+                : null
+            }
+          />
         </div>
       </div>
 
@@ -619,25 +624,43 @@ export default function Swap() {
  * The token that is being sold (left) or bought (right), mounted on the wall beside the
  * card: a plain circular mark with a small bracket, no names, no chain chrome.
  */
-function WallToken({ token, pulse }: { token: TokenCfg; pulse?: boolean }) {
+function WallToken({
+  token,
+  pulse,
+  amountBadge,
+}: {
+  token: TokenCfg
+  pulse?: boolean
+  amountBadge?: string | null
+}) {
   return (
     <div className="pointer-events-none relative">
-        <div className={(pulse ? 'token-pop ' : '') + 'grid size-[160px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px]' }>
-          <TokenIcon
-            symbol={token.symbol}
-            size={132}
-            chainId={token.chainId}
-            address={token.address}
-            verified={token.address !== '0x0000000000000000000000000000000000000000' ? true : undefined}
-          />
-        </div>
+      <div
+        className={
+          (pulse ? 'token-pop ' : '') +
+          'grid size-[160px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px] transition-transform duration-500'
+        }
+      >
+        <TokenIcon
+          symbol={token.symbol}
+          size={132}
+          chainId={token.chainId}
+          address={token.address}
+          verified={token.address !== '0x0000000000000000000000000000000000000000' ? true : undefined}
+        />
+      </div>
+      {amountBadge && (
+        <span className="amount-rise pointer-events-none absolute -right-3 -top-2 z-20 whitespace-nowrap rounded-md border border-[#6adbb6]/40 bg-[#0d1f18]/90 px-2 py-0.5 text-[12px] font-semibold text-[#6adbb6] shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+          +{amountBadge}
+        </span>
+      )}
     </div>
   )
 }
 
 /**
- * The cable that ties a wall token to the swap card. It hangs the way a real cable does:
- * it leaves the token level, dips below the straight line, and climbs back to the card.
+ * The cable that ties a wall token to the swap card. It stays firmly plugged at both ends.
+ * When liquid passes through, the liquid travels inside the cable with glowing beads.
  */
 function Wire({ side, dir }: { side: 'left' | 'right'; dir: 'out' | 'back' | null }) {
   const d =
@@ -651,45 +674,73 @@ function Wire({ side, dir }: { side: 'left' | 'right'; dir: 'out' | 'back' | nul
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
     >
-      <g className={dir ? 'wire-sag' : undefined}>
+      <defs>
+        <filter id={`wireGlow-${side}`} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+      <g>
+        {/* Outer subtle glow line */}
         <path
           d={d}
           fill="none"
-          stroke={dir ? 'rgba(171,184,255,0.18)' : 'rgba(171,184,255,0.10)'}
+          stroke={dir ? 'rgba(171,184,255,0.28)' : 'rgba(171,184,255,0.10)'}
           strokeWidth="7"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
+        {/* Main translucent cable path */}
         <path
           d={d}
           fill="none"
-          stroke={dir ? 'rgba(198,208,255,0.72)' : 'rgba(171,184,255,0.42)'}
+          stroke={dir ? 'rgba(198,208,255,0.78)' : 'rgba(171,184,255,0.42)'}
           strokeWidth="2.2"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
+        {/* Liquid beads moving smoothly inside the cable */}
         {dir && (
-          <g key={dir}>
-            <circle r="6" fill="rgba(171,184,255,0.30)">
+          <g key={dir} filter={`url(#wireGlow-${side})`}>
+            {/* Front bright droplet */}
+            <circle r="4.2" fill="#ffffff">
               <animateMotion
-                dur="1.3s"
+                dur={dir === 'back' ? '1.8s' : '1.3s'}
                 path={d}
                 keyPoints={dir === 'out' ? '1;0' : '0;1'}
                 keyTimes="0;1"
-                calcMode="linear"
+                calcMode="spline"
+                keySplines={dir === 'back' ? '0.2 0 0.4 1' : '0.4 0 0.2 1'}
                 fill="freeze"
               />
+              <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.92;1" dur={dir === 'back' ? '1.8s' : '1.3s'} fill="freeze" />
             </circle>
-            <circle r="3.1" fill="#e2e8ff">
+            {/* Core droplet */}
+            <circle r="3.2" fill="#d2dcff">
               <animateMotion
-                dur="1.3s"
+                dur={dir === 'back' ? '1.8s' : '1.3s'}
                 path={d}
                 keyPoints={dir === 'out' ? '1;0' : '0;1'}
                 keyTimes="0;1"
-                calcMode="linear"
+                calcMode="spline"
+                keySplines={dir === 'back' ? '0.2 0 0.4 1' : '0.4 0 0.2 1'}
                 fill="freeze"
               />
-              <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.92;1" dur="1.3s" fill="freeze" />
+              <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.92;1" dur={dir === 'back' ? '1.8s' : '1.3s'} fill="freeze" />
+            </circle>
+            {/* Trailing droplet */}
+            <circle r="2.2" fill="rgba(171,184,255,0.85)">
+              <animateMotion
+                dur={dir === 'back' ? '1.8s' : '1.3s'}
+                begin="0.12s"
+                path={d}
+                keyPoints={dir === 'out' ? '1;0' : '0;1'}
+                keyTimes="0;1"
+                calcMode="spline"
+                keySplines={dir === 'back' ? '0.2 0 0.4 1' : '0.4 0 0.2 1'}
+                fill="freeze"
+              />
+              <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.08;0.92;1" dur={dir === 'back' ? '1.8s' : '1.3s'} fill="freeze" />
             </circle>
           </g>
         )}
