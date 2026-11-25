@@ -269,7 +269,8 @@ export default function Swap() {
     <div className="space-y-5">
 
       <div className="flex items-stretch gap-6">
-        <div className="hidden flex-1 items-center justify-center xl:flex">
+        <div className="relative hidden flex-1 items-center justify-center xl:flex">
+          <Wire side="left" />
           <WallToken token={tokenIn} />
         </div>
         <div className="w-full max-w-[560px] space-y-4">
@@ -525,7 +526,8 @@ export default function Swap() {
 
         </div>
         </div>
-        <div className="hidden flex-1 items-center justify-center xl:flex">
+        <div className="relative hidden flex-1 items-center justify-center xl:flex">
+          <Wire side="right" />
           <WallToken token={tokenOut} />
         </div>
       </div>
@@ -605,5 +607,27 @@ function WallToken({ token }: { token: TokenCfg }) {
           />
         </div>
     </div>
+  )
+}
+
+/**
+ * The cable that ties a wall token to the swap card. It hangs the way a real cable does:
+ * it leaves the token level, dips below the straight line, and climbs back to the card.
+ */
+function Wire({ side }: { side: 'left' | 'right' }) {
+  const d =
+    side === 'left'
+      ? 'M 50 52 C 68 70, 92 58, 104 44'
+      : 'M 50 52 C 32 70, 8 58, -4 44'
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+    >
+      <path d={d} fill="none" stroke="rgba(171,184,255,0.10)" strokeWidth="7" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <path d={d} fill="none" stroke="rgba(171,184,255,0.42)" strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
   )
 }
