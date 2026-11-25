@@ -117,6 +117,7 @@ export default function Bridge() {
   const [recipient, setRecipient] = useState('')
   /** off by default: the destination is your own wallet unless you ask otherwise */
   const [editRecipient, setEditRecipient] = useState(false)
+  const [amountFocused, setAmountFocused] = useState(false)
   /** your own wallet unless the alternate-recipient field is open and filled */
   const effectiveRecipient = editRecipient ? recipient.trim() : (address ?? '')
   const [pick, setPick] = useState<'from' | 'to' | 'source' | 'dest' | null>(null)
@@ -470,6 +471,8 @@ export default function Bridge() {
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder="0.0"
                   inputMode="decimal"
+                  onFocus={() => setAmountFocused(true)}
+                  onBlur={() => setAmountFocused(false)}
                   className="input display text-[56px] leading-[66px] tracking-[-0.02em]"
                 />
                 <div className="flex shrink-0 flex-col items-center gap-1.5">
@@ -587,7 +590,12 @@ export default function Bridge() {
                 </div>
               )}
             </div>
-            <div className="mt-2 flex items-center justify-end gap-1">
+            <div
+              className={
+                'mt-2 flex h-6 items-center justify-end gap-1 transition-opacity duration-150 ' +
+                (amountFocused || amount !== '' ? 'opacity-100' : 'pointer-events-none opacity-0')
+              }
+            >
               {[25, 50, 75].map((pct) => (
                 <button
                   key={pct}
@@ -721,7 +729,9 @@ export default function Bridge() {
                 {route ? (
                   <span className="flex items-center gap-1.5">
                     {`Bridge ${source?.symbol ?? ''}`}
-                    {route.type !== 'direct' && <span className="text-[13px] font-medium opacity-70">+ swap</span>}
+                    {route.legs.some((l) => l.kind === 'swap') && (
+                      <span className="text-[13px] font-medium opacity-70">+ swap</span>
+                    )}
                   </span>
                 ) : (
                   'No route for this pair'

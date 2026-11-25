@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, CheckCircle2, XCircle } from 'lucide-react'
 import { useActivity } from '../lib/activity'
@@ -11,6 +11,14 @@ export function NotificationBell() {
   const pending = pendingFrom(items)
   const [open, setOpen] = useState(false)
   const [flash] = useFinishFlash()
+  const [, tick] = useState(0)
+
+  // the countdown has to move on its own, once a second, while anything is in flight
+  useEffect(() => {
+    if (pending.length === 0) return
+    const t = setInterval(() => tick((v) => v + 1), 1000)
+    return () => clearInterval(t)
+  }, [pending.length])
 
   return (
     <div className="relative flex items-center gap-2">
