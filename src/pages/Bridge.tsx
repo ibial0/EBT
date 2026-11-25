@@ -120,6 +120,7 @@ export default function Bridge() {
   const [amountFocused, setAmountFocused] = useState(false)
   /** chips stay clickable while either the input or the chips themselves have the pointer */
   const [chipsOpen, setChipsOpen] = useState(false)
+  const amountRef = useRef<HTMLInputElement>(null)
   const chipsTimer = useRef<number | null>(null)
   const openChips = () => {
     if (chipsTimer.current) {
@@ -491,12 +492,20 @@ export default function Bridge() {
       <div className="grid w-full min-h-0 flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
         <Card className="flex h-full min-h-0 flex-col overflow-hidden p-5">
           <div className="relative flex flex-1 flex-col gap-3">
-            <div className="flex min-h-[140px] flex-1 flex-col justify-center rounded-[16px] border border-line-strong bg-ink-850 p-5">
+            <div
+              onMouseDown={(e) => {
+                if ((e.target as HTMLElement).closest('button')) return
+                e.preventDefault()
+                amountRef.current?.focus()
+              }}
+              className="flex min-h-[140px] flex-1 flex-col justify-center rounded-[16px] border border-line-strong bg-ink-850 p-5"
+            >
               <div className="mb-2 flex items-center">
                 <span className="col-head">You send</span>
               </div>
               <div className="flex items-center gap-3" onFocus={openChips} onBlur={scheduleChipsClose}>
                 <input
+                  ref={amountRef}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder="0.0"
@@ -526,7 +535,6 @@ export default function Bridge() {
                 <div
                   onMouseDown={(e) => e.preventDefault()}
                   onMouseEnter={openChips}
-                  onMouseLeave={scheduleChipsClose}
                   style={{ display: chipsOpen ? 'flex' : 'none' }}
                   className="absolute right-0 top-full mt-3 items-center gap-1.5"
                 >
