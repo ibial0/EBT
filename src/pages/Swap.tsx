@@ -68,6 +68,8 @@ export default function Swap() {
   const [showSlip, setShowSlip] = useState(false)
   const [pick, setPick] = useState<'in' | 'out' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  /** liquid journey: out (card→sell token), back (token→card), inR (card→buy token), done */
+  const [flow, setFlow] = useState<'idle' | 'out' | 'back' | 'inR' | 'done'>('idle')
   const [activeId, setActiveId] = useState<string | undefined>()
   const [debounced, setDebounced] = useState('')
 
@@ -265,14 +267,24 @@ export default function Swap() {
     }
   }
 
+  useEffect(() => {
+    if (busy !== 'start') return
+    setFlow('out')
+    const t1 = window.setTimeout(() => setFlow('back'), 1400)
+    const t2 = window.setTimeout(() => setFlow('inR'), 2700)
+    const t3 = window.setTimeout(() => setFlow('done'), 4100)
+    const t4 = window.setTimeout(() => setFlow('idle'), 7000)
+    return () => [t1, t2, t3, t4].forEach((t) => window.clearTimeout(t))
+  }, [busy])
+
   return (
     <div className="space-y-5">
 
       <div className="flex items-stretch gap-6">
         <div className="relative hidden flex-1 items-center justify-center xl:flex">
-          <Wire side="left" />
-          <Plug side="left" />
-          <WallToken token={tokenIn} />
+          <Wire side="left" dir={flow === 'back' ? 'back' : flow === 'out' ? 'out' : null} />
+          <Plug side="left" live={flow === 'out' || flow === 'back'} />
+          <WallToken token={tokenIn} pulse={flow === 'back'} />
         </div>
         <div className="w-full max-w-[560px] space-y-4">
         {!chainSupported && (
@@ -298,7 +310,13 @@ export default function Swap() {
             </div>
           </Card>
         )}
-        <Card className="p-5">
+        <Card className="relative overflow-hidden p-5">
+          {flow !== 'idle' && (
+            <div
+              key={flow}
+              className="card-flash pointer-events-none absolute inset-0 z-0 bg-[rgba(171,184,255,0.10)] ring-1 ring-inset ring-[rgba(198,208,255,0.55)]"
+            />
+          )}
           <div className="mb-4 flex items-center justify-end gap-2">
             <div className="group relative">
               <span
@@ -528,9 +546,14 @@ export default function Swap() {
         </div>
         </div>
         <div className="relative hidden flex-1 items-center justify-center xl:flex">
-          <Wire side="right" />
-          <Plug side="right" />
-          <WallToken token={tokenOut} />
+          <Wire side="right" dir={flow === 'inR' ? 'out' : null} />
+          <Plug side="right" live={flow === 'inR'} />
+          <WallToken token={tokenOut} pulse={flow === 'done'} />
+          {flow === 'done' && (
+            <span className="amount-rise pointer-events-none absolute right-2 top-6 text-[13px] font-semibold text-[#6adbb6]">
+              +{fmt(quote.data?.amountOut ?? 0n, tokenOut.decimals, 4)} {tokenOut.symbol}
+            </span>
+          )}
         </div>
       </div>
 
@@ -596,10 +619,10 @@ export default function Swap() {
  * The token that is being sold (left) or bought (right), mounted on the wall beside the
  * card: a plain circular mark with a small bracket, no names, no chain chrome.
  */
-function WallToken({ token }: { token: TokenCfg }) {
+function WallToken({ token, pulse }: { token: TokenCfg; pulse?: boolean }) {
   return (
     <div className="pointer-events-none relative">
-        <div className="grid size-[160px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+        <div className={(pulse ? 'token-pop ' : '') + 'grid size-[160px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px]' }>
           <TokenIcon
             symbol={token.symbol}
             size={132}
@@ -616,7 +639,7 @@ function WallToken({ token }: { token: TokenCfg }) {
  * The cable that ties a wall token to the swap card. It hangs the way a real cable does:
  * it leaves the token level, dips below the straight line, and climbs back to the card.
  */
-function Wire({ side }: { side: 'left' | 'right' }) {
+function Wire({ side, dir }: { side: 'left' | 'right'; dir: 'out' | 'back' | null }) {
   const d =
     side === 'left'
       ? 'M 50 52 C 68 70, 88 46, 96 44 L 103.5 44'
@@ -628,14 +651,55 @@ function Wire({ side }: { side: 'left' | 'right' }) {
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
     >
-      <path d={d} fill="none" stroke="rgba(171,184,255,0.10)" strokeWidth="7" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      <path d={d} fill="none" stroke="rgba(171,184,255,0.42)" strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <g className={dir ? 'wire-sag' : undefined}>
+        <path
+          d={d}
+          fill="none"
+          stroke={dir ? 'rgba(171,184,255,0.18)' : 'rgba(171,184,255,0.10)'}
+          strokeWidth="7"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={d}
+          fill="none"
+          stroke={dir ? 'rgba(198,208,255,0.72)' : 'rgba(171,184,255,0.42)'}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {dir && (
+          <g key={dir}>
+            <circle r="6" fill="rgba(171,184,255,0.30)">
+              <animateMotion
+                dur="1.3s"
+                path={d}
+                keyPoints={dir === 'out' ? '1;0' : '0;1'}
+                keyTimes="0;1"
+                calcMode="linear"
+                fill="freeze"
+              />
+            </circle>
+            <circle r="3.1" fill="#e2e8ff">
+              <animateMotion
+                dur="1.3s"
+                path={d}
+                keyPoints={dir === 'out' ? '1;0' : '0;1'}
+                keyTimes="0;1"
+                calcMode="linear"
+                fill="freeze"
+              />
+              <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.92;1" dur="1.3s" fill="freeze" />
+            </circle>
+          </g>
+        )}
+      </g>
     </svg>
   )
 }
 
 /** The connector the cable terminates in, plugged straight into the card's border. */
-function Plug({ side }: { side: 'left' | 'right' }) {
+function Plug({ side, live }: { side: 'left' | 'right'; live?: boolean }) {
   return (
     <span
       aria-hidden="true"
@@ -644,7 +708,12 @@ function Plug({ side }: { side: 'left' | 'right' }) {
         (side === 'left' ? '-right-6' : '-left-6')
       }
     >
-      <span className="block h-[18px] w-[11px] rounded-[3px] border border-[rgba(171,184,255,0.5)] bg-ink-800 shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
+      <span
+        className={
+          'block h-[18px] w-[11px] rounded-[3px] border bg-ink-800 shadow-[0_2px_10px_rgba(0,0,0,0.45)] transition-colors duration-300 ' +
+          (live ? 'border-[rgba(198,208,255,0.9)] shadow-[0_0_14px_rgba(171,184,255,0.7)]' : 'border-[rgba(171,184,255,0.5)]')
+        }
+      >
         <span className="mt-1 block h-[2px] w-full bg-[rgba(171,184,255,0.35)]" />
       </span>
     </span>
