@@ -152,7 +152,7 @@ export function Layout() {
           <NotificationBell />
           <ConnectButton />
         </div>
-        <div className="mx-auto w-full max-w-[1240px] px-4 pb-24 pt-6 sm:px-8 lg:pb-16">
+        <div className="mx-auto w-full max-w-[1600px] px-4 pb-24 pt-6 sm:px-8 lg:pb-16">
           <Outlet />
         </div>
       </main>
