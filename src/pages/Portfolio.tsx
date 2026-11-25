@@ -176,7 +176,7 @@ export default function Portfolio() {
   return (
     <div className="dash-2">
       {/* ── left: value + chart ───────────────────────────── */}
-      <div className="card p-6">
+      <div className="card flex h-full flex-col p-6">
         <div className="flex items-center justify-between">
           <div className="col-head">Portfolio</div>
           <button
@@ -231,13 +231,13 @@ export default function Portfolio() {
           </button>
         </div>
 
-        <div className="mt-3">
+        <div className="mt-4 flex min-h-[240px] flex-1 flex-col">
           <ValueChart points={chartPoints} />
         </div>
       </div>
 
       {/* ── right: Overview | Tokens ──────────────────────── */}
-      <div className="card flex flex-col overflow-hidden">
+      <div className="card flex h-full min-h-0 flex-col overflow-hidden">
         <div className="flex items-center gap-1 border-b border-line-strong px-4">
           {(['overview', 'tokens', 'recovery'] as View[]).map((t) => (
             <button
@@ -542,61 +542,97 @@ function RingIcon({
   )
 }
 
-/** Value over time, built only from the snapshots this browser actually recorded. */
+/** Value over time. Every point is a real snapshot this browser recorded — nothing is invented. */
 function ValueChart({ points }: { points: { t: number; v: number }[] }) {
-  if (points.length === 1) {
+  const W = 900
+  const H = 300
+  const padX = 2
+  const padY = 10
+
+  // nothing recorded yet: there is no honest series to draw, so say so instead of drawing
+  if (points.length === 0) {
     return (
-      <div className="relative h-[132px] w-full rounded-[12px] border border-line bg-ink-850/40">
-        <svg viewBox="0 0 900 132" preserveAspectRatio="none" className="h-full w-full">
-          <line x1="0" y1="66" x2="900" y2="66" stroke="var(--color-accent)" strokeWidth="2" strokeDasharray="6 6" opacity="0.7" />
-        </svg>
-        <p className="absolute inset-x-0 bottom-2 text-center text-[11px] text-t3">
-          one point recorded — the line is flat because nothing has been observed to change yet
+      <div className="grid h-full w-full min-h-[240px] place-items-center rounded-[12px] border border-dashed border-line">
+        <p className="max-w-[46ch] px-6 text-center text-[12px] leading-5 text-t2">
+          No reading yet. One value is recorded per hour while the app is open, and the chart is drawn only from
+          those readings.
         </p>
       </div>
     )
   }
-  if (points.length < 2) {
-    return (
-      <div className="mt-5 grid h-[132px] place-items-center rounded-[12px] border border-dashed border-line">
-        <p className="max-w-[46ch] px-4 text-center text-[12px] leading-5 text-t2">
-          The chart fills in as you use the app: one point is recorded per hour and kept for 90 days. Nothing is backfilled.
-        </p>
-      </div>
-    )
-  }
-  const w = 900
-  const h = 132
-  const pad = 6
-  const vs = points.map((p) => p.v)
+
+  const series =
+    points.length === 1
+      ? [
+          { t: points[0].t - 1, v: points[0].v },
+          { t: points[0].t, v: points[0].v },
+        ]
+      : points
+
+  const vs = series.map((p) => p.v)
   const min = Math.min(...vs)
   const max = Math.max(...vs)
-  const span = max - min || 1
-  const t0 = points[0].t
-  const t1 = points[points.length - 1].t
+  const span = max - min || Math.max(max * 0.02, 1)
+  const t0 = series[0].t
+  const t1 = series[series.length - 1].t
   const tSpan = t1 - t0 || 1
-  const xy = points.map((p) => {
-    const x = pad + ((p.t - t0) / tSpan) * (w - pad * 2)
-    const y = h - pad - ((p.v - min) / span) * (h - pad * 2)
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  })
-  const area = `M0,${h} L${xy.join(' L')} L${w},${h} Z`
+
+  const xy = series.map((p, i) => ({
+    x: padX + (series.length === 1 ? 0 : ((p.t - t0) / tSpan) * (W - padX * 2)),
+    y: H - padY - ((p.v - min) / span) * (H - padY * 2),
+    i,
+  }))
+
+  // smooth path through the points (midpoint quadratics — no overshoot below the data)
+  let line = `M${xy[0].x.toFixed(1)},${xy[0].y.toFixed(1)}`
+  for (let i = 1; i < xy.length; i++) {
+    const prev = xy[i - 1]
+    const cur = xy[i]
+    const mx = (prev.x + cur.x) / 2
+    line += ` Q${prev.x.toFixed(1)},${prev.y.toFixed(1)} ${mx.toFixed(1)},${((prev.y + cur.y) / 2).toFixed(1)}`
+    line += ` Q${cur.x.toFixed(1)},${cur.y.toFixed(1)} ${cur.x.toFixed(1)},${cur.y.toFixed(1)}`
+  }
+  const last = xy[xy.length - 1]
+  const area = `${line} L${last.x.toFixed(1)},${H} L${xy[0].x.toFixed(1)},${H} Z`
+
   return (
-    <div className="mt-5">
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-[132px] w-full">
+    <div className="relative h-full w-full overflow-hidden rounded-[12px] border border-line bg-ink-850/40">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full">
         <defs>
-          <linearGradient id="ebt-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
+          <linearGradient id="ebt-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
-        <path d={area} fill="url(#ebt-fill)" />
-        <polyline points={xy.join(' ')} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinejoin="round" />
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line
+            key={f}
+            x1="0"
+            y1={H * f}
+            x2={W}
+            y2={H * f}
+            stroke="var(--color-line)"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        <path d={area} fill="url(#ebt-area)" />
+        <path
+          d={line}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <circle cx={last.x} cy={last.y} r="4" fill="var(--color-accent)" vectorEffect="non-scaling-stroke" />
       </svg>
-      <div className="mt-1 flex justify-between">
-        <span className="mono text-[11px] text-t3">{new Date(points[0].t).toLocaleString()}</span>
-        <span className="mono text-[11px] text-t3">{points.length} points</span>
-      </div>
+      {points.length === 1 && (
+        <span className="mono absolute right-3 top-3 text-[10px] uppercase tracking-[0.6px] text-t3">
+          one reading
+        </span>
+      )}
     </div>
   )
 }

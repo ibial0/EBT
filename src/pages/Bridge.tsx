@@ -452,7 +452,7 @@ export default function Bridge() {
   return (
     <div className="space-y-5">
 
-      <div className="grid w-full gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-start">
+      <div className="grid w-full gap-7 lg:min-h-[calc(100dvh-11rem)] lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
         <Card className="p-5">
           <div className="relative">
             <div className="rounded-[14px] border border-line-strong bg-ink-850 p-4">
@@ -667,8 +667,9 @@ export default function Bridge() {
             )}
           </div>
 
+          <div className="mt-auto pt-5">
           {!isConnected ? (
-            <div className="mt-4">
+            <div>
               <ConnectButton full />
             </div>
           ) : (
@@ -684,6 +685,7 @@ export default function Bridge() {
               {route ? (route.type === 'direct' ? `Bridge ${source?.symbol}` : `Bridge ${source?.symbol} + swap`) : 'No route for this pair'}
             </Button>
           )}
+          </div>
 
           {chainId !== fromId && isConnected && (
             <button onClick={() => ensureChain(fromId)} className="mt-2 w-full text-center text-[11px] text-[#e6c17a] hover:underline">
