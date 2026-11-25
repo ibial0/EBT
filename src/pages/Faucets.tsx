@@ -94,6 +94,18 @@ export default function Faucets() {
                   </a>
                 </div>
               ))}
+              {c.faucets.length === 0 && (
+                <div className="rounded-lg border border-dashed border-line bg-ink-850/50 px-3 py-2.5">
+                  <p className="text-[12px] leading-relaxed text-t2">
+                    No faucet link is published here that we could verify, so none is shown.
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-t3">
+                    Get {c.viem.nativeCurrency.symbol} by bridging it from{' '}
+                    {c.bridge === 'orbit' || c.bridge === 'none' ? 'a parent testnet' : 'its L1'}, or from the network's own
+                    documentation. A guessed URL is worse than no link.
+                  </p>
+                </div>
+              )}
               {c.faucets.some((f) => f.note) && (
                 <div className="space-y-1 pt-0.5">
                   {c.faucets

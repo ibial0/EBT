@@ -120,26 +120,46 @@ export default function Overview() {
               see allowlist →
             </Link>
           </div>
-          <div className="grid gap-1.5 sm:grid-cols-2">
-            {CHAINS.map((c) => {
-              const h = health.data?.find((x) => x.id === c.id)
-              return (
-                <div key={c.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition hover:bg-ink-850">
-                  <ChainLogo chain={c} size={22} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-medium text-t1">{c.name}</div>
-                    <div className="mono text-[10px] text-t3">
-                      {h?.ok ? `#${h.blockNumber} · ${h.latencyMs}ms` : health.isLoading ? 'checking…' : h?.error ?? '-'}
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {[...CHAINS]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((c) => {
+                const h = health.data?.find((x) => x.id === c.id)
+                const live = h?.ok
+                return (
+                  <div
+                    key={c.id}
+                    className="group flex items-center gap-2.5 rounded-xl border border-line bg-ink-850/60 px-2.5 py-2 transition hover:border-line-strong hover:bg-ink-800"
+                  >
+                    <ChainLogo chain={c} size={24} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[12px] font-medium leading-4 text-t1">{c.name}</div>
+                      <div className="flex items-center gap-1.5 text-[10px] leading-4 text-t3">
+                        <span
+                          className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${live ? 'bg-[#4cc38a]' : health.isLoading ? 'bg-[#e3c07b]' : 'bg-[#e5484d]'}`}
+                        />
+                        <span className="mono truncate">
+                          {h?.ok ? `${h.latencyMs}ms` : health.isLoading ? 'checking' : 'no rpc'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {c.bridge === 'cctp' && (
+                        <span className="rounded border border-accent/25 px-1 text-[9px] leading-4 text-accent">CCTP</span>
+                      )}
+                      {c.bridge === 'orbit' && (
+                        <span className="rounded border border-[#a78bfa]/30 px-1 text-[9px] leading-4 text-[#c4b5fd]">ORBIT</span>
+                      )}
+                      {c.bridge === 'opstack' && (
+                        <span className="rounded border border-[#e3c07b]/30 px-1 text-[9px] leading-4 text-[#e3c07b]">OP</span>
+                      )}
+                      {c.uniswap && (
+                        <span className="rounded border border-[#4cc38a]/30 px-1 text-[9px] leading-4 text-[#7fd6a8]">SWAP</span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    {c.bridge === 'cctp' && <span className="chip !px-1.5 !py-0 !text-[9px] !text-accent">CCTP</span>}
-                    {c.bridge === 'opstack' && <span className="chip !px-1.5 !py-0 !text-[9px] !text-[#e3c07b]">OP</span>}
-                    {c.uniswap && <span className="chip !px-1.5 !py-0 !text-[9px] !text-accent">SWAP</span>}
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
           </div>
         </Card>
 

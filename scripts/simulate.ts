@@ -31,6 +31,13 @@ const record = (id: string, ok: boolean, detail: string) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${id.padEnd(46)} ${detail}`)
 }
 
+/** A check whose input data is not available right now: reported, never counted as a failure. */
+const skipped: string[] = []
+const skip = (id: string, detail: string) => {
+  skipped.push(id)
+  console.log(`SKIP  ${id.padEnd(46)} ${detail}`)
+}
+
 const l1 = createPublicClient({ chain: sepolia, transport: http(SEPOLIA_RPC, { timeout: 30000 }) })
 const l2 = createPublicClient({ chain: baseSepolia, transport: http(BASE_RPC, { timeout: 30000 }) })
 
@@ -243,7 +250,8 @@ async function main() {
   try {
     const found = await findRecentBurnToArc()
     if (!found) {
-      record('cctp: real Base→Arc recovery', false, 'no recent Base→Arc burn found to test with')
+      // depends on a recent on-chain burn existing; absence is not a code failure
+      skip('cctp: real Base→Arc recovery', 'no recent Base→Arc burn to sample right now')
     } else {
       const att = await fetch(`https://iris-api-sandbox.circle.com/v2/messages/6?transactionHash=${found}&cctpVersion=2`)
       const j = (await att.json()) as { messages?: Array<{ message: string; attestation: string }> }
@@ -328,7 +336,9 @@ async function main() {
 
   /* ---------------- summary ---------------- */
   const failed = results.filter((r) => !r.ok)
-  console.log(`\n=== ${results.length - failed.length}/${results.length} checks passed ===`)
+  const total = results.length
+  const passed = total - failed.length
+  console.log(`\n=== ${passed}/${total} checks passed${skipped.length ? `, ${skipped.length} skipped` : ''} ===`)
   const fs = await import('node:fs')
   fs.writeFileSync('scripts/simulation-report.json', JSON.stringify({ ranAt: new Date().toISOString(), results, pairs }, null, 2))
   if (failed.length) process.exitCode = 1

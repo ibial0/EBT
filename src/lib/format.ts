@@ -10,7 +10,12 @@ export function fmt(raw: bigint | undefined, decimals = 18, maxFrac = 6): string
   const s = formatUnits(raw, decimals)
   const [w, f = ''] = s.split('.')
   if (!f) return w
-  const t = f.slice(0, maxFrac).replace(/0+$/, '')
+  const firstSig = f.search(/[1-9]/)
+  if (firstSig === -1) return w
+  // Keep at least four significant digits, so a small amount never collapses to
+  // "0.000001" and never rounds away to zero.
+  const keep = Math.max(maxFrac, firstSig + 4)
+  const t = f.slice(0, keep).replace(/0+$/, '')
   return t ? `${w}.${t}` : w
 }
 

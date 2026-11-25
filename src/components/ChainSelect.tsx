@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import clsx from 'clsx'
-import { Search } from 'lucide-react'
+import { Search, ChevronDown } from 'lucide-react'
 import type { ChainCfg } from '../config/chains'
 import { getChain } from '../config/chains'
 import { Modal, ChainLogo, Badge, Empty } from './ui'
@@ -95,6 +95,7 @@ export function ChainChip({
       {chain && <ChainLogo chain={chain} size={22} />}
       <span className="text-[14px] font-medium text-t1">{chain?.short ?? 'Select'}</span>
       {label && <span className="text-[11px] text-t3">{label}</span>}
+      <ChevronDown size={13} className="text-t3" />
     </button>
   )
 }

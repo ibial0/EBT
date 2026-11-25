@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-23T17:14:08.660Z",
+  "ranAt": "2026-11-25T05:25:43.417Z",
   "results": [
     {
       "id": "guard: mainnet rejected",
@@ -34,12 +34,12 @@
     {
       "id": "swap: quote WETH→USDC on Sepolia",
       "ok": true,
-      "detail": "out=31608233 fee=500 impact=5bps"
+      "detail": "out=29510009 fee=100 impact=1bps"
     },
     {
       "id": "swap: native ETH→USDC executes",
       "ok": true,
-      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001e24da9"
+      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001c24979"
     },
     {
       "id": "opstack: GIWA deposit accepted",
@@ -49,7 +49,7 @@
     {
       "id": "swap: quote USDC→WETH on Sepolia",
       "ok": true,
-      "detail": "out=31887644054812 fee=100"
+      "detail": "out=33978224577003 fee=500"
     },
     {
       "id": "swap: USDC.approve(router, exact)",
@@ -64,12 +64,12 @@
     {
       "id": "swap: quote USDC→WETH on Base Sepolia",
       "ok": true,
-      "detail": "out=417207795526906 fee=100"
+      "detail": "out=4663606739747224 fee=100"
     },
     {
       "id": "swap: quote USDC→WETH on OP Sepolia",
       "ok": true,
-      "detail": "out=1594436053642098 fee=500"
+      "detail": "out=768821310674726 fee=500"
     },
     {
       "id": "swap: USDC→WETH executes on OP Sepolia",
@@ -115,16 +115,6 @@
       "id": "opstack: portal has code (Unichain)",
       "ok": true,
       "detail": "0x0d83dab629f0e0F9d36c0Cbc89B69a489f0751bD"
-    },
-    {
-      "id": "cctp: message decoder (real message)",
-      "ok": true,
-      "detail": "amount=20000000 → domain 26"
-    },
-    {
-      "id": "cctp: Arc mint simulation",
-      "ok": true,
-      "detail": "return=0x0000000000000000000000000000000000000000000000000000000000000001"
     },
     {
       "id": "swap: quote USDC→EURC on Arc",

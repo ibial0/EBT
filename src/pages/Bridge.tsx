@@ -54,6 +54,52 @@ function legLabel(index: number, leg: RouteLeg): string {
   return `Bridge ETH ${getChain(leg.from)?.short} → ${getChain(leg.to)?.short}`
 }
 
+/** Visual route: source -> protocol -> destination, with real icons. */
+function RoutePath({
+  fromId,
+  toId,
+  source,
+  dest,
+  kind,
+}: {
+  fromId: number
+  toId: number
+  source?: TokenCfg | null
+  dest?: TokenCfg | null
+  kind?: string
+}) {
+  const fromChain = getChain(fromId)
+  const toChain = getChain(toId)
+  const label = kind === 'cctp' ? 'CCTP' : kind === 'portal' ? 'OP portal' : kind === 'arbitrum' ? 'Arbitrum' : 'route'
+
+  return (
+    <div className="grid grid-cols-[auto_minmax(40px,1fr)_auto] items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        {fromChain ? <ChainLogo chain={fromChain} size={28} /> : null}
+        <div className="min-w-0">
+          <div className="truncate text-[13px] font-semibold leading-5 text-t1">{source?.symbol ?? '—'}</div>
+          <div className="truncate text-[10px] leading-4 text-t2">{fromChain?.short}</div>
+        </div>
+      </div>
+
+      <div className="relative flex items-center justify-center">
+        <span className="absolute inset-x-0 top-1/2 -z-0 h-px -translate-y-1/2 bg-line-strong" />
+        <span className="relative z-10 whitespace-nowrap rounded-full border border-line bg-ink-900 px-2 py-[2px] text-[9px] font-medium uppercase tracking-[0.08em] text-t2">
+          {label}
+        </span>
+      </div>
+
+      <div className="flex min-w-0 items-center justify-end gap-2.5">
+        <div className="min-w-0 text-right">
+          <div className="truncate text-[13px] font-semibold leading-5 text-t1">{dest?.symbol ?? '—'}</div>
+          <div className="truncate text-[10px] leading-4 text-t2">{toChain?.short}</div>
+        </div>
+        {toChain ? <ChainLogo chain={toChain} size={28} /> : null}
+      </div>
+    </div>
+  )
+}
+
 export default function Bridge() {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
@@ -445,33 +491,34 @@ export default function Bridge() {
               </p>
             </div>
           ) : (
-            <div className="mt-3 rounded-lg border border-line bg-ink-850 px-3 py-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <RouteIcon size={13} className="shrink-0 text-accent" />
-                  <span className="truncate text-[12px] font-medium text-t1">{route?.label ?? 'Select assets'}</span>
-                </div>
-                {route && (
-                  <Badge tone={route.type === 'direct' ? 'mint' : 'blue'}>
-                    {route.type === 'direct' ? 'Direct' : 'Bridge + swap'}
-                  </Badge>
-                )}
-              </div>
-              {route && (
-                <div className="mt-1 space-y-0.5 text-[11px] leading-5 text-t3">
-                  <p>{route.detail}</p>
-                  <p>
-                    {route.txCount} wallet signature{route.txCount === 1 ? '' : 's'} ·{' '}
-                    {(estimate.data?.lines.length ?? route.legs.length) > 0
-                      ? `${estimate.data?.lines.length ?? route.legs.length} verified step${(estimate.data?.lines.length ?? route.legs.length) === 1 ? '' : 's'}`
-                      : 'no steps'}
-                  </p>
-                </div>
+            <div className="mt-3 rounded-xl border border-line bg-ink-850 p-3">
+              {route ? (
+                <>
+                  <RoutePath
+                    fromId={fromId}
+                    toId={toId}
+                    source={source}
+                    dest={dest}
+                    kind={route.legs[route.legs.length - 1]?.kind}
+                  />
+                  <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line/60 pt-2">
+                    <span className="text-[11px] text-t3">
+                      {route.txCount} signature{route.txCount === 1 ? '' : 's'} ·{' '}
+                      {(estimate.data?.lines.length ?? route.legs.length)} verified step
+                      {(estimate.data?.lines.length ?? route.legs.length) === 1 ? '' : 's'}
+                    </span>
+                    <Badge tone={route.type === 'direct' ? 'mint' : 'blue'}>
+                      {route.type === 'direct' ? 'Direct' : 'Bridge + swap'}
+                    </Badge>
+                  </div>
+                </>
+              ) : (
+                <span className="text-[12px] text-t3">Select an asset to see the route.</span>
               )}
             </div>
           )}
 
-          <div className="panel mt-3 p-3">
+          <div className="field mt-3 p-3">
             <div className="mb-1 flex items-center justify-between">
               <span className="label">Amount</span>
               <button
@@ -526,7 +573,7 @@ export default function Bridge() {
             </div>
           )}
 
-          <div className="panel mt-3 p-3">
+          <div className="field mt-3 p-3">
             <div className="mb-1 label">Recipient on {to.short}</div>
             <input
               value={recipient}
@@ -569,6 +616,7 @@ export default function Bridge() {
             </div>
             {route ? (
               <>
+                <p className="mb-2.5 rounded-lg bg-ink-850 px-2.5 py-2 text-[11px] leading-relaxed text-t2">{route.detail}</p>
                 <Row label="Source asset" value={source?.symbol ?? '-'} />
                 <Row label="Destination asset" value={dest?.symbol ?? '-'} />
                 <Row label="Wallet signatures" value={String(route.txCount)} />
@@ -576,7 +624,9 @@ export default function Bridge() {
                 <Row
                   label="ETA"
                   value={
-                    route.legs.some((l) => l.kind === 'portal')
+                    route.legs.some((l) => l.kind === 'arbitrum')
+                      ? '≈1–10 min (retryable ticket)'
+                      : route.legs.some((l) => l.kind === 'portal')
                       ? '≈1–3 min per deposit'
                       : route.legs.some((l) => l.kind === 'cctp')
                         ? fast
