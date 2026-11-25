@@ -268,7 +268,10 @@ export default function Swap() {
   return (
     <div className="space-y-5">
 
-      <div className="mx-auto w-full max-w-[560px] space-y-4">
+      <div className="relative">
+        <WallToken token={tokenIn} side="left" />
+        <WallToken token={tokenOut} side="right" />
+        <div className="mx-auto w-full max-w-[560px] space-y-4">
         {!chainSupported && (
           <Card className="border-warn/40 p-4 lg:col-span-2">
             <div className="text-[14px] font-semibold text-t1">
@@ -520,6 +523,7 @@ export default function Swap() {
           )}
 
         </div>
+        </div>
       </div>
 
       <TokenPicker
@@ -576,6 +580,39 @@ export default function Swap() {
           </p>
         </div>
       </Modal>
+    </div>
+  )
+}
+
+/**
+ * The token that is being sold (left) or bought (right), mounted on the wall beside the
+ * card: a plain circular mark with a small bracket, no names, no chain chrome.
+ */
+function WallToken({ token, side }: { token: TokenCfg; side: 'left' | 'right' }) {
+  return (
+    <div
+      className={
+        'pointer-events-none absolute top-1/2 hidden -translate-y-1/2 xl:block ' +
+        (side === 'left' ? 'left-2' : 'right-2')
+      }
+    >
+      <div className="relative">
+        <div className="grid size-[96px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_14px_38px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+          <TokenIcon
+            symbol={token.symbol}
+            size={66}
+            chainId={token.chainId}
+            address={token.address}
+            verified={token.address !== '0x0000000000000000000000000000000000000000' ? true : undefined}
+          />
+        </div>
+        <span
+          className={
+            'absolute top-1/2 size-5 -translate-y-1/2 rounded-full border border-line-strong bg-ink-850 ' +
+            (side === 'left' ? '-right-2.5' : '-left-2.5')
+          }
+        />
+      </div>
     </div>
   )
 }
