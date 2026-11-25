@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowDownUp, ChevronDown, Info, Route as RouteIcon } from 'lucide-react'
+import { AlertTriangle, ArrowDownUp, Check, ChevronDown, Info, Route as RouteIcon, UserRoundPlus, Wallet, X } from 'lucide-react'
 import { formatUnits } from 'viem'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { getPublicClient, getWalletClient } from 'wagmi/actions'
 import { CHAINS, getChain, type Address } from '../config/chains'
 import { nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
-import { Card, Button, Badge, Row, notify, ChainLogo, TokenIcon } from '../components/ui'
+import { Card, Button, Badge, Row, notify, ChainLogo, TokenIcon, Spinner } from '../components/ui'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
 import { ConnectButton } from '../components/Layout'
 import { Timeline } from '../components/Timeline'
-import { addActivity, updateStep, updateActivity, finalizeFromSteps, getActivity } from '../lib/activity'
+import { addActivity, updateStep, updateActivity, finalizeFromSteps, getActivity, useActivity, type ActivityItem } from '../lib/activity'
 import { fetchCctpFees, maxFeeFor } from '../lib/cctp'
 import { quoteBest, applySlippage, erc20Abi } from '../lib/uniswap'
 import { executeCctpBridge, executeOpDeposit } from '../lib/bridgeExec'
@@ -117,6 +117,8 @@ export default function Bridge() {
   const [recipient, setRecipient] = useState('')
   /** off by default: the destination is your own wallet unless you ask otherwise */
   const [editRecipient, setEditRecipient] = useState(false)
+  /** your own wallet unless the alternate-recipient field is open and filled */
+  const effectiveRecipient = editRecipient ? recipient.trim() : (address ?? '')
   const [pick, setPick] = useState<'from' | 'to' | 'source' | 'dest' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | undefined>()
@@ -193,9 +195,6 @@ export default function Bridge() {
     }
   }, [toId, destOptions, dest])
 
-  useEffect(() => {
-    if (address && !recipient) setRecipient(address)
-  }, [address, recipient])
 
   const sourceClient = useMemo(() => getPublicClient(wagmiConfig, { chainId: fromId as never }), [fromId])
 
@@ -285,7 +284,7 @@ export default function Bridge() {
     if (!address) return notify('Connect a wallet first.', 'error')
     if (!source || !dest) return notify('Pick a source and destination asset.', 'error')
     if (!route) return notify('No bridge route available for this token pair.', 'error')
-    if (!/^0x[0-9a-fA-F]{40}$/.test(recipient)) return notify('Recipient is not a valid EVM address.', 'error')
+    if (!/^0x[0-9a-fA-F]{40}$/.test(effectiveRecipient)) return notify('Recipient is not a valid EVM address.', 'error')
     if (amountIn <= 0n) return notify('Enter an amount.', 'error')
     if (insufficient) return notify(`Not enough ${source.symbol} on ${from.short}.`, 'error')
 
@@ -329,7 +328,7 @@ export default function Bridge() {
         amountIn: amount,
         amountOut: estimate.data ? fmt(estimate.data.amountOut, dest.decimals, 6) : '',
         status: 'pending',
-        meta: { routeType: route.type, routeLabel: route.label, txCount: route.txCount, recipient },
+        meta: { routeType: route.type, routeLabel: route.label, txCount: route.txCount, recipient: effectiveRecipient },
         steps,
       })
       setActiveId(item.id)
@@ -377,7 +376,7 @@ export default function Bridge() {
             amount: current,
             fast,
             maxFee,
-            recipient: recipient as Address,
+            recipient: effectiveRecipient as Address,
             wallet: sender,
             client,
             onStep: (step, state, hash) =>
@@ -388,7 +387,7 @@ export default function Bridge() {
           await executeOpDeposit({
             fromChain: getChain(leg.from)!,
             toChainId: leg.to,
-            recipient: recipient as Address,
+            recipient: effectiveRecipient as Address,
             mint: current,
             wallet: sender,
             client,
@@ -409,7 +408,7 @@ export default function Bridge() {
             const l2 = getPublicClient(wagmiConfig, { chainId: leg.to as never })
             if (l2) {
               // record the destination balance so arrival can be detected by comparison
-              const before = await l2.getBalance({ address: recipient as Address }).catch(() => 0n)
+              const before = await l2.getBalance({ address: effectiveRecipient as Address }).catch(() => 0n)
               updateActivity(item.id, { meta: { ...(item.meta ?? {}), orbitExpected: String(current), orbitBaseline: String(before) } })
               updateStep(item.id, `arrive${i}`, { status: 'active', note: 'Retryable ticket submitted. Waiting for the sequencer to redeem it.' })
               startOrbitTracking(item.id, l2, { maxMinutes: 60 })
@@ -455,7 +454,7 @@ export default function Bridge() {
       <div className="grid w-full gap-7 lg:min-h-[calc(100dvh-11rem)] lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
         <Card className="p-5">
           <div className="relative">
-            <div className="rounded-[14px] border border-line-strong bg-ink-850 p-4">
+            <div className="rounded-[16px] border border-line-strong bg-ink-850 p-5">
               <div className="mb-2 flex items-center justify-between">
                 <span className="col-head">You send</span>
                 <span className={"mono text-[12px] " + (sourceBalance.isError ? 'text-[#e6c17a]' : 'text-t2')}>
@@ -474,13 +473,13 @@ export default function Bridge() {
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder="0.0"
                   inputMode="decimal"
-                  className="input display text-[40px] leading-[48px] tracking-[-0.02em]"
+                  className="input display text-[46px] leading-[56px] tracking-[-0.02em]"
                 />
                 <button
                   onClick={() => setPick('source')}
-                  className="flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
+                  className="flex h-14 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-2 pr-3.5 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {source ? <TokenIcon symbol={source.symbol} size={30} chainId={fromId} address={source.address} verified={source.verified} /> : null}
+                  {source ? <TokenIcon symbol={source.symbol} size={34} chainId={fromId} address={source.address} verified={source.verified} /> : null}
                   <span className="display text-[15px] text-t1">{source?.symbol ?? 'select'}</span>
                   <ChevronDown size={15} className="text-t2" />
                 </button>
@@ -492,19 +491,19 @@ export default function Bridge() {
                 setFromId(toId)
                 setToId(fromId)
               }}
-              className="absolute left-1/2 top-1/2 z-10 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-800 text-t1 transition-all duration-150 hover:scale-110 hover:border-accent/60 hover:text-accent"
+              className="absolute left-1/2 top-1/2 z-10 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-800 text-t1 transition-all duration-150 hover:scale-110 hover:border-accent/60 hover:text-accent"
               title="Swap direction"
             >
               <ArrowDownUp size={14} />
             </button>
 
-            <div className="mt-2 rounded-[14px] border border-line-strong bg-ink-850 p-4">
+            <div className="mt-3 rounded-[16px] border border-line-strong bg-ink-850 p-5">
               <div className="mb-2 flex items-center justify-between">
                 <span className="col-head">You receive</span>
                 <span>{estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : '-'}</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="input display flex-1 truncate text-[40px] leading-[48px] tracking-[-0.02em] text-t1">
+                <div className="input display flex-1 truncate text-[46px] leading-[56px] tracking-[-0.02em] text-t1">
                   {estimate.data && dest ? (
                     fmt(estimate.data.amountOut, dest.decimals, 6)
                   ) : (
@@ -513,9 +512,9 @@ export default function Bridge() {
                 </div>
                 <button
                   onClick={() => setPick('dest')}
-                  className="flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
+                  className="flex h-14 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-2 pr-3.5 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {dest ? <TokenIcon symbol={dest.symbol} size={30} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
+                  {dest ? <TokenIcon symbol={dest.symbol} size={34} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
                   <span className="display text-[15px] text-t1">{dest?.symbol ?? 'pick'}</span>
                   <ChevronDown size={15} className="text-t2" />
                 </button>
@@ -635,66 +634,82 @@ export default function Bridge() {
             </div>
           )}
 
-          <div className="mt-3">
+          <div className="mt-auto pt-5">
+            {!isConnected ? (
+              <ConnectButton full />
+            ) : (
+              <Button
+                full
+                variant="primary"
+                className="h-[58px] w-full text-[16px]"
+                disabled={!hasRoute || amountIn <= 0n || insufficient}
+                loading={busy === 'start'}
+                onClick={run}
+              >
+                {route ? (
+                  <span className="flex items-center gap-1.5">
+                    {`Bridge ${source?.symbol ?? ''}`}
+                    {route.type !== 'direct' && (
+                      <span className="text-[13px] font-medium opacity-70">+ swap</span>
+                    )}
+                  </span>
+                ) : (
+                  'No route for this pair'
+                )}
+              </Button>
+            )}
+          </div>
+          <div className="mt-4">
             {!editRecipient ? (
               <button
                 onClick={() => setEditRecipient(true)}
-                className="mono text-[11px] text-t3 transition-colors hover:text-accent"
+                title="Send to a different wallet"
+                aria-label="Send to a different wallet"
+                className="flex items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-2 text-t2 transition-colors hover:border-accent/40 hover:text-t1"
               >
-                send to a different wallet
+                <UserRoundPlus size={14} />
               </button>
             ) : (
               <div className="field p-3">
-                <div className="mb-1 flex items-center justify-between">
+                <div className="mb-1.5 flex items-center justify-between">
                   <span className="col-head">Recipient on {to.short}</span>
-                  <button
-                    onClick={() => {
-                      setEditRecipient(false)
-                      if (address) setRecipient(address)
-                    }}
-                    className="mono text-[11px] text-t3 hover:text-t1"
-                  >
-                    use my wallet
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setRecipient(address ?? '')}
+                      title="Use my connected wallet"
+                      aria-label="Use my connected wallet"
+                      className="grid size-7 place-items-center rounded-md border border-line-strong text-t2 transition-colors hover:text-accent"
+                    >
+                      <Wallet size={13} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditRecipient(false)
+                        setRecipient('')
+                      }}
+                      title="Close"
+                      aria-label="Close"
+                      className="grid size-7 place-items-center rounded-md border border-line-strong text-t2 transition-colors hover:text-t1"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
                 </div>
                 <input
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value.trim())}
-                  placeholder="0x…"
+                  placeholder="Paste a recipient address"
+                  autoFocus
                   className="input mono text-[13px] text-t1"
                 />
               </div>
             )}
           </div>
 
-          <div className="mt-auto pt-5">
-          {!isConnected ? (
-            <div>
-              <ConnectButton full />
-            </div>
-          ) : (
-            <Button
-              full
-              size="lg"
-              variant="primary"
-              className="mt-4 h-[52px] text-[16px]"
-              disabled={!hasRoute || amountIn <= 0n || insufficient}
-              loading={busy === 'start'}
-              onClick={run}
-            >
-              {route ? (route.type === 'direct' ? `Bridge ${source?.symbol}` : `Bridge ${source?.symbol} + swap`) : 'No route for this pair'}
-            </Button>
-          )}
-          </div>
-
-          {chainId !== fromId && isConnected && (
-            <button onClick={() => ensureChain(fromId)} className="mt-2 w-full text-center text-[11px] text-[#e6c17a] hover:underline">
-              Wallet is on {getChain(chainId)?.short ?? chainId}, switching to {from.short} is needed to sign.
-            </button>
-          )}
         </Card>
 
         <div className="space-y-3">
+          <ActiveTransfers />
           <Card className="p-4">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-t1">Route</h3>
@@ -844,3 +859,95 @@ export default function Bridge() {
   )
 }
 
+/**
+ * Live transfers, drawn as a picture rather than a paragraph: the two token marks, the chains they
+ * sit on, and a dot travelling between them for as long as the transfer is in flight.
+ */
+function ActiveTransfers() {
+  const items = useActivity()
+  const { address } = useAccount()
+  const active = items
+    .filter(
+      (i) =>
+        address &&
+        i.owner?.toLowerCase() === address.toLowerCase() &&
+        i.kind !== 'swap' &&
+        i.status === 'pending',
+    )
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .slice(0, 3)
+  if (!address || active.length === 0) return null
+  return (
+    <div className="space-y-3">
+      {active.map((i) => (
+        <TransferCard key={i.id} item={i} />
+      ))}
+    </div>
+  )
+}
+
+function TransferCard({ item }: { item: ActivityItem }) {
+  const from = getChain(item.fromChainId)
+  const to = getChain(item.toChainId)
+  const done = item.steps.filter((s) => s.status === 'done' || s.status === 'skipped').length
+  const total = Math.max(item.steps.length, 1)
+  const pctDone = Math.round((done / total) * 100)
+  const current = item.steps.find((s) => s.status === 'active') ?? item.steps.find((s) => s.status === 'pending')
+  return (
+    <Card className="enter overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-3">
+        <span className="col-head">Bridging</span>
+        <span className="flex items-center gap-1.5">
+          <span className="dot bg-accent" style={{ animation: 'pulse 1.4s ease-in-out infinite' }} />
+          <span className="mono text-[11px] text-t2">{pctDone}%</span>
+        </span>
+      </div>
+
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="flex flex-col items-center gap-1">
+          <TokenIcon symbol={item.tokenIn.symbol} size={34} chainId={item.fromChainId} address={item.tokenIn.address} />
+          {from && <ChainLogo chain={from} size={15} />}
+        </div>
+
+        <div className="relative h-px flex-1 bg-line-strong">
+          <span
+            className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-accent"
+            style={{ animation: 'flow 1.8s linear infinite' }}
+          />
+        </div>
+
+        <div className="flex flex-col items-center gap-1">
+          <TokenIcon
+            symbol={item.tokenOut?.symbol ?? item.tokenIn.symbol}
+            size={34}
+            chainId={item.toChainId}
+            address={item.tokenOut?.address}
+          />
+          {to && <ChainLogo chain={to} size={15} />}
+        </div>
+      </div>
+
+      <div className="px-4 pb-3">
+        <div className="h-1 overflow-hidden rounded-full bg-ink-600">
+          <div
+            className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
+            style={{ width: `${Math.max(pctDone, 6)}%` }}
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="mono truncate text-[11px] text-t2">
+            {item.amountIn} {item.tokenIn.symbol} → {item.tokenOut?.symbol ?? item.tokenIn.symbol}
+          </span>
+          <span className="mono shrink-0 text-[11px] text-t3">
+            {done}/{total}
+          </span>
+        </div>
+        {current && (
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-t3">
+            <Spinner size={11} /> <span className="truncate">{current.label}</span>
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
