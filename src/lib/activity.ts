@@ -166,6 +166,27 @@ export function clearActivity() {
   emit()
 }
 
+/** Stop pretending a transfer is still running: mark it cancelled and freeze its steps. */
+export function cancelActivity(id: string) {
+  load()
+  items = items.map((i) =>
+    i.id === id
+      ? {
+          ...i,
+          status: 'cancelled' as ActivityStatus,
+          updatedAt: Date.now(),
+          steps: i.steps.map((st) =>
+            st.status === 'done' || st.status === 'failed' || st.status === 'skipped'
+              ? st
+              : { ...st, status: 'skipped' as StepStatus },
+          ),
+        }
+      : i,
+  )
+  persist()
+  emit()
+}
+
 export function removeActivity(id: string) {
   load()
   items = items.filter((i) => i.id !== id)

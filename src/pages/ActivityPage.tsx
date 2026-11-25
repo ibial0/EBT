@@ -15,6 +15,7 @@ import {
   listActivity,
   removeActivity,
   updateActivity,
+  cancelActivity,
   updateStep,
   useActivity,
 } from '../lib/activity'
@@ -122,6 +123,7 @@ function Detail({ id }: { id: string }) {
   const { switchChainAsync } = useSwitchChain()
   const [busy, setBusy] = useState(false)
   const [, force] = useState(0)
+  const navigate = useNavigate()
   const item = getActivity(id)
 
   useEffect(() => {
@@ -320,10 +322,23 @@ function Detail({ id }: { id: string }) {
             </div>
           </Card>
 
+          {item.status === 'pending' && (
+            <button
+              onClick={() => {
+                cancelActivity(item.id)
+                notify('Transfer marked cancelled', 'success')
+              }}
+              className="mb-2 w-full rounded-[10px] border border-line-strong py-2 text-[11px] text-t1 hover:border-[#ff8f8f]/40 hover:text-[#ffb4b4]"
+            >
+              Cancel this transfer
+            </button>
+          )}
+
           <button
             onClick={() => {
-              removeActivity(item.id)
-              window.location.href = '/activity'
+              cancelActivity(item.id)
+              navigate('/activity', { replace: true })
+              setTimeout(() => removeActivity(item.id), 0)
             }}
             className="w-full rounded-[10px] border border-[#ff8f8f]/25 bg-[#ff8f8f]/6 py-2 text-[11px] text-[#ffb4b4] hover:bg-[#ff8f8f]/10"
           >

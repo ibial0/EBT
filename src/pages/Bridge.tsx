@@ -11,7 +11,7 @@ import { Card, Button, Badge, Row, notify, ChainLogo, TokenIcon, Spinner } from 
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
 import { ConnectButton } from '../components/Layout'
 import { Timeline } from '../components/Timeline'
-import { addActivity, updateStep, updateActivity, finalizeFromSteps, getActivity, useActivity, type ActivityItem } from '../lib/activity'
+import { addActivity, updateStep, updateActivity, finalizeFromSteps, getActivity, useActivity, cancelActivity, type ActivityItem } from '../lib/activity'
 import { fetchCctpFees, maxFeeFor } from '../lib/cctp'
 import { quoteBest, applySlippage, erc20Abi } from '../lib/uniswap'
 import { executeCctpBridge, executeOpDeposit } from '../lib/bridgeExec'
@@ -773,8 +773,6 @@ export default function Bridge() {
             )}
           </Card>
 
-          <ActiveTransfers />
-
 
           {lastError && (
             <Card className="border-[#ff8f8f]/30 p-4">
@@ -817,6 +815,8 @@ export default function Bridge() {
               </div>
             </div>
           </Card>
+
+          <ActiveTransfers />
         </div>
       </div>
 
@@ -894,16 +894,25 @@ function TransferCard({ item }: { item: ActivityItem }) {
   const to = getChain(item.toChainId)
   const done = item.steps.filter((s) => s.status === 'done' || s.status === 'skipped').length
   const total = Math.max(item.steps.length, 1)
-  const pctDone = Math.round((done / total) * 100)
+  const activeStep = item.steps.some((s) => s.status === 'active')
+  const pctDone = Math.round(((done + (activeStep ? 0.5 : 0)) / total) * 100)
   const current = item.steps.find((s) => s.status === 'active') ?? item.steps.find((s) => s.status === 'pending')
 
   return (
     <Card className="enter shrink-0">
       <div className="flex items-center justify-between px-4 pt-3">
         <span className="col-head">Bridging</span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-2">
           <span className="dot bg-accent" style={{ animation: 'pulse 1.4s ease-in-out infinite' }} />
           <span className="mono text-[13px] font-semibold text-t1">{pctDone}%</span>
+          <button
+            onClick={() => cancelActivity(item.id)}
+            title="Cancel this transfer"
+            aria-label="Cancel this transfer"
+            className="grid size-6 place-items-center rounded-md border border-line text-t2 transition-colors hover:border-[#ff8f8f]/40 hover:text-[#ffb4b4]"
+          >
+            <X size={12} />
+          </button>
         </span>
       </div>
 
