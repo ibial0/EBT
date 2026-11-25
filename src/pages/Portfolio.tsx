@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Copy, ExternalLink, Plus, RefreshCw, Search, Wallet } from 'lucide-react'
 import { useAccount } from 'wagmi'
@@ -9,12 +9,14 @@ import { Badge, Button, ChainLogo, CopyButton, Empty, Modal, Spinner, TokenIcon,
 import { ConnectButton, PageHeader } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { shortAddr, fmt } from '../lib/format'
-import { loadPortfolio, nativeHoldingLabel, type ChainHolding, type TokenHolding } from '../lib/portfolio'
+import { loadPortfolio, nativeHoldingLabel } from '../lib/portfolio'
 import { allTokensForChain, saveCustomToken, type TokenCfg } from '../config/tokens'
 import { readTokenMeta } from '../lib/tokenImport'
 import { loadPrices, priceOf, usd } from '../lib/prices'
+import { loadHistory, recordSnapshot, sliceRange } from '../lib/history'
 
-type View = 'usd' | 'token'
+type View = 'overview' | 'tokens'
+type Range = '1D' | '1W' | '1M'
 
 interface Row {
   chainId: number
@@ -28,14 +30,25 @@ interface Row {
   error?: string
 }
 
+interface Group {
+  symbol: string
+  name: string
+  usd: number | null
+  amount: number
+  rows: Row[]
+}
+
 export default function Portfolio() {
   const { address, isConnected } = useAccount()
   const [network, setNetwork] = useState<number | 'all'>('all')
-  const [view, setView] = useState<View>('usd')
+  const [tab, setTab] = useState<View>('overview')
+  const [range, setRange] = useState<Range>('1D')
   const [q, setQ] = useState('')
   const [showEmpty, setShowEmpty] = useState(false)
   const [importFor, setImportFor] = useState<number | null>(null)
   const [pickNetwork, setPickNetwork] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+  const [history, setHistory] = useState(loadHistory)
 
   const portfolio = useQuery({
     queryKey: ['portfolio', address],
@@ -81,37 +94,62 @@ export default function Portfolio() {
     return out
   }, [holdings, priceMap])
 
-  const nonZero = rows.filter((r) => (r.amount ?? 0n) > 0n)
-  const totalUsd = nonZero.reduce((sum, r) => sum + (r.usdValue ?? 0), 0)
-  const pricedCount = nonZero.filter((r) => r.usdValue != null).length
-  const unpriced = nonZero.length - pricedCount
-
   const networkTotals = useMemo(() => {
     const m = new Map<number, { usd: number; count: number }>()
-    for (const r of nonZero) {
+    for (const r of rows) {
       const cur = m.get(r.chainId) ?? { usd: 0, count: 0 }
       cur.usd += r.usdValue ?? 0
-      cur.count += 1
+      if ((r.amount ?? 0n) > 0n) cur.count += 1
       m.set(r.chainId, cur)
     }
     return m
-  }, [nonZero])
+  }, [rows])
 
-  const needle = q.trim().toLowerCase()
-  const orderedChains = useMemo(
-    () => [...CHAINS].sort((a, b) => (networkTotals.get(b.id)?.usd ?? 0) - (networkTotals.get(a.id)?.usd ?? 0)),
-    [networkTotals],
-  )
-  const visibleChains = (showEmpty ? orderedChains : orderedChains.filter((c) => (networkTotals.get(c.id)?.count ?? 0) > 0))
-    .filter((c) => network === 'all' || c.id === network)
-    .filter((c) => {
-      if (!needle) return true
-      if (`${c.name} ${c.short}`.toLowerCase().includes(needle)) return true
-      return rows.some((r) => r.chainId === c.id && `${r.symbol} ${r.name} ${r.address ?? ''}`.toLowerCase().includes(needle))
-    })
-
+  const nonZero = useMemo(() => rows.filter((r) => (r.amount ?? 0n) > 0n), [rows])
+  /** only chains that actually hold something, so the header does not claim 31 funded networks */
+  const fundedNetworks = useMemo(() => new Set(nonZero.map((r) => r.chainId)).size, [nonZero])
   const scoped = network === 'all' ? nonZero : nonZero.filter((r) => r.chainId === network)
   const scopedUsd = scoped.reduce((s, r) => s + (r.usdValue ?? 0), 0)
+  const totalUsd = nonZero.reduce((s, r) => s + (r.usdValue ?? 0), 0)
+  const unpriced = nonZero.filter((r) => r.usdValue == null).length
+  const selected = network === 'all' ? null : getChain(network)
+
+  // one point per hour, written only when the value is actually known
+  useEffect(() => {
+    if (!isConnected || portfolio.isLoading || portfolio.isError) return
+    if (totalUsd <= 0) return
+    setHistory(recordSnapshot(totalUsd))
+  }, [isConnected, portfolio.isLoading, portfolio.isError, totalUsd])
+
+  const groups: Group[] = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    const bySymbol = new Map<string, Group>()
+    for (const r of scoped) {
+      const key = r.symbol.toUpperCase()
+      const g: Group =
+        bySymbol.get(key) ??
+        ({ symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)
+      g.rows.push(r)
+      // a group with no priced asset must stay "—", not become $0.00
+      if (r.usdValue != null) g.usd = (g.usd ?? 0) + r.usdValue
+      g.amount += r.amount == null ? 0 : Number(formatUnits(r.amount, r.decimals))
+      bySymbol.set(key, g)
+    }
+    let list = [...bySymbol.values()]
+    if (needle) {
+      list = list.filter(
+        (g) =>
+          g.symbol.toLowerCase().includes(needle) ||
+          g.name.toLowerCase().includes(needle) ||
+          g.rows.some((r) => getChain(r.chainId)?.name.toLowerCase().includes(needle)),
+      )
+    }
+    for (const g of list) g.rows.sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0))
+    return list.sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0))
+  }, [scoped, q])
+
+  const chartPoints = useMemo(() => sliceRange(history, range), [history, range])
+  const top = groups.slice(0, 6)
 
   if (!isConnected) {
     return (
@@ -136,17 +174,20 @@ export default function Portfolio() {
     )
   }
 
-  const selected = network === 'all' ? null : getChain(network)
-
   return (
     <div className="space-y-5">
       <PageHeader
         eyebrow="Wallet view"
         title="Portfolio"
         subtitle="One wallet across every allowlisted testnet. Dollar figures are estimates, not withdrawable value."
+        right={
+          <Button variant="secondary" onClick={() => portfolio.refetch()} loading={portfolio.isFetching}>
+            <RefreshCw size={14} /> Refresh
+          </Button>
+        }
       />
 
-      {/* summary */}
+      {/* value + chart */}
       <div className="card p-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
@@ -156,8 +197,8 @@ export default function Portfolio() {
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
-                {assets(scoped.length)} assets / {network === 'all' ? networkTotals.size : 1}{' '}
-                {(network === 'all' ? networkTotals.size : 1) === 1 ? 'network' : 'networks'}
+                {assets(scoped.length)} / {network === 'all' ? fundedNetworks : 1}{' '}
+                {(network === 'all' ? fundedNetworks : 1) === 1 ? 'network' : 'networks'}
               </span>
               <span className="mono flex items-center gap-1.5 text-[12px] uppercase tracking-[0.6px] text-t2">
                 <span className={`size-1.5 rotate-45 border ${prices.data?.live ? 'border-pos' : 'border-t3'}`} />
@@ -168,7 +209,6 @@ export default function Portfolio() {
               )}
             </div>
           </div>
-
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setPickNetwork(true)}
@@ -179,142 +219,268 @@ export default function Portfolio() {
               <ChevronDown size={13} className="text-t2" />
             </button>
             <div className="flex h-[38px] items-center rounded-lg border border-line-strong bg-ink-850 p-0.5">
-              {(['usd', 'token'] as View[]).map((v) => (
+              {(['1D', '1W', '1M'] as Range[]).map((r) => (
                 <button
-                  key={v}
-                  onClick={() => setView(v)}
+                  key={r}
+                  onClick={() => setRange(r)}
                   className={`mono h-[32px] rounded-md px-3 text-[12px] uppercase tracking-[0.6px] transition-colors ${
-                    view === v ? 'bg-accent text-[#111628]' : 'text-t2 hover:text-t1'
+                    range === r ? 'bg-accent text-[#111628]' : 'text-t2 hover:text-t1'
                   }`}
                 >
-                  {v === 'usd' ? 'USD' : 'Token'}
+                  {r}
                 </button>
               ))}
             </div>
-            <Button variant="secondary" onClick={() => portfolio.refetch()} loading={portfolio.isFetching}>
-              <RefreshCw size={14} /> Refresh
-            </Button>
-            <div className="mono w-full text-right text-[12px] uppercase tracking-[0.6px] text-t3">
-              {prices.data?.at ? `prices ${new Date(prices.data.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · DefiLlama` : ''}
-            </div>
           </div>
         </div>
 
+        <ValueChart points={chartPoints} />
       </div>
 
-      <RecoveryPanel />
-
-      {/* toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="field flex h-[38px] w-full max-w-[420px] items-center gap-2 px-3">
-          <Search size={15} className="text-t2" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search asset or network" className="input text-[14px]" />
-        </div>
-        <label className="ml-auto flex h-[38px] cursor-pointer items-center gap-2.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[13px] text-t2">
-          <input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} className="size-3.5 accent-[#abb8ff]" />
-          Empty networks
-        </label>
-        <span className="mono flex h-[38px] items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[12px] text-t2">
-          {shortAddr(address, 4)}
-          <button onClick={() => { navigator.clipboard?.writeText(address ?? ''); notify('Address copied', 'success') }} className="hover:text-t1">
-            <Copy size={12} />
+      {/* tabs */}
+      <div className="flex items-center gap-1 border-b border-line-strong">
+        {(['overview', 'tokens'] as View[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`relative -mb-px px-4 py-2.5 text-[14px] capitalize transition-colors ${
+              tab === t ? 'text-t1' : 'text-t2 hover:text-t1'
+            }`}
+          >
+            {t}
+            {tab === t && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent" />}
           </button>
-        </span>
+        ))}
       </div>
 
-      {portfolio.isLoading && (
-        <div className="card flex items-center gap-2 p-5 text-[13px] text-t2">
-          <Spinner /> Reading {CHAINS.length} chains, five at a time
-        </div>
-      )}
-      {portfolio.isError && <div className="card p-4 text-[13px] text-[#ffb4b4]">Portfolio failed: {(portfolio.error as Error).message}</div>}
-
-      {/* network groups */}
-      <div className="space-y-3">
-        {visibleChains.map((chain) => {
-          const chainRows = rows
-            .filter((r) => r.chainId === chain.id)
-            .filter((r) => showEmpty || (r.amount ?? 0n) > 0n)
-            .filter((r) => !needle || `${r.symbol} ${r.name} ${r.address ?? ''}`.toLowerCase().includes(needle) || `${chain.name}`.toLowerCase().includes(needle))
-            .sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0))
-          const chainUsd = networkTotals.get(chain.id)?.usd ?? 0
-          const holding = holdings.find((h) => h.chainId === chain.id)
-
-          return (
-            <section key={chain.id} className="card overflow-hidden">
-              <header className="flex items-center gap-3 border-b border-line-strong px-5 py-3.5">
-                <ChainLogo chain={chain} size={26} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="display text-[16px] leading-6 text-t1">{chain.name}</h2>
-                    {chain.nativeIsUsdc && <Badge tone="blue">USDC gas</Badge>}
-                    {holding?.nativeError && <Badge tone="amber">RPC error</Badge>}
-                  </div>
-                  <div className="mono mt-0.5 text-[12px] uppercase tracking-[0.6px] text-t2">
-                    chain {chain.id} <span className="text-t3"> · </span> {holding?.ms ?? 0} ms
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <a
-                    href={explorerAddress(chain.id, address ?? '')}
-                    target="_blank"
-                    rel="noreferrer"
-                    title="Open in explorer"
-                    className="rounded-md p-1.5 text-t3 transition-colors hover:bg-white/5 hover:text-t1"
-                  >
-                    <ExternalLink size={13} />
-                  </a>
-                  <button
-                    onClick={() => setImportFor(chain.id)}
-                    title="Import ERC-20"
-                    className="rounded-md p-1.5 text-t3 transition-colors hover:bg-white/5 hover:text-t1"
-                  >
-                    <Plus size={13} />
-                  </button>
-                </div>
-                <div className="min-w-[92px] text-right">
-                  <div className="display text-[18px] leading-7 text-t1">{usd(chainUsd)}</div>
-                  <div className="mono text-[12px] uppercase tracking-[0.6px] text-t2">{assets(networkTotals.get(chain.id)?.count ?? 0)}</div>
-                </div>
-              </header>
-
-              <div className="p-2">
-                {chainRows.length === 0 && <div className="px-2 py-3 text-[12px] text-t3">No assets on this network</div>}
-                {chainRows.map((r) => (
-                  <AssetRow key={`${r.chainId}-${r.address ?? 'native'}-${r.symbol}`} row={r} view={view} />
-                ))}
-              </div>
-
-            </section>
-          )
-        })}
-
-        {visibleChains.length === 0 && (
-          <div className="card">
-            <Empty title="Nothing matches" hint="Clear the search or turn on empty networks." />
+      <div className="split-rail">
+        <div className="split-rail-main space-y-4">
+          {/* toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="field flex h-[38px] w-full max-w-[380px] items-center gap-2 px-3">
+              <Search size={15} className="text-t2" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search asset or network"
+                className="input text-[14px]"
+              />
+            </div>
+            <label className="ml-auto flex h-[38px] cursor-pointer items-center gap-2.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[13px] text-t2">
+              <input
+                type="checkbox"
+                checked={showEmpty}
+                onChange={(e) => setShowEmpty(e.target.checked)}
+                className="size-3.5 accent-[#abb8ff]"
+              />
+              Empty networks
+            </label>
+            <span className="mono flex h-[38px] items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[12px] text-t2">
+              {shortAddr(address, 4)}
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(address ?? '')
+                  notify('Address copied', 'success')
+                }}
+                className="hover:text-t1"
+              >
+                <Copy size={12} />
+              </button>
+            </span>
           </div>
-        )}
-      </div>
 
-      <p className="text-[11px] leading-5 text-t3">
-        Estimates use mainnet spot prices from DefiLlama and are refreshed every ten minutes. Testnet tokens have no market and
-        cannot be withdrawn, so the total is a reading aid, not a balance you own.
-      </p>
+          {portfolio.isLoading && (
+            <div className="card flex items-center gap-2 p-5 text-[13px] text-t2">
+              <Spinner /> Reading {CHAINS.length} chains, five at a time
+            </div>
+          )}
+          {portfolio.isError && (
+            <div className="card p-4 text-[13px] text-neg">Portfolio failed: {(portfolio.error as Error).message}</div>
+          )}
+
+          {tab === 'overview' ? (
+            <div className="card overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4">
+                <h2 className="display text-[18px] leading-7 text-t1">Top holdings</h2>
+                <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">{top.length} of {groups.length}</span>
+              </div>
+              <div className="border-t border-line-strong">
+                {top.length === 0 && <div className="px-5 py-8 text-[13px] text-t2">No funded asset yet.</div>}
+                {top.map((g) => {
+                  const share = (scopedUsd > 0 ? (g.usd ?? 0) / scopedUsd : 0) * 100
+                  return (
+                    <button
+                      key={g.symbol}
+                      onClick={() => {
+                        setTab('tokens')
+                        setOpenGroups((prev) => new Set(prev).add(g.symbol.toUpperCase()))
+                      }}
+                      className="flex w-full items-center gap-3 border-b border-line px-5 py-3.5 text-left transition-colors last:border-0 hover:bg-ink-700/60"
+                    >
+                      <Ring pct={share} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-semibold text-t1">{g.symbol}</span>
+                        <span className="block truncate text-[12px] leading-4 text-t2">{g.name}</span>
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="display block text-[15px] leading-5 text-t1">
+                          {g.usd == null ? '—' : usd(g.usd)}
+                        </span>
+                        <span className="mt-0.5 flex items-center justify-end gap-1">
+                          {g.rows.slice(0, 3).map((r) => {
+                            const c = getChain(r.chainId)
+                            return c ? <ChainLogo key={r.chainId} chain={c} size={13} /> : null
+                          })}
+                          {g.rows.length > 3 && (
+                            <span className="mono text-[10px] text-t3">+{g.rows.length - 3}</span>
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="card overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4">
+                <h2 className="display text-[18px] leading-7 text-t1">Tokens</h2>
+                <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
+                  {groups.length} asset{groups.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              <div className="border-t border-line-strong">
+                {groups.length === 0 && (
+                  <div className="px-5 py-8 text-[13px] text-t2">
+                    {showEmpty ? 'Nothing matches this filter.' : 'No funded asset. Turn on empty networks to see every chain.'}
+                  </div>
+                )}
+                {groups.map((g) => {
+                  const open = openGroups.has(g.symbol.toUpperCase())
+                  const multi = g.rows.length > 1
+                  return (
+                    <div key={g.symbol} className="border-b border-line last:border-0">
+                      <button
+                        onClick={() =>
+                          setOpenGroups((prev) => {
+                            const next = new Set(prev)
+                            const k = g.symbol.toUpperCase()
+                            if (next.has(k)) next.delete(k)
+                            else next.add(k)
+                            return next
+                          })
+                        }
+                        className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-ink-700/60"
+                      >
+                        <span className="relative">
+                          <TokenIcon symbol={g.symbol} size={36} chainId={g.rows[0].chainId} address={g.rows[0].address ?? undefined} verified={g.rows[0].verified} />
+                          {multi && (
+                            <span className="absolute -bottom-1 -right-1 rounded-full border border-ink-800">
+                              <ChainLogo chain={getChain(g.rows[0].chainId)!} size={15} />
+                            </span>
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[14px] font-semibold text-t1">{g.symbol}</span>
+                          <span className="block truncate text-[12px] leading-4 text-t2">
+                            {g.name}
+                            {multi ? ` · ${g.rows.length} networks` : ` · ${getChain(g.rows[0].chainId)?.short}`}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="display block text-[15px] leading-5 text-t1">{g.usd == null ? '—' : usd(g.usd)}</span>
+                          <span className="mono block text-[12px] leading-4 text-t2">
+                            {g.amount > 0 ? `${fmtAmount(g.amount)} ${g.symbol}` : '—'}
+                          </span>
+                        </span>
+                        {multi && (
+                          <ChevronDown
+                            size={15}
+                            className={`shrink-0 text-t2 transition-transform ${open ? 'rotate-180' : ''}`}
+                          />
+                        )}
+                      </button>
+                      {multi && open && (
+                        <div className="pb-2 pl-[4.4rem] pr-5">
+                          {g.rows.map((r) => {
+                            const c = getChain(r.chainId)
+                            const amt = r.amount == null ? null : Number(formatUnits(r.amount, r.decimals))
+                            return (
+                              <div key={`${r.chainId}-${r.address ?? 'native'}`} className="flex items-center gap-2 py-1.5">
+                                {c ? <ChainLogo chain={c} size={15} /> : null}
+                                <span className="min-w-0 flex-1 truncate text-[12px] text-t2">{c?.short ?? r.chainId}</span>
+                                <span className="mono text-[12px] text-t2">
+                                  {amt == null ? '—' : `${fmtAmount(amt)} ${r.symbol}`}
+                                </span>
+                                <span className="mono w-20 text-right text-[12px] text-t1">
+                                  {r.usdValue == null ? '—' : usd(r.usdValue)}
+                                </span>
+                                {c && (
+                                  <a
+                                    href={explorerAddress(c.id, address ?? '')}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-t3 hover:text-t1"
+                                    title="Open in explorer"
+                                  >
+                                    <ExternalLink size={11} />
+                                  </a>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
+                <button
+                  onClick={() => setImportFor(network === 'all' ? 11155111 : network)}
+                  className="inline-flex items-center gap-1.5 text-[12px] text-t2 transition-colors hover:text-t1"
+                >
+                  <Plus size={12} /> Import an ERC-20
+                </button>
+                <span className="mono text-[11px] text-t3">
+                  {prices.data?.at
+                    ? `prices ${new Date(prices.data.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · DefiLlama`
+                    : ''}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* rail */}
+        <aside className="space-y-4">
+          <RecoveryPanel />
+          <div className="card p-4">
+            <h2 className="display text-[16px] leading-6 text-t1">How these numbers are made</h2>
+            <p className="mt-1 text-[12px] leading-5 text-t2">
+              Balances are read from each chain's RPC. Dollar figures use mainnet spot prices and are a reading aid only —
+              testnet tokens cannot be withdrawn or sold.
+            </p>
+          </div>
+        </aside>
+      </div>
 
       <NetworkPicker open={pickNetwork} onClose={() => setPickNetwork(false)} value={network} onSelect={setNetwork} totals={networkTotals} />
 
       {importFor != null && (
-        <ImportToken
-          chainId={importFor}
-          onClose={() => setImportFor(null)}
-          onDone={() => portfolio.refetch()}
-        />
+        <ImportToken chainId={importFor} onClose={() => setImportFor(null)} onDone={() => portfolio.refetch()} />
       )}
     </div>
   )
 }
 
 const assets = (n: number) => `${n} asset${n === 1 ? '' : 's'}`
+
+function fmtAmount(n: number): string {
+  if (n >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  if (n >= 1) return n.toFixed(4)
+  return n.toPrecision(3)
+}
 
 function valueOf(amount: bigint | null, decimals: number, symbol: string, prices: Record<string, number>): number | null {
   if (amount == null) return null
@@ -323,62 +489,75 @@ function valueOf(amount: bigint | null, decimals: number, symbol: string, prices
   return Number(formatUnits(amount, decimals)) * p
 }
 
-function AssetRow({ row, view }: { row: Row; view: View }) {
-  const chain = getChain(row.chainId)!
-  const amountText = row.error ? 'read failed' : row.amount == null ? '-' : fmt(row.amount, row.decimals, 6)
+/** share-of-portfolio ring: the arc is the asset's weight, so a glance ranks the list */
+function Ring({ pct }: { pct: number }) {
+  const r = 15
+  const c = 2 * Math.PI * r
+  const clamped = Math.max(0, Math.min(100, pct))
   return (
-    <div className="row row-tall ml-2">
-      <TokenIcon
-        symbol={row.symbol}
-        size={36}
-        chainId={row.chainId}
-        address={row.address ?? undefined}
-        verified={row.verified}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[14px] font-semibold text-t1">{row.symbol}</span>
-          {!row.verified && <Badge tone="amber">custom</Badge>}
-          {row.usdValue == null && (row.amount ?? 0n) > 0n && <span className="chip !h-5 !px-1.5 !text-[10px]">no price</span>}
-        </div>
-        <div className="truncate text-[12px] leading-4 text-t2">
-          {row.name.replace(' (native)', '')}
-          {row.address ? (
-            <>
-              <span className="text-t3"> · </span>
-              <span className="inline-flex items-center gap-0.5">
-                <a
-                  href={`${chain.viem.blockExplorers?.default?.url}/token/${row.address}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mono hover:text-t1"
-                >
-                  {row.address.slice(0, 6)}…{row.address.slice(-4)}
-                </a>
-                <CopyButton value={row.address} />
-              </span>
-            </>
-          ) : (
-            <span className="text-t3"> · native gas token</span>
-          )}
-        </div>
+    <span className="relative grid size-11 shrink-0 place-items-center">
+      <svg width="44" height="44" viewBox="0 0 44 44" className="-rotate-90">
+        <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(171,184,255,0.14)" strokeWidth="3.5" />
+        <circle
+          cx="22"
+          cy="22"
+          r={r}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c - (c * clamped) / 100}
+          style={{ transition: 'stroke-dashoffset 600ms cubic-bezier(0.22,1,0.36,1)' }}
+        />
+      </svg>
+      <span className="mono absolute text-[9px] text-t2">{Math.round(clamped)}%</span>
+    </span>
+  )
+}
+
+/** Value over time, built only from the snapshots this browser actually recorded. */
+function ValueChart({ points }: { points: { t: number; v: number }[] }) {
+  if (points.length < 2) {
+    return (
+      <div className="mt-5 grid h-[132px] place-items-center rounded-[12px] border border-dashed border-line">
+        <p className="max-w-[46ch] px-4 text-center text-[12px] leading-5 text-t2">
+          The chart fills in as you use the app: one point is recorded per hour and kept for 90 days. Nothing is backfilled.
+        </p>
       </div>
-      <div className="min-w-[150px] text-right">
-        {view === 'usd' ? (
-          <>
-            <div className="display text-[15px] leading-5 text-t1">{row.usdValue == null ? '—' : usd(row.usdValue)}</div>
-            <div className="mono text-[12px] leading-4 text-t2">
-              {amountText} {row.symbol}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="display text-[15px] leading-5 text-t1">
-              {amountText} {row.symbol}
-            </div>
-            <div className="mono text-[12px] leading-4 text-t2">{row.usdValue == null ? '—' : usd(row.usdValue)}</div>
-          </>
-        )}
+    )
+  }
+  const w = 900
+  const h = 132
+  const pad = 6
+  const vs = points.map((p) => p.v)
+  const min = Math.min(...vs)
+  const max = Math.max(...vs)
+  const span = max - min || 1
+  const t0 = points[0].t
+  const t1 = points[points.length - 1].t
+  const tSpan = t1 - t0 || 1
+  const xy = points.map((p) => {
+    const x = pad + ((p.t - t0) / tSpan) * (w - pad * 2)
+    const y = h - pad - ((p.v - min) / span) * (h - pad * 2)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  const area = `M0,${h} L${xy.join(' L')} L${w},${h} Z`
+  return (
+    <div className="mt-5">
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-[132px] w-full">
+        <defs>
+          <linearGradient id="ebt-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#ebt-fill)" />
+        <polyline points={xy.join(' ')} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+      <div className="mt-1 flex justify-between">
+        <span className="mono text-[11px] text-t3">{new Date(points[0].t).toLocaleString()}</span>
+        <span className="mono text-[11px] text-t3">{points.length} points</span>
       </div>
     </div>
   )
@@ -407,9 +586,9 @@ function NetworkPicker({
           }}
           className={`row w-full ${value === 'all' ? 'bg-ink-700' : ''}`}
         >
-          <span className="dot" style={{ background: '#85858b' }} />
+          <span className="size-1.5 rotate-45 border border-t3" />
           <span className="flex-1 text-left text-[14px] text-t1">All networks</span>
-          <span className="figure text-[12px] text-t3">{totals.size}</span>
+          <span className="mono text-[12px] text-t3">{totals.size}</span>
         </button>
         {CHAINS.map((c) => {
           const t = totals.get(c.id)
@@ -427,7 +606,7 @@ function NetworkPicker({
                 <span className="block truncate text-[14px] text-t1">{c.name}</span>
                 <span className="mono block text-[11px] text-t3">{c.id}</span>
               </span>
-              <span className="figure text-[12px] text-t3">{t ? usd(t.usd) : '-'}</span>
+              <span className="mono text-[12px] text-t3">{t ? usd(t.usd) : '—'}</span>
             </button>
           )
         })}
@@ -479,7 +658,7 @@ function ImportToken({ chainId, onClose, onDone }: { chainId: number; onClose: (
           value={addr}
           onChange={(e) => setAddr(e.target.value.trim())}
           placeholder="0x…"
-          className="input mono rounded-lg border border-line bg-ink-850 px-3 py-2.5"
+          className="input mono rounded-lg border border-line-strong bg-ink-850 px-3 py-2.5"
         />
         <Button full variant="primary" loading={busy} onClick={doImport}>
           Read contract and add

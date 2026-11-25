@@ -14,10 +14,10 @@ import {
   tokensForChain,
   type TokenCfg,
 } from '../config/tokens'
-import { Card, Button, Badge, Row, notify, TokenIcon, Modal, Spinner } from '../components/ui'
+import { Card, Button, Badge, Row, notify, TokenIcon, Modal, Spinner, ChainLogo } from '../components/ui'
 import { ConnectButton } from '../components/Layout'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
-import { TokenSelect } from '../components/TokenSelect'
+import { TokenPicker } from '../components/TokenPicker'
 import { PageHeader } from '../components/Layout'
 import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity } from '../lib/activity'
 import { quoteBest, maxFillable, applySlippage, erc20Balance, formatAmount, erc20Abi } from '../lib/uniswap'
@@ -36,13 +36,19 @@ export default function Swap() {
   const chainId = useChainId()
   const { switchChainAsync } = useSwitchChain()
 
-  const [swapChainId, setSwapChainId] = useState(11155111)
+  const supportedSwap = useMemo(() => new Set(SWAP_CHAINS.map((c) => c.id)), [])
+  /**
+   * Swap has no network selector by design: it always runs on the wallet's own chain.
+   * Disconnected, it previews Sepolia so the panel is not empty.
+   */
+  const chainSupported = !isConnected || supportedSwap.has(chainId)
+  const swapChainId = isConnected && supportedSwap.has(chainId) ? chainId : 11155111
   const [tokenIn, setTokenIn] = useState<TokenCfg>(() => tokensForChain(11155111)[0])
   const [tokenOut, setTokenOut] = useState<TokenCfg>(() => tokensForChain(11155111)[1])
   const [amount, setAmount] = useState('')
   const [slippageBps, setSlippageBps] = useState(50)
   const [showSlip, setShowSlip] = useState(false)
-  const [pick, setPick] = useState<'chain' | 'in' | 'out' | null>(null)
+  const [pick, setPick] = useState<'in' | 'out' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | undefined>()
   const [debounced, setDebounced] = useState('')
@@ -250,78 +256,106 @@ export default function Swap() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <Card className="p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <ChainChip chainId={swapChainId} onClick={() => setPick('chain')} label="network" />
-            <div className="flex items-center gap-1.5">
-              <button onClick={() => setShowSlip(true)} className="chip !text-[11px] hover:border-accent/40">
-                <Settings2 size={11} /> {pct(slippageBps, 2)}
-              </button>
+        {!chainSupported && (
+          <Card className="border-warn/40 p-4 lg:col-span-2">
+            <div className="text-[14px] font-semibold text-t1">
+              Swaps run on {SWAP_CHAINS.map((c) => c.short).join(', ')}.
             </div>
+            <p className="mt-1 text-[13px] leading-5 text-t2">
+              Your wallet is on {getChain(chainId)?.short ?? chainId}, which has no verified Uniswap v3 pool. Switch to one of
+              the chains below to swap.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {SWAP_CHAINS.map((c) => (
+                <Button
+                  key={c.id}
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => switchChainAsync({ chainId: c.id as never }).catch(() => undefined)}
+                >
+                  <ChainLogo chain={c} size={15} /> {c.short}
+                </Button>
+              ))}
+            </div>
+          </Card>
+        )}
+        <Card className="p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="col-head">Swap on</span>
+              <span className="flex items-center gap-1.5 text-[14px] font-medium text-t1">
+                <ChainLogo chain={chain} size={18} />
+                {chain.short}
+              </span>
+            </div>
+            <button onClick={() => setShowSlip(true)} className="chip chip-accent hover:border-accent">
+              <Settings2 size={11} /> {pct(slippageBps, 2)}
+            </button>
           </div>
 
           <div className="relative">
-            <div className="panel p-3">
-              <div className="mb-1 flex items-center justify-between label">
-                <span>Sell</span>
+            <div className="rounded-[14px] border border-line-strong bg-ink-850 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="col-head">Sell</span>
                 <button
                   onClick={() => address && balanceIn.data != null && setAmount(formatUnits(balanceIn.data, tokenIn.decimals))}
-                  className="text-[10px] font-semibold normal-case text-accent hover:underline"
+                  className="mono text-[12px] text-t2 transition-colors hover:text-accent"
                 >
-                  balance {balanceIn.data != null ? fmt(balanceIn.data, tokenIn.decimals, 5) : '-'}
+                  max {balanceIn.data != null ? fmt(balanceIn.data, tokenIn.decimals, 5) : '—'}
                 </button>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder="0.0"
                   inputMode="decimal"
-                  className="input text-[28px] leading-9 font-medium"
+                  className="input display text-[40px] leading-[48px] tracking-[-0.02em]"
                 />
                 <button
                   onClick={() => setPick('in')}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-line bg-ink-700 pl-1.5 pr-2.5 transition-colors hover:border-line-strong"
+                  className="flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
                   <TokenIcon
                     symbol={tokenIn.symbol}
-                    size={26}
+                    size={30}
                     chainId={swapChainId}
                     address={isNativeToken(tokenIn) ? null : tokenIn.address}
                     verified={tokenIn.verified}
                   />
-                  <span className="text-[14px] font-medium text-t1">{tokenIn.symbol}</span>
-                  <ChevronDown size={14} className="text-t3" />
+                  <span className="display text-[15px] text-t1">{tokenIn.symbol}</span>
+                  <ChevronDown size={15} className="text-t2" />
                 </button>
               </div>
             </div>
 
             <button
               onClick={flip}
-              className="absolute left-1/2 top-1/2 z-10 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-lg border border-line bg-ink-800 text-t1 transition hover:border-line-strong hover:text-t1"
+              className="absolute left-1/2 top-1/2 z-10 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-800 text-t1 transition-all duration-150 hover:scale-110 hover:border-accent/60 hover:text-accent"
+              aria-label="Flip direction"
             >
-              <ArrowDownUp size={14} />
+              <ArrowDownUp size={15} />
             </button>
 
-            <div className="panel mt-2 p-3">
-              <div className="mb-1 label">Buy</div>
-              <div className="flex items-center gap-2">
-                <div className="input mono flex-1 truncate text-[28px] leading-9 font-medium text-t1">
-                  {quote.isFetching ? <Spinner size={18} /> : out > 0n ? formatAmount(out, tokenOut.decimals, 6) : <span className="text-t3">0.0</span>}
+            <div className="mt-2 rounded-[14px] border border-line-strong bg-ink-850 p-4">
+              <div className="mb-2 col-head">Buy</div>
+              <div className="flex items-center gap-3">
+                <div className="input display flex-1 truncate text-[40px] leading-[48px] tracking-[-0.02em] text-t1">
+                  {quote.isFetching ? <Spinner size={20} /> : out > 0n ? formatAmount(out, tokenOut.decimals, 6) : <span className="text-t3">0.0</span>}
                 </div>
                 <button
                   onClick={() => setPick('out')}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-line bg-ink-700 pl-1.5 pr-2.5 transition-colors hover:border-line-strong"
+                  className="flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
                   <TokenIcon
                     symbol={tokenOut.symbol}
-                    size={26}
+                    size={30}
                     chainId={swapChainId}
                     address={isNativeToken(tokenOut) ? null : tokenOut.address}
                     verified={tokenOut.verified}
                   />
-                  <span className="text-[14px] font-medium text-t1">{tokenOut.symbol}</span>
-                  <ChevronDown size={14} className="text-t3" />
+                  <span className="display text-[15px] text-t1">{tokenOut.symbol}</span>
+                  <ChevronDown size={15} className="text-t2" />
                 </button>
               </div>
             </div>
@@ -370,7 +404,7 @@ export default function Swap() {
               full
               size="lg"
               variant="primary"
-              className="mt-4"
+              className="mt-4 h-[52px] text-[16px]"
               disabled={!quote.data || insufficient || amountIn <= 0n}
               loading={busy === 'start'}
               onClick={runSwap}
@@ -446,23 +480,18 @@ export default function Swap() {
         </div>
       </div>
 
-      <ChainSelect
-        open={pick === 'chain'}
+      <TokenPicker
+        open={pick !== null}
         onClose={() => setPick(null)}
-        chains={SWAP_CHAINS}
-        value={swapChainId}
-        onSelect={setSwapChainId}
-        title="Swap network"
-        subtitle="Only chains with a verified Uniswap v3 deployment."
-      />
-      <TokenSelect
-        open={pick === 'in' || pick === 'out'}
-        onClose={() => setPick(null)}
-        tokens={pick === 'in' ? tradeable : outOptions}
-        value={pick === 'in' ? tokenIn.address : tokenOut.address}
-        chainName={chain.name}
-        chainId={swapChainId}
-        onSelect={(t) => {
+        title={pick === 'in' ? 'Sell token' : 'Buy token'}
+        multiChain={false}
+        groups={[{ chain, tokens: pick === 'in' ? tradeable : outOptions }]}
+        value={
+          pick === 'in'
+            ? { chainId: swapChainId, address: tokenIn.address }
+            : { chainId: swapChainId, address: tokenOut.address }
+        }
+        onSelect={(_c, t) => {
           if (pick === 'in') {
             if (t.address === tokenOut.address) setTokenOut(tokenIn)
             setTokenIn(t)

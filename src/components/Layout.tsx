@@ -47,6 +47,13 @@ export function Layout() {
   })
   const location = useLocation()
   useEffect(() => setMobileOpen(false), [location.pathname])
+  // the tab must name the screen you are on: "EBT — Portfolio", not one static string
+  useEffect(() => {
+    const label = NAV.find((n) => n.to === location.pathname)?.label
+    const extra: Record<string, string> = { '/recover': 'Recover' }
+    const title = label ?? extra[location.pathname]
+    document.title = title ? `EBT — ${title}` : 'EBT'
+  }, [location.pathname])
   useEffect(() => {
     try {
       localStorage.setItem('ebt.sidebar', collapsed ? 'collapsed' : 'expanded')
@@ -68,7 +75,7 @@ export function Layout() {
 
         <div className={collapsed ? 'mt-6' : 'mt-8'}>
           {!collapsed && <div className="col-head mb-2 px-2.5">Console</div>}
-          <nav className="flex flex-col gap-0.5">
+          <nav className="flex flex-col gap-1.5">
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
@@ -80,7 +87,7 @@ export function Layout() {
                   clsx('nav-item nav-item-lg', isActive && 'nav-item-active', collapsed && 'justify-center px-0')
                 }
               >
-                <n.icon size={collapsed ? 20 : 18} strokeWidth={1.9} className="shrink-0" />
+                <n.icon size={collapsed ? 21 : 19} strokeWidth={1.9} className="shrink-0" />
                 {!collapsed && n.label}
               </NavLink>
             ))}
@@ -94,7 +101,7 @@ export function Layout() {
           ) : (
             <div className="rounded-[10px] border border-line bg-ink-800 p-3">
               <div className="flex items-center gap-2">
-                <span className="size-2 rotate-45 border border-pos" />
+                <EbtMark size={15} className="text-accent" />
                 <span className="text-[12px] font-semibold text-t1">Testnet only</span>
               </div>
               <p className="mt-2 text-[12px] leading-5 text-t2">
@@ -146,7 +153,9 @@ export function Layout() {
           <ConnectButton />
         </div>
         <div className="mx-auto w-full max-w-[1240px] px-4 pb-24 pt-6 sm:px-8 lg:pb-16">
-          <Outlet />
+          <div key={location.pathname} className="enter">
+            <Outlet />
+          </div>
         </div>
       </main>
 
@@ -173,7 +182,7 @@ export function Layout() {
 function Brand({ compact, onToggle }: { compact?: boolean; onToggle?: () => void }) {
   const inner = (
     <>
-      <EbtMark size={compact ? 34 : 38} />
+      <EbtMark size={compact ? 34 : 38} className="text-accent" />
       {!compact && (
         <div className="leading-tight">
           <div className="display text-[16px] leading-6 tracking-[-0.4px] text-t1">EBT</div>
@@ -221,7 +230,7 @@ export function ConnectButton({ compact, full }: { compact?: boolean; full?: boo
           onClick={() => setOpen(true)}
           loading={isPending}
         >
-          <Wallet size={15} /> Connect a wallet
+          <Wallet size={15} /> Connect
         </Button>
         {open && (
           <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 sm:items-center sm:p-6">

@@ -42,6 +42,7 @@ const CHAIN_LOGOS: Record<string, string> = {
   o_HPPSepolia: 'hpp.png',
   o_JASMY: 'jasmy.png',
   o_GenLayer: 'genlayer.png',
+  o_Mars: 'mars.png',
   o_WorldMobile: 'worldmobile.png',
   o_Xai: 'xai.png',
   o_Edge: 'edge.png',
@@ -77,6 +78,7 @@ const CHAIN_LOGOS_BY_ID: Record<number, string> = {
   181228: 'hpp.png',
   681: 'jasmy.png',
   4221: 'genlayer.png',
+  704852: 'mars.png',
   323432: 'worldmobile.png',
   37714555429: 'xai.png',
   33431: 'edge.png',
@@ -132,6 +134,14 @@ const SYMBOL_LOGOS: Record<string, string> = {
   LINK: 'link.png',
   WBTC: 'wbtc.png',
   EURC: 'eurc.png',
+  // native gas tokens that carry their own chain mark
+  MON: 'mon.webp',
+  THP: 'thp.png',
+}
+
+/** chain mark by numeric id, for callers that only know the chain */
+export function chainLogoById(chainId: number): string | undefined {
+  return CHAIN_LOGOS_BY_ID[chainId]
 }
 
 export function chainLogoFile(chainKey: string, chainId?: number): string | undefined {

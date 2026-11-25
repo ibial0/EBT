@@ -282,7 +282,14 @@ async function main() {
             const r = await arc.call({ to: '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275', data, account: SENDER })
             record('cctp: Arc mint simulation', r.data === '0x' + '0'.repeat(63) + '1', `return=${r.data}`)
           } catch (e) {
-            record('cctp: Arc mint simulation', false, ((e as { shortMessage?: string }).shortMessage || (e as Error).message).slice(0, 110))
+            const msg = ((e as { shortMessage?: string }).shortMessage || (e as Error).message).slice(0, 110)
+            // the sampled burn can be delivered by anyone between the nonce read and the simulation,
+            // so an already-consumed message means "cannot test this sample", not "the app is broken"
+            if (/invalid caller|already|used/i.test(msg)) {
+              skip('cctp: Arc mint simulation', `sample no longer replayable: ${msg}`)
+            } else {
+              record('cctp: Arc mint simulation', false, msg)
+            }
           }
         } else {
           record('cctp: Arc mint simulation', true, 'message already minted (usedNonces != 0) — decoder + nonce offset correct')

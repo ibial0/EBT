@@ -75,6 +75,13 @@
     border-radius: 12px;
     border: 1px solid var(--color-line-strong);
     background: var(--color-ink-800);
+    transition:
+      border-color 160ms var(--ease),
+      background-color 160ms var(--ease);
+  }
+  .card-hover:hover {
+    border-color: #3f4a66;
+    background: #1d2331;
   }
   .card-flat {
     border-radius: 12px;
@@ -189,6 +196,9 @@
       color 140ms var(--ease),
       transform 120ms var(--ease);
   }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
   .btn:active:not(:disabled) {
     transform: scale(0.985);
   }
@@ -229,18 +239,20 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 36px;
-    padding: 0 10px;
-    border-radius: 8px;
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 9px;
     font-size: 14px;
     color: var(--color-t2);
     transition:
-      background-color 140ms var(--ease),
-      color 140ms var(--ease);
+      background-color 160ms var(--ease),
+      color 160ms var(--ease),
+      transform 160ms var(--ease);
   }
   .nav-item:hover {
     color: var(--color-t1);
     background: var(--color-ink-700);
+    transform: translateX(2px);
   }
   .nav-item-active {
     color: var(--color-t1);
@@ -249,12 +261,14 @@
   }
   .nav-item-active:hover {
     background: var(--color-ink-600);
+    transform: none;
   }
   .nav-item-lg {
-    height: 42px;
+    height: 50px;
     gap: 12px;
     padding: 0 12px;
     border-radius: 10px;
+    font-size: 15px;
   }
 
   .row {
@@ -300,6 +314,19 @@
 
   .enter {
     animation: rise 320ms var(--ease) both;
+  }
+  /* main column + fixed rail; declared in CSS so it never depends on an arbitrary utility */
+  .split-rail {
+    display: grid;
+    gap: 20px;
+  }
+  @media (min-width: 1024px) {
+    .split-rail {
+      grid-template-columns: minmax(0, 1fr) 340px;
+    }
+  }
+  .split-rail-main {
+    min-width: 0;
   }
   @keyframes rise {
     from {

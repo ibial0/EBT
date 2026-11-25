@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { Check, Copy, Loader2, X } from 'lucide-react'
 import { copy as doCopy } from '../lib/format'
 import type { ChainCfg } from '../config/chains'
-import { chainLogoFile, tokenLogoFile } from '../config/logos'
+import { chainLogoById, chainLogoFile, tokenLogoFile } from '../config/logos'
 
 /* ───────────────────────── toast ───────────────────────── */
 
@@ -64,22 +64,32 @@ export function Toaster() {
 /* ───────────────────────── primitives ───────────────────────── */
 
 /**
- * The EBT mark: a hairline diamond with the Xi glyph in it, exactly as drawn in the design
- * file. It is drawn with borders instead of an image so it stays crisp at any size and picks
- * up the accent colour automatically.
+ * The EBT mark: a hairline diamond with the Xi glyph inside.
+ *
+ * Drawn as an SVG with the exact geometry the favicon uses, so the sidebar mark and the browser
+ * tab can never drift apart again. Colour comes from `currentColor` — wrap it in `text-accent`.
  */
-export function EbtMark({ size = 40 }: { size?: number }) {
-  const inner = size * 0.7
+export function EbtMark({ size = 40, className }: { size?: number; className?: string }) {
   return (
-    <span className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }} aria-hidden="true">
-      <span
-        className="absolute border border-accent"
-        style={{ width: inner, height: inner, transform: 'rotate(45deg)' }}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      aria-hidden="true"
+      className={clsx('shrink-0', className)}
+    >
+      <rect
+        x="19"
+        y="19"
+        width="26"
+        height="26"
+        transform="rotate(45 32 32)"
+        stroke="currentColor"
+        strokeWidth="2.4"
       />
-      <span className="display relative text-accent" style={{ fontSize: Math.round(size * 0.45), lineHeight: 1 }}>
-        Ξ
-      </span>
-    </span>
+      <path d="M24 25h16M27 32h10M24 39h16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
   )
 }
 
@@ -175,6 +185,8 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
 /* ───────────────────────── logos (real assets) ───────────────────────── */
 
 function initials(name: string) {
+  // wrapped-BTC tokens carry the generic bitcoin glyph, which reads correctly and claims no brand
+  if (/btc/i.test(name)) return '₿'
   const parts = name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean)
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[1][0]).toUpperCase()
@@ -234,7 +246,13 @@ export function TokenIcon({
   color?: string
 }) {
   const file = tokenLogoFile(chainId, address ?? undefined, symbol, verified)
-  return <LogoShell src={file ? `/logos/tokens/${file}` : undefined} size={size} label={symbol} />
+  // A native gas token carries its chain's mark when no symbol logo exists — that is what the
+  // token *is*, so it is not a guess. Non-native tokens with no mark keep the monogram.
+  const nativeish = !address || /^0x0{40}$/i.test(address)
+  const chainMark =
+    !file && nativeish && chainId != null ? chainLogoById(chainId) : undefined
+  const src = file ? `/logos/tokens/${file}` : chainMark ? `/logos/chains/${chainMark}` : undefined
+  return <LogoShell src={src} size={size} label={symbol} />
 }
 
 /* ───────────────────────── modal ───────────────────────── */

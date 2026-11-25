@@ -25,6 +25,7 @@ import { checkGas, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
 import { wagmiConfig } from '../lib/wallet'
 import { findRoutes, noRouteReason, reachableDestTokens, usableSourceTokens, type RouteCandidate, type RouteLeg } from '../lib/routes'
+import { TokenPicker } from '../components/TokenPicker'
 
 const NATIVE = '0x0000000000000000000000000000000000000000'
 const keyOf = (chainId: number, address: string) => `${chainId}:${address.toLowerCase()}`
@@ -455,12 +456,12 @@ export default function Bridge() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <Card className="p-4">
+        <Card className="p-5">
           <div className="relative">
-            <div className="panel p-3">
-              <div className="mb-1 flex items-center justify-between label">
-                <span>You send</span>
-                <span className={sourceBalance.isError ? 'text-[#e6c17a]' : ''}>
+            <div className="rounded-[14px] border border-line-strong bg-ink-850 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="col-head">You send</span>
+                <span className={"mono text-[12px] " + (sourceBalance.isError ? 'text-[#e6c17a]' : 'text-t2')}>
                   {!isConnected
                     ? '-'
                     : sourceBalance.isLoading
@@ -474,10 +475,10 @@ export default function Bridge() {
                 <ChainChip chainId={fromId} onClick={() => setPick('from')} />
                 <button
                   onClick={() => setPick('source')}
-                  className="flex items-center gap-2 rounded-lg border border-line bg-ink-700 px-2 py-1.5 transition-colors hover:border-line-strong"
+                  className="flex h-11 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {source ? <TokenIcon symbol={source.symbol} size={20} chainId={fromId} address={source.address} verified={source.verified} /> : null}
-                  <span className="text-sm font-medium text-t1">{source?.symbol ?? 'select'}</span>
+                  {source ? <TokenIcon symbol={source.symbol} size={26} chainId={fromId} address={source.address} verified={source.verified} /> : null}
+                  <span className="display text-[15px] text-t1">{source?.symbol ?? 'select'}</span>
                   <ChevronDown size={13} className="text-t3" />
                 </button>
               </div>
@@ -488,25 +489,25 @@ export default function Bridge() {
                 setFromId(toId)
                 setToId(fromId)
               }}
-              className="absolute left-1/2 top-1/2 z-10 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-lg border border-line bg-ink-800 text-t1 transition hover:border-line-strong hover:text-t1"
+              className="absolute left-1/2 top-1/2 z-10 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-800 text-t1 transition-all duration-150 hover:scale-110 hover:border-accent/60 hover:text-accent"
               title="Swap direction"
             >
               <ArrowDownUp size={14} />
             </button>
 
-            <div className="panel mt-2 p-3">
-              <div className="mb-1 flex items-center justify-between label">
-                <span>You receive</span>
+            <div className="mt-2 rounded-[14px] border border-line-strong bg-ink-850 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="col-head">You receive</span>
                 <span>{estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : '-'}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <ChainChip chainId={toId} onClick={() => setPick('to')} />
                 <button
                   onClick={() => setPick('dest')}
-                  className="flex items-center gap-2 rounded-lg border border-line bg-ink-700 px-2 py-1.5 transition-colors hover:border-line-strong"
+                  className="flex h-11 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-1.5 pr-3 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {dest ? <TokenIcon symbol={dest.symbol} size={20} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
-                  <span className="text-sm font-medium text-t1">{dest?.symbol ?? 'nothing reachable'}</span>
+                  {dest ? <TokenIcon symbol={dest.symbol} size={26} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
+                  <span className="display text-[15px] text-t1">{dest?.symbol ?? 'nothing reachable'}</span>
                   <ChevronDown size={13} className="text-t3" />
                 </button>
               </div>
@@ -664,7 +665,7 @@ export default function Bridge() {
               full
               size="lg"
               variant="primary"
-              className="mt-4"
+              className="mt-4 h-[52px] text-[16px]"
               disabled={!hasRoute || amountIn <= 0n || insufficient}
               loading={busy === 'start'}
               onClick={run}
@@ -806,122 +807,27 @@ export default function Bridge() {
         subtitle="Only testnets on the allowlist are listed."
       />
 
-      <AssetSelect
+      <TokenPicker
         open={pick === 'source'}
-        title={`Send on ${from.short}`}
-        tokens={sourceOptions}
-        chainId={fromId}
-        value={source?.address}
-        notes={sourceNotes}
+        title="Send asset"
+        groups={[{ chain: from, tokens: sourceOptions, notes: sourceNotes }]}
+        chains={CHAINS}
+        onChainChange={(id) => setFromId(id)}
+        value={source ? { chainId: fromId, address: source.address } : null}
         onClose={() => setPick(null)}
-        onSelect={(t) => setSourceId(keyOf(fromId, t.address))}
+        onSelect={(c, t) => setSourceId(keyOf(c.id, t.address))}
       />
-      <AssetSelect
+      <TokenPicker
         open={pick === 'dest'}
-        title={`Receive on ${to.short}`}
-        tokens={destOptions}
-        chainId={toId}
-        value={dest?.address}
-        notes={destNotes}
+        title="Receive asset"
+        groups={[{ chain: to, tokens: destOptions, notes: destNotes }]}
+        chains={CHAINS}
+        onChainChange={(id) => setToId(id)}
+        value={dest ? { chainId: toId, address: dest.address } : null}
         onClose={() => setPick(null)}
-        onSelect={(t) => setDestId(keyOf(toId, t.address))}
+        onSelect={(c, t) => setDestId(keyOf(c.id, t.address))}
       />
     </div>
   )
 }
 
-function AssetSelect({
-  open,
-  title,
-  tokens,
-  chainId,
-  value,
-  onClose,
-  onSelect,
-  notes,
-}: {
-  open: boolean
-  title: string
-  tokens: TokenCfg[]
-  chainId: number
-  value?: string
-  onClose: () => void
-  onSelect: (t: TokenCfg) => void
-  /** why an asset cannot move right now; shown inline instead of hiding the asset */
-  notes?: Record<string, string>
-}) {
-  const chain = getChain(chainId)!
-  // never stay mounted: an always-present overlay swallows every click on the page
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [open, onClose])
-
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6" onClick={onClose}>
-      <div
-        className="flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-b-none border border-line bg-ink-800 sm:rounded-[14px]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <div className="text-[14px] font-medium text-t1">{title}</div>
-          <button onClick={onClose} className="rounded-md p-1 text-t3 transition-colors hover:bg-ink-700 hover:text-t1">
-            <ChevronDown size={16} />
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {tokens.length === 0 && (
-            <div className="px-3 py-8 text-center text-[12px] text-t3">This chain has no registered assets.</div>
-          )}
-          {tokens.map((t) => {
-            const note = notes?.[t.address.toLowerCase()]
-            return (
-              <button
-                key={t.address}
-                onClick={() => {
-                  onSelect(t)
-                  onClose()
-                }}
-                className={`flex w-full items-start gap-3 rounded-[10px] px-2.5 py-2 text-left ${
-                  value?.toLowerCase() === t.address.toLowerCase() ? 'bg-ink-700' : 'hover:bg-ink-700'
-                }`}
-              >
-                <span className={note ? 'opacity-45' : ''}>
-                  <TokenIcon symbol={t.symbol} size={38} chainId={chainId} address={t.address} verified={t.verified} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className={`text-[14px] ${note ? 'text-t2' : 'text-t1'}`}>{t.symbol}</span>
-                    {note && (
-                      <span className="rounded border border-line px-1 text-[9px] uppercase tracking-wide text-t3">no route</span>
-                    )}
-                  </span>
-                  <span className="block truncate text-[12px] text-t3">{t.name}</span>
-                  {note && <span className="mt-1 block text-[10px] leading-4 text-t3">{note}</span>}
-                </span>
-                {!note && (
-                  <span className="mono shrink-0 pt-0.5 text-[10px] text-t3">
-                    {t.address.slice(0, 6)}…{t.address.slice(-4)}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-        <div className="border-t border-line px-4 py-2.5 text-[11px] leading-5 text-t3">
-          Every asset on {chain.short} is listed. Those marked “no route” cannot move with a verified provider
-          right now, and the reason is shown instead of hiding them.
-        </div>
-      </div>
-    </div>
-  )
-}
