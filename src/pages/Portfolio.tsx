@@ -174,7 +174,7 @@ export default function Portfolio() {
   }
 
   return (
-    <div className="dash-2">
+    <div className="dash-2 flex-1">
       {/* ── left: value + chart ───────────────────────────── */}
       <div className="card flex h-full flex-col p-6">
         <div className="flex items-center justify-between">

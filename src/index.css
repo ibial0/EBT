@@ -331,14 +331,17 @@
   /* portfolio: summary card + tabbed breakdown card */
   .dash-2 {
     display: grid;
+    flex: 1 1 auto;
+    min-height: 0;
     gap: 28px;
   }
   @media (min-width: 1024px) {
     .dash-2 {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: stretch;
-      /* both cards reach the bottom of the viewport instead of floating in the top half */
-      min-height: calc(100dvh - 11rem);
+      /* both cards take whatever height the shell has left, so nothing floats with a gap under it */
+      flex: 1 1 auto;
+      min-height: 0;
     }
   }
   @keyframes flow {

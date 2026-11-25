@@ -147,13 +147,15 @@ export function Layout() {
         </div>
       )}
 
-      <main className={clsx('transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]', collapsed ? 'lg:pl-[76px]' : 'lg:pl-[256px]')}>
+      <main className={clsx('flex min-h-dvh flex-col', 'transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]', collapsed ? 'lg:pl-[76px]' : 'lg:pl-[256px]')}>
         <div className="sticky top-0 z-30 hidden h-14 items-center justify-end gap-3 border-b border-line-strong bg-ink-900 px-6 lg:flex">
           <NotificationBell />
           <ConnectButton />
         </div>
-        <div className="mx-auto w-full max-w-[1600px] px-4 pb-24 pt-6 sm:px-8 lg:pb-16">
-          <Outlet />
+        <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-4 pb-6 pt-6 sm:px-8">
+          <div key={location.pathname} className="enter flex flex-1 flex-col">
+            <Outlet />
+          </div>
         </div>
       </main>
 

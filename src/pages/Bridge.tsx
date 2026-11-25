@@ -449,9 +449,9 @@ export default function Bridge() {
   const hasRoute = Boolean(route) && Boolean(dest)
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-1 flex-col gap-5">
 
-      <div className="grid w-full gap-7 lg:min-h-[calc(100dvh-11rem)] lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
+      <div className="grid w-full flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
         <Card className="p-5">
           <div className="relative">
             <div className="rounded-[16px] border border-line-strong bg-ink-850 p-5">
