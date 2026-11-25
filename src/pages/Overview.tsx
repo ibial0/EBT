@@ -129,11 +129,13 @@ export default function Overview() {
                 return (
                   <div
                     key={c.id}
-                    className="group flex items-center gap-2.5 rounded-xl border border-line bg-ink-850/60 px-2.5 py-2 transition hover:border-line-strong hover:bg-ink-800"
+                    className="group flex min-h-[58px] items-center gap-2.5 rounded-xl border border-line bg-ink-850/60 px-2.5 py-2 transition hover:border-line-strong hover:bg-ink-800"
                   >
                     <ChainLogo chain={c} size={24} />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[12px] font-medium leading-4 text-t1">{c.name}</div>
+                      <div className="text-[12px] font-medium leading-[15px] text-t1" title={c.name}>
+                        {c.name}
+                      </div>
                       <div className="flex items-center gap-1.5 text-[10px] leading-4 text-t3">
                         <span
                           className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${live ? 'bg-[#4cc38a]' : health.isLoading ? 'bg-[#e3c07b]' : 'bg-[#e5484d]'}`}
