@@ -1,25 +1,36 @@
 @import 'tailwindcss';
 
 /*
- * EBT design system — graphite instrument panel.
- * One neutral ramp, one accent (cobalt) used sparingly, hairline depth, no glow.
+ * EBT design system — instrument panel on navy ink.
+ *
+ * Palette and type come from the Figma source (Overview / Portfolio / Faucet):
+ *   ink #10131c · sidebar #151a26 · card #1a1f2c · raised #202636 · active #252d43
+ *   hairline #333d52 · text #f2f5fc / #adb9ce · accent #abb8ff · mint #6adbb6
+ *   Space Grotesk (display) · IBM Plex Sans (body) · JetBrains Mono (data)
+ *
+ * Token names are kept from the previous theme on purpose: every page already speaks
+ * bg-ink-800 / text-t2 / border-line, so remapping the values reskins the whole app at once
+ * instead of leaving half the screens on the old palette.
  */
 @theme {
-  --color-ink-950: #101011;
-  --color-ink-900: #141415;
-  --color-ink-850: #171718;
-  --color-ink-800: #19191b;
-  --color-ink-700: #232325;
-  --color-ink-600: #2b2b2e;
-  --color-line: rgba(237, 237, 237, 0.08);
-  --color-line-strong: rgba(237, 237, 237, 0.14);
-  --color-t1: #ededed;
-  --color-t2: #a1a1a6;
-  --color-t3: #85858b;
-  --color-accent: #6aa6ff;
-  --color-pos: #4cc38a;
-  --color-neg: #e5484d;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --color-ink-950: #0b0e16;
+  --color-ink-900: #10131c;
+  --color-ink-850: #151a26;
+  --color-ink-800: #1a1f2c;
+  --color-ink-700: #202636;
+  --color-ink-600: #252d43;
+  --color-line: #2b3348;
+  --color-line-strong: #333d52;
+  --color-t1: #f2f5fc;
+  --color-t2: #adb9ce;
+  --color-t3: #7d88a0;
+  --color-accent: #abb8ff;
+  --color-accent-2: #b8c4ff;
+  --color-pos: #6adbb6;
+  --color-neg: #ff8f8f;
+  --color-warn: #e6c17a;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -39,10 +50,10 @@
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2b2b2e transparent;
+    scrollbar-color: #333d52 transparent;
   }
   ::selection {
-    background: rgba(106, 166, 255, 0.28);
+    background: rgba(171, 184, 255, 0.26);
   }
   :focus-visible {
     outline: 2px solid var(--color-accent);
@@ -51,16 +62,18 @@
   }
   h1,
   h2,
-  h3 {
-    font-weight: 500;
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
     letter-spacing: -0.01em;
   }
 }
 
 @layer components {
   .card {
-    border-radius: 14px;
-    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    border: 1px solid var(--color-line-strong);
     background: var(--color-ink-800);
   }
   .card-flat {
@@ -75,8 +88,8 @@
   }
   /* focused input shell: reads as editable, not as a readout */
   .field {
-    border-radius: 12px;
-    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    border: 1px solid var(--color-line-strong);
     background: var(--color-ink-850);
     transition:
       border-color 0.16s var(--ease),
@@ -84,16 +97,16 @@
       background 0.16s var(--ease);
   }
   .field:hover {
-    border-color: var(--color-line-strong);
+    border-color: #3f4a66;
   }
   .field:focus-within {
-    border-color: rgba(106, 166, 255, 0.55);
+    border-color: rgba(171, 184, 255, 0.6);
     background: var(--color-ink-800);
-    box-shadow: 0 0 0 3px rgba(106, 166, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(171, 184, 255, 0.12);
   }
   .raised {
     background: var(--color-ink-700);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   .hairline {
     height: 1px;
@@ -115,6 +128,7 @@
     color: var(--color-t3);
   }
   .figure {
+    font-family: var(--font-display);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
@@ -123,6 +137,27 @@
     font-variant-numeric: tabular-nums;
     font-size: 12px;
     letter-spacing: 0;
+  }
+  /* small uppercase mono label above a title, or above a column of data */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .col-head {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--color-t2);
+  }
+  .display {
+    font-family: var(--font-display);
+    font-weight: 700;
   }
 
   .input {
@@ -133,18 +168,18 @@
     font-variant-numeric: tabular-nums;
   }
   .input::placeholder {
-    color: #6b6b72;
+    color: #7d88a0;
   }
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border-radius: 10px;
-    font-weight: 500;
+    border-radius: 8px;
+    font-weight: 600;
     font-size: 14px;
-    height: 40px;
-    padding: 0 16px;
+    height: 38px;
+    padding: 0 14px;
     white-space: nowrap;
     cursor: pointer;
     border: 1px solid transparent;
@@ -162,21 +197,19 @@
     cursor: not-allowed;
   }
   .btn-primary {
-    background: #ededed;
-    color: #101011;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    background: var(--color-accent);
+    color: #111628;
   }
   .btn-primary:hover:not(:disabled) {
-    background: #ffffff;
+    background: var(--color-accent-2);
   }
   .btn-secondary {
     background: var(--color-ink-700);
     border-color: var(--color-line-strong);
     color: var(--color-t1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   .btn-secondary:hover:not(:disabled) {
-    background: #2b2b2e;
+    background: var(--color-ink-600);
   }
   .btn-quiet {
     background: transparent;
@@ -184,10 +217,10 @@
   }
   .btn-quiet:hover:not(:disabled) {
     color: var(--color-t1);
-    background: rgba(237, 237, 237, 0.05);
+    background: var(--color-ink-700);
   }
   .btn-lg {
-    height: 48px;
+    height: 46px;
     font-size: 15px;
     border-radius: 10px;
   }
@@ -196,7 +229,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 34px;
+    height: 36px;
     padding: 0 10px;
     border-radius: 8px;
     font-size: 14px;
@@ -207,20 +240,18 @@
   }
   .nav-item:hover {
     color: var(--color-t1);
-    background: rgba(237, 237, 237, 0.05);
+    background: var(--color-ink-700);
   }
   .nav-item-active {
     color: var(--color-t1);
-    background: var(--color-ink-700);
-    box-shadow:
-      inset 2px 0 0 var(--color-accent),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background: var(--color-ink-600);
+    font-weight: 600;
   }
   .nav-item-active:hover {
-    background: var(--color-ink-700);
+    background: var(--color-ink-600);
   }
   .nav-item-lg {
-    height: 40px;
+    height: 42px;
     gap: 12px;
     padding: 0 12px;
     border-radius: 10px;
@@ -236,7 +267,7 @@
     transition: background-color 140ms var(--ease);
   }
   .row:hover {
-    background: rgba(237, 237, 237, 0.04);
+    background: var(--color-ink-700);
   }
   .row-tall {
     height: 56px;
@@ -255,10 +286,16 @@
     height: 22px;
     padding: 0 8px;
     border-radius: 6px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-line-strong);
     background: transparent;
+    font-family: var(--font-mono);
     font-size: 12px;
     color: var(--color-t2);
+    white-space: nowrap;
+  }
+  .chip-accent {
+    border-color: rgba(171, 184, 255, 0.4);
+    color: var(--color-accent);
   }
 
   .enter {
@@ -283,7 +320,7 @@
     }
   }
   .skeleton {
-    background: rgba(237, 237, 237, 0.06);
+    background: rgba(171, 184, 255, 0.07);
     border-radius: 6px;
   }
 }

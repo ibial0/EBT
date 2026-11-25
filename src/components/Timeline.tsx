@@ -20,7 +20,7 @@ export function Timeline({ steps }: { steps: TxStep[] }) {
                   'text-xs font-medium',
                   s.status === 'done' && 'text-t1',
                   s.status === 'active' && 'text-accent',
-                  s.status === 'failed' && 'text-[#ffb4b6]',
+                  s.status === 'failed' && 'text-[#ffb4b4]',
                   s.status === 'pending' && 'text-t3',
                   s.status === 'skipped' && 'text-t3 line-through',
                 )}
@@ -49,9 +49,9 @@ export function Timeline({ steps }: { steps: TxStep[] }) {
 
 function StepIcon({ status }: { status: TxStep['status'] }) {
   const base = 'grid h-6 w-6 place-items-center rounded-full border'
-  if (status === 'done') return <div className={clsx(base, 'border-[#4cc38a]/40 bg-[#4cc38a]/12 text-[#4cc38a]')}><Check size={12} /></div>
-  if (status === 'active') return <div className={clsx(base, 'border-[#4cc38a]/50 bg-[#4cc38a]/10 text-[#4cc38a]')}><Loader2 size={12} className="spin" /></div>
-  if (status === 'failed') return <div className={clsx(base, 'border-[#e5484d]/40 bg-[#e5484d]/10 text-[#ffb4b6]')}><X size={12} /></div>
+  if (status === 'done') return <div className={clsx(base, 'border-[#6adbb6]/40 bg-[#6adbb6]/12 text-[#6adbb6]')}><Check size={12} /></div>
+  if (status === 'active') return <div className={clsx(base, 'border-[#6adbb6]/50 bg-[#6adbb6]/10 text-[#6adbb6]')}><Loader2 size={12} className="spin" /></div>
+  if (status === 'failed') return <div className={clsx(base, 'border-[#ff8f8f]/40 bg-[#ff8f8f]/10 text-[#ffb4b4]')}><X size={12} /></div>
   if (status === 'skipped') return <div className={clsx(base, 'border-line bg-ink-850 text-t3')}>–</div>
   return <div className={clsx(base, 'border-line bg-ink-850 text-t3')}><Clock size={11} /></div>
 }

@@ -80,11 +80,11 @@ export function TokenSelect({
         </div>
 
         {looksLikeAddress && !alreadyListed && (
-          <div className="mb-2 rounded-[10px] border border-[#e3c07b]/30 bg-[#e3c07b]/8 p-3">
-            <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-[#e3c07b]">
+          <div className="mb-2 rounded-[10px] border border-[#e6c17a]/30 bg-[#e6c17a]/8 p-3">
+            <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-[#e6c17a]">
               <AlertTriangle size={13} /> Not in the verified list
             </div>
-            <p className="mb-2 text-[11px] leading-relaxed text-[#e3c07b]/70">
+            <p className="mb-2 text-[11px] leading-relaxed text-[#e6c17a]/70">
               Importing reads the contract directly from the chain. EBT never assumes a token is swappable, the quote engine
               probes real pools first.
             </p>

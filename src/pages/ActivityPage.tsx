@@ -38,6 +38,7 @@ export default function ActivityPage() {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Local ledger"
         title="Activity"
         subtitle="Every transfer EBT has submitted from this browser. Stored in localStorage, survives refresh, never leaves the device."
         right={
@@ -200,7 +201,7 @@ function Detail({ id }: { id: string }) {
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Timeline</h3>
+            <h3 className="text-sm font-semibold text-t1">Timeline</h3>
             <div className="flex gap-1.5">
               {item.provider === 'cctp' && !isTracking(item.id) && item.status !== 'complete' && (
                 <Button
@@ -287,7 +288,7 @@ function Detail({ id }: { id: string }) {
 
         <div className="space-y-3">
           <Card className="p-4">
-            <h3 className="mb-2 text-sm font-semibold text-white">Details</h3>
+            <h3 className="mb-2 text-sm font-semibold text-t1">Details</h3>
             <DetailRow label="Owner" value={<span className="mono flex items-center gap-1">{shortAddr(item.owner, 5)} <CopyButton value={item.owner} /></span>} />
             <DetailRow label="Kind" value={item.kind} />
             <DetailRow label="Provider" value={item.provider} />
@@ -297,7 +298,7 @@ function Detail({ id }: { id: string }) {
           </Card>
 
           <Card className="p-4">
-            <h3 className="mb-2 text-sm font-semibold text-white">Transactions</h3>
+            <h3 className="mb-2 text-sm font-semibold text-t1">Transactions</h3>
             {item.steps.filter((s) => s.hash).length === 0 && <div className="text-[11px] text-t3">No hashes recorded yet.</div>}
             <div className="space-y-1.5">
               {item.steps
@@ -324,7 +325,7 @@ function Detail({ id }: { id: string }) {
               removeActivity(item.id)
               window.location.href = '/activity'
             }}
-            className="w-full rounded-[10px] border border-[#e5484d]/25 bg-[#e5484d]/6 py-2 text-[11px] text-[#ffb4b6] hover:bg-[#e5484d]/10"
+            className="w-full rounded-[10px] border border-[#ff8f8f]/25 bg-[#ff8f8f]/6 py-2 text-[11px] text-[#ffb4b4] hover:bg-[#ff8f8f]/10"
           >
             Remove local record
           </button>

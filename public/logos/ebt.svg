@@ -1,11 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="ebt" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#12232b"/>
-      <stop offset="1" stop-color="#0b0f14"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="url(#ebt)"/>
-  <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#57f2b0" stroke-opacity="0.22"/>
-  <path d="M18 22h28M18 32h20M18 42h12" stroke="#57f2b0" stroke-width="5" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="EBT">
+  <rect width="64" height="64" rx="14" fill="#10131c"/>
+  <rect x="19" y="19" width="26" height="26" transform="rotate(45 32 32)" fill="none" stroke="#abb8ff" stroke-width="2.4"/>
+  <path d="M24 25h16M27 32h10M24 39h16" stroke="#abb8ff" stroke-width="3" stroke-linecap="round"/>
 </svg>

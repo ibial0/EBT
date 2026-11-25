@@ -28,10 +28,14 @@ export default function Settings() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Settings" subtitle="The registry, the RPCs, and the guard rails. Everything on this page is enforced in code, not just documented." />
+      <PageHeader
+        eyebrow="Registry"
+        title="Settings"
+        subtitle="The registry, the RPCs, and the guard rails. Everything on this page is enforced in code, not just documented."
+      />
 
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">Security posture</h3>
+        <h3 className="mb-3 text-sm font-semibold text-t1">Security posture</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           {[
             ['Testnet allowlist', `${allow.length} chain ids, anything else throws before calldata is built.`],
@@ -53,7 +57,7 @@ export default function Settings() {
 
       <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Chain registry</h3>
+          <h3 className="text-sm font-semibold text-t1">Chain registry</h3>
           <span className="text-[11px] text-t3">verified 2026-11-23</span>
         </div>
         <div className="overflow-x-auto">
@@ -109,7 +113,7 @@ export default function Settings() {
       </Card>
 
       <Card className="p-4">
-        <h3 className="mb-1 text-sm font-semibold text-white">Capability matrix</h3>
+        <h3 className="mb-1 text-sm font-semibold text-t1">Capability matrix</h3>
         <p className="mb-3 text-[11px] leading-relaxed text-t3">
           Each feature is decided separately. A chain that can receive a bridge but has no swap venue is not
           reported as swap-capable, and the reverse.
@@ -139,9 +143,9 @@ export default function Settings() {
                     {rows.map((r) => (
                       <td key={r.key} className="px-2 py-1.5" title={r.note}>
                         {r.state === 'yes' ? (
-                          <span className="text-[#4cc38a]">yes</span>
+                          <span className="text-[#6adbb6]">yes</span>
                         ) : r.state === 'partial' ? (
-                          <span className="text-[#e3c07b]" title={r.note}>
+                          <span className="text-[#e6c17a]" title={r.note}>
                             partial
                           </span>
                         ) : (
@@ -159,7 +163,7 @@ export default function Settings() {
 
       <div className="grid gap-3 md:grid-cols-2">
         <Card className="p-4">
-          <h3 className="mb-2 text-sm font-semibold text-white">Providers & sources</h3>
+          <h3 className="mb-2 text-sm font-semibold text-t1">Providers & sources</h3>
           <div className="space-y-2">
             {PROVIDERS.map((p) => (
               <div key={p.id} className="panel p-2.5">
@@ -183,7 +187,7 @@ export default function Settings() {
         </Card>
 
         <Card className="p-4">
-          <h3 className="mb-2 text-sm font-semibold text-white">Local data</h3>
+          <h3 className="mb-2 text-sm font-semibold text-t1">Local data</h3>
           <p className="mb-3 text-[11px] leading-relaxed text-t2">
             {records.length} activity record{records.length === 1 ? '' : 's'} stored in this browser profile.
           </p>

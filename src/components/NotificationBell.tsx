@@ -17,8 +17,8 @@ export function NotificationBell() {
         <div
           className={`enter flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] ${
             flash.tone === 'done'
-              ? 'border-[#4cc38a]/35 bg-[#111a15] text-[#c7ebd8]'
-              : 'border-[#e5484d]/35 bg-[#1b1113] text-[#ffb4b6]'
+              ? 'border-[#6adbb6]/35 bg-[#111a15] text-[#c7ebd8]'
+              : 'border-[#ff8f8f]/35 bg-[#1b1113] text-[#ffb4b4]'
           }`}
         >
           {flash.tone === 'done' ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
@@ -34,7 +34,7 @@ export function NotificationBell() {
       >
         <Bell size={16} strokeWidth={1.6} />
         {pending.length > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#e5484d] px-1 text-[10px] font-medium leading-none text-white">
+          <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#ff8f8f] px-1 text-[10px] font-medium leading-none text-t1">
             {pending.length}
           </span>
         )}
@@ -99,7 +99,7 @@ export function PendingSummary() {
   if (pending.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-2 text-[12px] text-t2">
-      <span className="dot" style={{ background: '#e3c07b' }} />
+      <span className="dot" style={{ background: '#e6c17a' }} />
       {pending.length} in flight
       {pending.slice(0, 2).map((p) => (
         <Link key={p.id} to={`/activity/${p.id}`} className="chip hover:text-t1">

@@ -449,6 +449,7 @@ export default function Bridge() {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Asset movement"
         title="Bridge"
         subtitle="Pick two networks and the app works out what can actually move between them: direct same-asset routes through Circle CCTP or the canonical OP Stack portal, and bridge plus swap routes where that is the only way. Nothing is inferred from token symbols."
       />
@@ -459,7 +460,7 @@ export default function Bridge() {
             <div className="panel p-3">
               <div className="mb-1 flex items-center justify-between label">
                 <span>You send</span>
-                <span className={sourceBalance.isError ? 'text-[#e3c07b]' : ''}>
+                <span className={sourceBalance.isError ? 'text-[#e6c17a]' : ''}>
                   {!isConnected
                     ? '-'
                     : sourceBalance.isLoading
@@ -513,7 +514,7 @@ export default function Bridge() {
           </div>
 
           {!route ? (
-            <div className="mt-3 rounded-lg border border-[#e5484d]/25 bg-[#e5484d]/8 px-3 py-2.5">
+            <div className="mt-3 rounded-lg border border-[#ff8f8f]/25 bg-[#ff8f8f]/8 px-3 py-2.5">
               <div className="text-[12px] font-medium text-[#ffb4b6]">
                 No route from {from.short} to {to.short} for {source?.symbol ?? 'this asset'}.
               </div>
@@ -538,7 +539,7 @@ export default function Bridge() {
               )}
             </div>
           ) : (
-            <div className="mt-3 rounded-xl border border-line bg-ink-850 p-3">
+            <div className="mt-3 rounded-xl border border-line-strong bg-ink-850 p-3">
               {route ? (
                 <>
                   <RoutePath
@@ -548,8 +549,8 @@ export default function Bridge() {
                     dest={dest}
                     kind={route.legs[route.legs.length - 1]?.kind}
                   />
-                  <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line/60 pt-2">
-                    <span className="text-[11px] text-t3">
+                  <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2.5">
+                    <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
                       {route.txCount} signature{route.txCount === 1 ? '' : 's'} ·{' '}
                       {(estimate.data?.lines.length ?? route.legs.length)} verified step
                       {(estimate.data?.lines.length ?? route.legs.length) === 1 ? '' : 's'}
@@ -595,7 +596,7 @@ export default function Bridge() {
             </div>
             {insufficient && <div className="mt-1 text-[11px] text-[#ffb4b6]">Amount exceeds your balance on {from.short}.</div>}
             {srcGas.data && !srcGas.data.ok && (
-              <div className="mt-1 text-[11px] text-[#e3c07b]">
+              <div className="mt-1 text-[11px] text-[#e6c17a]">
                 No {srcGas.data.symbol} for gas on {from.short}, get some from the Faucets page.
               </div>
             )}
@@ -673,7 +674,7 @@ export default function Bridge() {
           )}
 
           {chainId !== fromId && isConnected && (
-            <button onClick={() => ensureChain(fromId)} className="mt-2 w-full text-center text-[11px] text-[#e3c07b] hover:underline">
+            <button onClick={() => ensureChain(fromId)} className="mt-2 w-full text-center text-[11px] text-[#e6c17a] hover:underline">
               Wallet is on {getChain(chainId)?.short ?? chainId}, switching to {from.short} is needed to sign.
             </button>
           )}
@@ -682,7 +683,7 @@ export default function Bridge() {
         <div className="space-y-3">
           <Card className="p-4">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">Route</h3>
+              <h3 className="text-sm font-semibold text-t1">Route</h3>
               {route && <Badge tone={route.type === 'direct' ? 'mint' : 'blue'}>{route.type === 'direct' ? 'Direct' : 'Composite'}</Badge>}
             </div>
             {route ? (
@@ -729,7 +730,7 @@ export default function Bridge() {
 
           {routes.length > 1 && (
             <Card className="p-4">
-              <h3 className="mb-2 text-sm font-semibold text-white">Other valid routes</h3>
+              <h3 className="mb-2 text-sm font-semibold text-t1">Other valid routes</h3>
               <div className="space-y-1.5">
                 {routes.slice(1, 4).map((r) => (
                   <div key={r.id} className="panel p-2.5">
@@ -744,7 +745,7 @@ export default function Bridge() {
           )}
 
           {lastError && (
-            <Card className="border-[#e5484d]/30 p-4">
+            <Card className="border-[#ff8f8f]/30 p-4">
               <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-[#ffb4b6]">
                 <AlertTriangle size={13} /> {lastError.title}
               </div>
@@ -756,7 +757,7 @@ export default function Bridge() {
           {activity && (
             <Card className="p-4">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Progress</h3>
+                <h3 className="text-sm font-semibold text-t1">Progress</h3>
                 <Badge tone={activity.status === 'complete' ? 'mint' : activity.status === 'failed' ? 'red' : 'amber'}>{activity.status}</Badge>
               </div>
               <Timeline steps={activity.steps} />

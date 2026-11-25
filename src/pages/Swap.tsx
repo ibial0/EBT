@@ -244,6 +244,7 @@ export default function Swap() {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Same chain"
         title="Swap"
         subtitle="Same-chain swaps against real Uniswap v3 pools. Every quote is an eth_call to QuoterV2, if a pool has no liquidity the route simply is not offered."
       />
@@ -326,10 +327,10 @@ export default function Swap() {
             </div>
           </div>
 
-          {sameToken && <div className="mt-2 text-[11px] text-[#e3c07b]">Pick two different tokens.</div>}
-          {insufficient && <div className="mt-2 text-[11px] text-[#ffb4b6]">Insufficient {tokenIn.symbol} balance on {chain.short}.</div>}
+          {sameToken && <div className="mt-2 text-[11px] text-[#e6c17a]">Pick two different tokens.</div>}
+          {insufficient && <div className="mt-2 text-[11px] text-[#ffb4b4]">Insufficient {tokenIn.symbol} balance on {chain.short}.</div>}
           {amountIn > 0n && !quote.isFetching && !quote.data && !sameToken && (
-            <div className="mt-2 rounded-lg border border-[#e3c07b]/25 bg-[#e3c07b]/8 px-3 py-2.5 text-[12px] leading-5 text-[#e3c07b]">
+            <div className="mt-2 rounded-lg border border-[#e6c17a]/25 bg-[#e6c17a]/8 px-3 py-2.5 text-[12px] leading-5 text-[#e6c17a]">
               <div className="font-medium">
                 {depth.isFetching
                   ? `Checking how much ${tokenIn.symbol} this pool can fill`
@@ -337,7 +338,7 @@ export default function Swap() {
                     ? `This pool can fill about ${formatAmount(depth.data.amount, tokenIn.decimals, 6)} ${tokenIn.symbol} right now`
                     : `No fillable ${tokenIn.symbol} to ${tokenOut.symbol} route on ${chain.short}`}
               </div>
-              <div className="mt-0.5 text-[#e3c07b]/80">
+              <div className="mt-0.5 text-[#e6c17a]/80">
                 {depth.data
                   ? 'Larger orders would only partially fill, so the router would revert. Try the size below or split the swap.'
                   : 'Every fee tier failed the fill check, so there is no honest quote to show.'}
@@ -345,7 +346,7 @@ export default function Swap() {
               {depth.data && (
                 <button
                   onClick={() => setAmount(formatAmount(depth.data!.amount, tokenIn.decimals, 6))}
-                  className="mt-2 rounded-md border border-[#e3c07b]/40 px-2.5 py-1 text-[11px] text-[#e3c07b] transition-colors hover:bg-[#e3c07b]/10"
+                  className="mt-2 rounded-md border border-[#e6c17a]/40 px-2.5 py-1 text-[11px] text-[#e6c17a] transition-colors hover:bg-[#e6c17a]/10"
                 >
                   Use {formatAmount(depth.data.amount, tokenIn.decimals, 4)} {tokenIn.symbol}
                 </button>
@@ -354,7 +355,7 @@ export default function Swap() {
           )}
 
           {quote.data?.priceImpactBps != null && quote.data.priceImpactBps > 1500 && (
-            <div className="mt-3 rounded-lg border border-[#e5484d]/30 bg-[#e5484d]/8 px-3 py-2 text-[12px] leading-5 text-[#ffb4b6]">
+            <div className="mt-3 rounded-lg border border-[#ff8f8f]/30 bg-[#ff8f8f]/8 px-3 py-2 text-[12px] leading-5 text-[#ffb4b4]">
               Very thin pool: this quote moves the price by {(quote.data.priceImpactBps / 100).toFixed(1)}%. Check the pool before
               signing.
             </div>
@@ -379,7 +380,7 @@ export default function Swap() {
           )}
 
           {chainId !== swapChainId && isConnected && (
-            <button onClick={() => ensureChain(swapChainId)} className="mt-2 w-full text-center text-[11px] text-[#e3c07b] hover:underline">
+            <button onClick={() => ensureChain(swapChainId)} className="mt-2 w-full text-center text-[11px] text-[#e6c17a] hover:underline">
               Wallet is on {getChain(chainId)?.short ?? chainId}, switch to {chain.short} to sign.
             </button>
           )}
@@ -387,14 +388,14 @@ export default function Swap() {
 
         <div className="space-y-3">
           <Card className="p-4">
-            <h3 className="mb-2 text-sm font-semibold text-white">Quote details</h3>
-            {quote.isError && <div className="text-[11px] text-[#ffb4b6]">Quote failed: {(quote.error as Error).message}</div>}
+            <h3 className="mb-2 text-sm font-semibold text-t1">Quote details</h3>
+            {quote.isError && <div className="text-[11px] text-[#ffb4b4]">Quote failed: {(quote.error as Error).message}</div>}
             <Row label="Rate" value={rate > 0 ? `1 ${tokenIn.symbol} ≈ ${rate < 0.0001 ? rate.toExponential(3) : rate.toFixed(6)} ${tokenOut.symbol}` : '-'} />
             <Row
               label="Price impact"
               value={
                 quote.data?.priceImpactBps != null ? (
-                  <span className={quote.data.priceImpactBps > 300 ? 'text-[#e3c07b]' : ''}>{pct(quote.data.priceImpactBps, 2)}</span>
+                  <span className={quote.data.priceImpactBps > 300 ? 'text-[#e6c17a]' : ''}>{pct(quote.data.priceImpactBps, 2)}</span>
                 ) : (
                   '-'
                 )
@@ -411,7 +412,7 @@ export default function Swap() {
           {activity && (
             <Card className="p-4">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Last swap</h3>
+                <h3 className="text-sm font-semibold text-t1">Last swap</h3>
                 <Badge tone={activity.status === 'complete' ? 'mint' : activity.status === 'failed' ? 'red' : 'amber'}>{activity.status}</Badge>
               </div>
               <div className="space-y-1.5">

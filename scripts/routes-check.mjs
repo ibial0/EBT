@@ -5221,7 +5221,7 @@ var CHAINS = [
     color: "#e7e3d4",
     gradient: ["#fef3c7", "#a1803f"],
     faucets: [
-      { label: "No native ETH faucet found", url: "", tokens: ["ETH"], missing: "ETH", note: "Checked 2026-11-25: only an explorer could be found for Codex, no faucet. The explorer is listed on the chain card instead.", note: "No official Codex Testnet faucet was found. The explorer is linked so you can check gas and transactions; get Sepolia ETH and bridge if a route is ever listed." },
+      { label: "No native ETH faucet found", url: "", tokens: ["ETH"], missing: "ETH", note: "Checked 2026-11-25: only an explorer could be found for Codex, no faucet. The explorer is listed on the chain card instead." },
       { label: "Circle USDC Faucet", url: "https://faucet.circle.com", tokens: ["USDC"] }
     ],
     verifiedAt: VERIFIED

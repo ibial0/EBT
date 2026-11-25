@@ -139,6 +139,7 @@ export default function Recover() {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Recovery"
         title="Recover a transfer"
         subtitle="If a bridge stopped after the burn, the USDC is not lost, Circle's message stays valid. Paste the burn transaction hash and this page finishes the mint without burning anything again."
       />
@@ -167,7 +168,7 @@ export default function Recover() {
           </div>
 
           {state.kind === 'pending' && (
-            <div className="mt-3 rounded-[10px] border border-[#e3c07b]/25 bg-[#e3c07b]/8 p-3 text-[11px] leading-relaxed text-[#e3c07b]">
+            <div className="mt-3 rounded-[10px] border border-[#e6c17a]/25 bg-[#e6c17a]/8 p-3 text-[11px] leading-relaxed text-[#e6c17a]">
               <div className="mb-1 flex items-center gap-1.5 font-semibold">
                 <Spinner size={12} /> Circle has not attested this burn yet
               </div>
@@ -176,7 +177,7 @@ export default function Recover() {
           )}
 
           {state.kind === 'error' && (
-            <div className="mt-3 rounded-[10px] border border-[#e5484d]/30 bg-[#e5484d]/8 p-3 text-[11px] leading-relaxed text-[#ffb4b6]">
+            <div className="mt-3 rounded-[10px] border border-[#ff8f8f]/30 bg-[#ff8f8f]/8 p-3 text-[11px] leading-relaxed text-[#ffb4b4]">
               <div className="mb-1 flex items-center gap-1.5 font-semibold">
                 <AlertTriangle size={12} /> {state.detail}
               </div>
@@ -188,7 +189,7 @@ export default function Recover() {
             <div className="mt-4 border-t border-line pt-3">
               <div className="mb-2 flex items-center gap-2">
                 <CheckCircle2 size={15} className="text-accent" />
-                <span className="text-sm font-semibold text-white">Attestation is ready</span>
+                <span className="text-sm font-semibold text-t1">Attestation is ready</span>
                 <Badge tone={state.used ? 'mint' : 'amber'}>{state.used ? 'already minted' : 'not minted yet'}</Badge>
               </div>
               <Row label="Amount" value={`${usd6(state.amount)} USDC`} />
@@ -223,7 +224,7 @@ export default function Recover() {
           {activity && (
             <Card className="p-4">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Recovery progress</h3>
+                <h3 className="text-sm font-semibold text-t1">Recovery progress</h3>
                 <Badge tone={activity.status === 'complete' ? 'mint' : activity.status === 'failed' ? 'red' : 'amber'}>{activity.status}</Badge>
               </div>
               <Timeline steps={activity.steps} />
@@ -234,7 +235,7 @@ export default function Recover() {
           )}
 
           <Card className="p-4">
-            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-white">
+            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-t1">
               <LifeBuoy size={14} className="text-accent" /> How recovery works
             </h3>
             <ol className="list-decimal space-y-1.5 pl-4 text-[11px] leading-relaxed text-t2">
@@ -246,7 +247,7 @@ export default function Recover() {
           </Card>
 
           <Card className="p-4">
-            <h3 className="mb-2 text-sm font-semibold text-white">Common reasons a mint fails</h3>
+            <h3 className="mb-2 text-sm font-semibold text-t1">Common reasons a mint fails</h3>
             <ul className="space-y-1.5 text-[11px] leading-relaxed text-t2">
               <li>· No gas token on the destination (Arc needs USDC for gas, it is the native token there).</li>
               <li>· Wallet submitted a fee below the chain floor (Arc requires ≥20 gwei). The app now sets it explicitly.</li>

@@ -116,7 +116,11 @@ export default function Portfolio() {
   if (!isConnected) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Portfolio" subtitle="Every testnet balance for one wallet. Values are estimated from mainnet spot prices." />
+        <PageHeader
+          eyebrow="Wallet view"
+          title="Portfolio"
+          subtitle="Every testnet balance for one wallet. Values are estimated from mainnet spot prices."
+        />
         <RecoveryPanel />
         <div className="card">
           <Empty
@@ -137,57 +141,60 @@ export default function Portfolio() {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Wallet view"
         title="Portfolio"
-        subtitle="One wallet across every allowlisted testnet. Dollar figures are mainnet estimates, not withdrawable value."
+        subtitle="One wallet across every allowlisted testnet. Dollar figures are estimates, not withdrawable value."
       />
 
       {/* summary */}
       <div className="card p-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
-            <div className="text-[12px] text-t2">{selected ? `${selected.name} value` : 'Total value'}</div>
-            <div className="figure mt-2 text-[44px] leading-[48px] font-medium tracking-[-0.025em] text-t1">
+            <div className="col-head">{selected ? `${selected.name} value` : 'Total testnet value'}</div>
+            <div className="figure mt-2 text-[44px] leading-[48px] font-bold tracking-[-0.03em] text-t1">
               {portfolio.isLoading ? <span className="skeleton inline-block h-10 w-44 align-middle" /> : usd(selected ? scopedUsd : totalUsd)}
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-t3">
-              <span>
-                {assets(scoped.length)} in {network === 'all' ? networkTotals.size : 1}{' '}
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
+                {assets(scoped.length)} assets / {network === 'all' ? networkTotals.size : 1}{' '}
                 {(network === 'all' ? networkTotals.size : 1) === 1 ? 'network' : 'networks'}
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="dot" style={{ background: prices.data?.live ? '#4cc38a' : '#85858b' }} />
-                {prices.data?.live ? 'Live prices' : 'Estimated prices'}
+              <span className="mono flex items-center gap-1.5 text-[12px] uppercase tracking-[0.6px] text-t2">
+                <span className={`size-1.5 rotate-45 border ${prices.data?.live ? 'border-pos' : 'border-t3'}`} />
+                {prices.data?.live ? 'Live prices' : 'Estimated'}
               </span>
-              {unpriced > 0 && <span className="text-[#e3c07b]">{unpriced} unpriced</span>}
+              {unpriced > 0 && (
+                <span className="mono text-[12px] uppercase tracking-[0.6px] text-warn">{unpriced} unpriced</span>
+              )}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setPickNetwork(true)}
-              className="flex h-10 items-center gap-2 rounded-lg border border-line bg-ink-850 px-3 text-[13px] text-t1 transition-colors hover:border-line-strong hover:bg-ink-700"
+              className="flex h-[38px] items-center gap-2 rounded-lg border border-line-strong bg-ink-850 px-3 text-[14px] text-t1 transition-colors hover:border-[#3f4a66] hover:bg-ink-700"
             >
-              {selected ? <ChainLogo chain={selected} size={18} /> : <span className="dot" style={{ background: '#85858b' }} />}
+              {selected ? <ChainLogo chain={selected} size={18} /> : <span className="size-1.5 rotate-45 border border-t3" />}
               {selected ? selected.short : 'All networks'}
-              <ChevronDown size={13} className="text-t3" />
+              <ChevronDown size={13} className="text-t2" />
             </button>
-            <div className="flex h-10 items-center rounded-lg border border-line bg-ink-850 p-0.5">
+            <div className="flex h-[38px] items-center rounded-lg border border-line-strong bg-ink-850 p-0.5">
               {(['usd', 'token'] as View[]).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`h-8 rounded-md px-3 text-[12px] transition-colors ${
-                    view === v ? 'bg-ink-700 text-t1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]' : 'text-t3 hover:text-t1'
+                  className={`mono h-[32px] rounded-md px-3 text-[12px] uppercase tracking-[0.6px] transition-colors ${
+                    view === v ? 'bg-accent text-[#111628]' : 'text-t2 hover:text-t1'
                   }`}
                 >
                   {v === 'usd' ? 'USD' : 'Token'}
                 </button>
               ))}
             </div>
-            <Button variant="secondary" onClick={() => portfolio.refetch()} loading={portfolio.isFetching} className="h-10">
+            <Button variant="secondary" onClick={() => portfolio.refetch()} loading={portfolio.isFetching}>
               <RefreshCw size={14} /> Refresh
             </Button>
-            <div className="mono w-full text-right text-[11px] text-t3">
+            <div className="mono w-full text-right text-[12px] uppercase tracking-[0.6px] text-t3">
               {prices.data?.at ? `prices ${new Date(prices.data.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · DefiLlama` : ''}
             </div>
           </div>
@@ -199,15 +206,15 @@ export default function Portfolio() {
 
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-10 w-full max-w-[420px] items-center gap-2 rounded-lg border border-line bg-ink-850 px-3">
-          <Search size={15} className="text-t3" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search asset or network" className="input text-[13px]" />
+        <div className="field flex h-[38px] w-full max-w-[420px] items-center gap-2 px-3">
+          <Search size={15} className="text-t2" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search asset or network" className="input text-[14px]" />
         </div>
-        <label className="ml-auto flex h-10 cursor-pointer items-center gap-2.5 rounded-lg border border-line bg-ink-850 px-3 text-[12px] text-t2">
-          <input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} className="h-3.5 w-3.5 accent-[#6aa6ff]" />
+        <label className="ml-auto flex h-[38px] cursor-pointer items-center gap-2.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[13px] text-t2">
+          <input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} className="size-3.5 accent-[#abb8ff]" />
           Empty networks
         </label>
-        <span className="mono flex h-10 items-center gap-1 rounded-lg border border-line bg-ink-850 px-3 text-[11px] text-t3">
+        <span className="mono flex h-[38px] items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[12px] text-t2">
           {shortAddr(address, 4)}
           <button onClick={() => { navigator.clipboard?.writeText(address ?? ''); notify('Address copied', 'success') }} className="hover:text-t1">
             <Copy size={12} />
@@ -220,7 +227,7 @@ export default function Portfolio() {
           <Spinner /> Reading {CHAINS.length} chains, five at a time
         </div>
       )}
-      {portfolio.isError && <div className="card p-4 text-[13px] text-[#ffb4b6]">Portfolio failed: {(portfolio.error as Error).message}</div>}
+      {portfolio.isError && <div className="card p-4 text-[13px] text-[#ffb4b4]">Portfolio failed: {(portfolio.error as Error).message}</div>}
 
       {/* network groups */}
       <div className="space-y-3">
@@ -235,16 +242,16 @@ export default function Portfolio() {
 
           return (
             <section key={chain.id} className="card overflow-hidden">
-              <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-                <ChainLogo chain={chain} size={24} />
+              <header className="flex items-center gap-3 border-b border-line-strong px-5 py-3.5">
+                <ChainLogo chain={chain} size={26} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-[14px] font-medium text-t1">{chain.name}</h2>
+                    <h2 className="display text-[16px] leading-6 text-t1">{chain.name}</h2>
                     {chain.nativeIsUsdc && <Badge tone="blue">USDC gas</Badge>}
                     {holding?.nativeError && <Badge tone="amber">RPC error</Badge>}
                   </div>
-                  <div className="mono text-[11px] text-t3">
-                    chain {chain.id} <span className="text-line-strong"> · </span> {holding?.ms ?? 0} ms
+                  <div className="mono mt-0.5 text-[12px] uppercase tracking-[0.6px] text-t2">
+                    chain {chain.id} <span className="text-t3"> · </span> {holding?.ms ?? 0} ms
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -266,8 +273,8 @@ export default function Portfolio() {
                   </button>
                 </div>
                 <div className="min-w-[92px] text-right">
-                  <div className="figure text-[15px] font-medium text-t1">{usd(chainUsd)}</div>
-                  <div className="text-[11px] text-t3">{assets(networkTotals.get(chain.id)?.count ?? 0)}</div>
+                  <div className="display text-[18px] leading-7 text-t1">{usd(chainUsd)}</div>
+                  <div className="mono text-[12px] uppercase tracking-[0.6px] text-t2">{assets(networkTotals.get(chain.id)?.count ?? 0)}</div>
                 </div>
               </header>
 
@@ -330,15 +337,15 @@ function AssetRow({ row, view }: { row: Row; view: View }) {
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[14px] text-t1">{row.symbol}</span>
+          <span className="text-[14px] font-semibold text-t1">{row.symbol}</span>
           {!row.verified && <Badge tone="amber">custom</Badge>}
-          {row.usdValue == null && (row.amount ?? 0n) > 0n && <span className="text-[11px] text-t3">no price</span>}
+          {row.usdValue == null && (row.amount ?? 0n) > 0n && <span className="chip !h-5 !px-1.5 !text-[10px]">no price</span>}
         </div>
-        <div className="truncate text-[12px] text-t3">
+        <div className="truncate text-[12px] leading-4 text-t2">
           {row.name.replace(' (native)', '')}
           {row.address ? (
             <>
-              {' · '}
+              <span className="text-t3"> · </span>
               <span className="inline-flex items-center gap-0.5">
                 <a
                   href={`${chain.viem.blockExplorers?.default?.url}/token/${row.address}`}
@@ -352,24 +359,24 @@ function AssetRow({ row, view }: { row: Row; view: View }) {
               </span>
             </>
           ) : (
-            ' · native'
+            <span className="text-t3"> · native gas token</span>
           )}
         </div>
       </div>
-      <div className="min-w-[140px] text-right">
+      <div className="min-w-[150px] text-right">
         {view === 'usd' ? (
           <>
-            <div className="figure text-[14px] text-t1">{row.usdValue == null ? '-' : usd(row.usdValue)}</div>
-            <div className="figure text-[12px] text-t3">
+            <div className="display text-[15px] leading-5 text-t1">{row.usdValue == null ? '—' : usd(row.usdValue)}</div>
+            <div className="mono text-[12px] leading-4 text-t2">
               {amountText} {row.symbol}
             </div>
           </>
         ) : (
           <>
-            <div className="figure text-[14px] text-t1">
+            <div className="display text-[15px] leading-5 text-t1">
               {amountText} {row.symbol}
             </div>
-            <div className="figure text-[12px] text-t3">{row.usdValue == null ? '-' : usd(row.usdValue)}</div>
+            <div className="mono text-[12px] leading-4 text-t2">{row.usdValue == null ? '—' : usd(row.usdValue)}</div>
           </>
         )}
       </div>

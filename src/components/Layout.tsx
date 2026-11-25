@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from 'wagmi'
 import { getChain } from '../config/chains'
-import { Button, Badge, notify, CopyButton, ChainLogo, StatusDot } from './ui'
+import { Button, Badge, notify, CopyButton, ChainLogo, StatusDot, EbtMark } from './ui'
 import { shortAddr } from '../lib/format'
 import { WALLETCONNECT_NOTE } from '../lib/wallet'
 import { NotificationBell } from './NotificationBell'
@@ -60,14 +60,14 @@ export function Layout() {
       {/* desktop sidebar */}
       <aside
         className={clsx(
-          'fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-line bg-ink-950 py-4 transition-[width] duration-200 lg:flex',
-          collapsed ? 'w-[76px] px-2' : 'w-[256px] px-3',
+          'fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-line-strong bg-ink-850 py-6 transition-[width] duration-200 lg:flex',
+          collapsed ? 'w-[76px] px-2' : 'w-[256px] px-4',
         )}
       >
         <Brand compact={collapsed} onToggle={() => setCollapsed((v) => !v)} />
 
-        <div className={collapsed ? 'mt-5' : 'mt-7'}>
-          {!collapsed && <div className="label mb-2 px-2.5">Navigation</div>}
+        <div className={collapsed ? 'mt-6' : 'mt-8'}>
+          {!collapsed && <div className="col-head mb-2 px-2.5">Console</div>}
           <nav className="flex flex-col gap-0.5">
             {NAV.map((n) => (
               <NavLink
@@ -86,23 +86,22 @@ export function Layout() {
             ))}
           </nav>
         </div>
-        <div className={clsx('mt-auto pb-1', collapsed ? 'px-0' : 'px-2.5')}>
-          <div className="hairline mb-3" />
+        <div className={clsx('mt-auto pb-1', collapsed ? 'px-0' : 'px-0')}>
           {collapsed ? (
             <div className="flex justify-center" title="Testnet only">
               <StatusDot tone="mint" />
             </div>
           ) : (
-            <>
-              <div className="flex items-center gap-2 text-[12px] text-t3">
-                <StatusDot tone="mint" />
-                Testnet only
+            <div className="rounded-[10px] border border-line bg-ink-800 p-3">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rotate-45 border border-pos" />
+                <span className="text-[12px] font-semibold text-t1">Testnet only</span>
               </div>
               <p className="mt-2 text-[12px] leading-5 text-t2">
                 Mainnet chains are rejected before a transaction is built. No custody, no backend.
               </p>
               <div className="mono mt-2 text-[11px] text-t3">build {APP_VERSION}</div>
-            </>
+            </div>
           )}
         </div>
       </aside>
@@ -170,22 +169,15 @@ export function Layout() {
   )
 }
 
-/** The mark is the app's own: mint bars on a dark tile. Clicking it toggles the rail. */
+/** The EBT mark from the design file: diamond + Xi. Clicking it toggles the rail. */
 function Brand({ compact, onToggle }: { compact?: boolean; onToggle?: () => void }) {
   const inner = (
     <>
-      <img
-        src="/logos/ebt.svg"
-        alt="EBT"
-        width={34}
-        height={34}
-        className="shrink-0 rounded-[10px] ring-1 ring-white/10"
-        draggable={false}
-      />
+      <EbtMark size={compact ? 34 : 38} />
       {!compact && (
         <div className="leading-tight">
-          <div className="text-[16px] font-medium tracking-tight text-t1">EBT</div>
-          <div className="text-[11px] text-t3">Testnet bridge</div>
+          <div className="display text-[16px] leading-6 tracking-[-0.4px] text-t1">EBT</div>
+          <div className="text-[12px] leading-4 text-t2">Testnet bridge</div>
         </div>
       )}
     </>
@@ -239,7 +231,7 @@ export function ConnectButton({ compact, full }: { compact?: boolean; full?: boo
               <p className="mb-4 text-[12px] leading-5 text-t2">{WALLETCONNECT_NOTE}</p>
               <div className="space-y-2">
                 {injected.length === 0 && (
-                  <div className="rounded-lg border border-[#e3c07b]/30 bg-[#1a1710] p-3 text-[12px] leading-5 text-[#e3c07b]">
+                  <div className="rounded-lg border border-[#e6c17a]/30 bg-[#1a1710] p-3 text-[12px] leading-5 text-[#e6c17a]">
                     No browser wallet detected. Install MetaMask, Rabby or Coinbase Wallet, then reload.
                   </div>
                 )}
@@ -327,7 +319,7 @@ export function ConnectButton({ compact, full }: { compact?: boolean; full?: boo
                 disconnect()
                 setOpen(false)
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#ffb4b6] transition-colors hover:bg-[#e5484d]/10"
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#ffb4b4] transition-colors hover:bg-[#ff8f8f]/10"
             >
               <LogOut size={14} /> Disconnect
             </button>
@@ -338,14 +330,26 @@ export function ConnectButton({ compact, full }: { compact?: boolean; full?: boo
   )
 }
 
-export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
+export function PageHeader({
+  title,
+  subtitle,
+  eyebrow,
+  right,
+}: {
+  title: string
+  subtitle?: string
+  /** small mono label above the title, e.g. "Operations console" */
+  eyebrow?: string
+  right?: React.ReactNode
+}) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-[26px] leading-8 font-medium tracking-[-0.015em] text-t1">{title}</h1>
-        {subtitle && <p className="mt-1.5 max-w-[62ch] text-[13px] leading-5 text-t2">{subtitle}</p>}
+    <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0">
+        {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
+        <h1 className="display text-[32px] leading-10 tracking-[-0.02em] text-t1">{title}</h1>
+        {subtitle && <p className="mt-2 max-w-[68ch] text-[14px] leading-5 text-t2">{subtitle}</p>}
       </div>
-      {right}
+      {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
     </div>
   )
 }

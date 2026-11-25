@@ -27,20 +27,15 @@ import { fmt } from '../lib/format'
 type Level = 'all' | 'active' | 'drained'
 type StatusFilter = 'all' | 'active' | 'drained' | 'unreachable'
 
-/** small provider pills used by the coverage matrix */
+/** protocol list for a coverage row: plain labels, joined, accent on CCTP */
 function Tags({ tags, empty }: { tags: { key: string; label: string }[]; empty: string }) {
-  if (tags.length === 0) return <span className="text-t3">{empty}</span>
-  const tone: Record<string, string> = {
-    cctp: 'border-accent/30 text-accent',
-    portal: 'border-[#e3c07b]/30 text-[#e3c07b]',
-    orbit: 'border-[#a78bfa]/30 text-[#c4b5fd]',
-    swap: 'border-[#4cc38a]/30 text-[#7fd6a8]',
-  }
+  if (tags.length === 0) return <span className="text-[13px] text-t3">{empty}</span>
   return (
-    <span className="flex flex-wrap gap-1">
-      {tags.map((t) => (
-        <span key={t.key} className={`rounded border px-1 text-[9px] leading-4 ${tone[t.key] ?? 'border-line text-t3'}`}>
-          {t.label}
+    <span className="text-[13px] leading-5 text-t2">
+      {tags.map((t, i) => (
+        <span key={t.key}>
+          {i > 0 && <span className="text-t3"> · </span>}
+          <span className={t.key === 'cctp' ? 'text-accent' : undefined}>{t.label}</span>
         </span>
       ))}
     </span>
@@ -76,6 +71,14 @@ export default function Overview() {
     }
   }, [])
   const okCount = health.data?.filter((h) => h.ok).length ?? 0
+  /** median probe latency, so the strip reports a real number instead of a decoration */
+  const medianMs = useMemo(() => {
+    const xs = (health.data ?? [])
+      .filter((h) => h.ok && typeof h.latencyMs === 'number')
+      .map((h) => h.latencyMs as number)
+      .sort((a, b) => a - b)
+    return xs.length === 0 ? null : xs[Math.floor(xs.length / 2)]
+  }, [health.data])
   const activity = listActivity()
 
   const stats = [
@@ -88,17 +91,18 @@ export default function Overview() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Overview"
-        subtitle="A single console for testnet money: Circle CCTP for native USDC, Uniswap v3 for same-chain swaps, and OP Stack portals for ETH deposits. No new protocol, no custody, no mainnet."
+        eyebrow="Operations console"
+        title="Testnet bridge overview"
+        subtitle="Circle CCTP, same-chain swaps, and OP Stack deposits across approved testnet infrastructure."
         right={
           <div className="flex gap-2">
-            <Link to="/bridge">
-              <Button>
-                Bridge <ArrowRight size={15} />
-              </Button>
+            <Link to="/portfolio">
+              <Button variant="secondary">Portfolio</Button>
             </Link>
-            <Link to="/swap">
-              <Button variant="secondary">Swap</Button>
+            <Link to="/bridge">
+              <Button variant="primary">
+                Start bridge <ArrowRight size={15} />
+              </Button>
             </Link>
           </div>
         }
@@ -106,19 +110,28 @@ export default function Overview() {
 
       {/* status strip */}
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-2 text-sm">
-            <StatusDot tone={health.isLoading ? 'amber' : okCount === CHAINS.length ? 'mint' : 'amber'} />
-            <span className="font-medium text-t1">
-              {health.isLoading ? 'Probing public RPCs…' : `${okCount}/${CHAINS.length} testnet RPCs responding`}
+        <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5">
+          <div className="flex items-center gap-3">
+            <span className="grid size-7 place-items-center">
+              <span
+                className={`size-2.5 rotate-45 border ${okCount === CHAINS.length ? 'border-pos' : 'border-warn'}`}
+              />
             </span>
-            {health.isLoading && <Spinner size={13} />}
+            <div>
+              <div className="flex items-center gap-2 text-[14px] font-semibold text-t1">
+                {health.isLoading ? 'Probing public RPCs…' : `${okCount}/${CHAINS.length} testnet RPCs responding`}
+                {health.isLoading && <Spinner size={13} />}
+              </div>
+              <div className="text-[12px] leading-4 text-t2">
+                {medianMs == null ? 'Read from the browser, no backend' : `Median response ${medianMs} ms`}
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="mint">CCTP v2 · live</Badge>
-            <Badge tone="blue">Uniswap v3 · live</Badge>
-            <Badge tone="amber">OP deposit · limited</Badge>
-            <Badge tone="red">Mainnet · blocked</Badge>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="chip chip-accent">CCTP v2 · live</span>
+            <span className="chip chip-accent">Uniswap v3 · live</span>
+            <span className="chip">OP deposit · limited</span>
+            <span className="chip">Mainnet · blocked</span>
           </div>
         </div>
       </Card>
@@ -126,10 +139,10 @@ export default function Overview() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <Card key={s.label} className="p-4">
-            <s.icon size={16} className="text-accent" />
-            <div className="mt-3 text-2xl font-bold tracking-tight text-white">{s.value}</div>
-            <div className="text-xs font-medium text-t1">{s.label}</div>
-            <div className="mt-0.5 text-[11px] text-t3">{s.hint}</div>
+            <s.icon size={16} className="text-accent" strokeWidth={1.9} />
+            <div className="display mt-3 text-[34px] leading-10 tracking-[-0.02em] text-t1">{s.value}</div>
+            <div className="text-[14px] font-semibold leading-5 text-t1">{s.label}</div>
+            <div className="mt-0.5 text-[12px] leading-4 text-t2">{s.hint}</div>
           </Card>
         ))}
       </div>
@@ -137,43 +150,38 @@ export default function Overview() {
       <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
         {/* bridge coverage: which chains can move value, and through what */}
         <Card className="overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
             <div>
-              <h2 className="text-sm font-semibold text-white">Bridge coverage</h2>
-              <p className="mt-0.5 text-[11px] text-t3">
-                Which chains can send, which can only receive, and which provider does it. Built from the
-                registry, so it cannot drift from what the app will actually let you sign.
-              </p>
+              <h2 className="display text-[18px] leading-7 text-t1">Bridge coverage</h2>
+              <p className="mt-0.5 text-[14px] leading-5 text-t2">Supported routes from the registry.</p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Badge tone="mint">{counts.canSend} send</Badge>
-              <Badge tone="blue">{counts.canReceive} receive</Badge>
-              <Badge tone={counts.isolated ? 'amber' : 'default'}>{counts.isolated} isolated</Badge>
-            </div>
+            <span className="chip chip-accent mt-1">
+              {counts.canSend} send · {counts.canReceive} receive
+            </span>
           </div>
-          <div className="max-h-[420px] overflow-y-auto">
-            <table className="w-full text-[12px]">
-              <thead className="sticky top-0 bg-ink-800/95 backdrop-blur">
-                <tr className="text-left text-[10px] uppercase tracking-wide text-t3">
-                  <th className="px-4 py-2 font-medium">Chain</th>
-                  <th className="px-2 py-2 font-medium">Can send</th>
-                  <th className="px-2 py-2 font-medium">Can receive</th>
+          <div className="max-h-[430px] overflow-y-auto">
+            <table className="w-full">
+              <thead className="sticky top-0 bg-ink-800">
+                <tr className="border-y border-line-strong text-left">
+                  <th className="col-head px-5 py-2.5 font-normal">Chain</th>
+                  <th className="col-head px-3 py-2.5 font-normal">Can send</th>
+                  <th className="col-head px-3 py-2.5 font-normal">Can receive</th>
                 </tr>
               </thead>
               <tbody>
                 {coverage.map((row) => (
-                  <tr key={row.chain.id} className="border-t border-line/60 hover:bg-ink-850/60">
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-2">
-                        <ChainLogo chain={row.chain} size={20} />
-                        <span className="truncate text-t1">{row.chain.name}</span>
-                        <span className="mono shrink-0 text-[10px] text-t3">{row.chain.id}</span>
+                  <tr key={row.chain.id} className="border-b border-line last:border-0 hover:bg-ink-700/50">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <ChainLogo chain={row.chain} size={22} />
+                        <span className="truncate text-[14px] font-medium text-t1">{row.chain.name}</span>
+                        <span className="mono shrink-0 text-[12px] text-t3">{row.chain.id}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-3 py-3">
                       <Tags tags={row.send} empty="—" />
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-3 py-3">
                       <Tags tags={row.receive} empty="—" />
                     </td>
                   </tr>
@@ -181,9 +189,9 @@ export default function Overview() {
               </tbody>
             </table>
           </div>
-          <div className="border-t border-line px-4 py-2.5 text-[11px] leading-5 text-t3">
-            A chain with no badge in either column cannot move value yet: no verified provider covers it. Nothing
-            is faked to fill the gap.
+          <div className="border-t border-line-strong px-5 py-3 text-[12px] leading-5 text-t2">
+            {counts.isolated} chain{counts.isolated === 1 ? '' : 's'} can move nothing in either direction yet: no
+            verified provider covers them, and nothing is faked to fill the gap.
           </div>
         </Card>
 
@@ -192,23 +200,17 @@ export default function Overview() {
           {PROVIDERS.map((p) => (
             <Card key={p.id} className="p-4">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-sm font-semibold text-white">{p.name}</div>
-                  <div className="text-[11px] text-t2">{p.tagline}</div>
-                </div>
+                <h3 className="display text-[16px] leading-6 text-t1">{p.name}</h3>
                 <Badge tone={p.status === 'live' ? 'mint' : p.status === 'limited' ? 'amber' : 'red'}>{p.status}</Badge>
               </div>
-              <div className="mt-2.5 flex flex-wrap gap-1">
-                {p.capabilities.map((c) => (
-                  <span key={c} className="chip !text-[10px]">
-                    {c}
-                  </span>
-                ))}
+              <p className="mt-1 text-[14px] leading-5 text-t2">{p.tagline}</p>
+              <div className="mono mt-2.5 text-[12px] uppercase tracking-[0.6px] text-accent">
+                {p.capabilities.join(' · ')}
               </div>
-              <div className="mt-2.5 flex items-center justify-between text-[10px] text-t3">
+              <div className="mt-2.5 flex items-center justify-between text-[12px] text-t3">
                 <span>{p.chains}</span>
                 <a href={p.docs} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-accent">
-                  docs <ArrowUpRight size={10} />
+                  docs <ArrowUpRight size={11} />
                 </a>
               </div>
             </Card>
@@ -219,12 +221,12 @@ export default function Overview() {
 
       {/* liquidity overview */}
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-white">Liquidity by chain</h2>
-            <p className="mt-0.5 text-[11px] text-t3">
-              Reserves read from the pool contracts, not from an aggregator. Testnet tokens have no market
-              price, so depth is shown in tokens, never in dollars.
+            <h2 className="display text-[18px] leading-7 text-t1">Liquidity by chain</h2>
+            <p className="mt-0.5 max-w-[80ch] text-[14px] leading-5 text-t2">
+              Reserves read from the pool contracts, not from an aggregator. Testnet tokens have no market price, so
+              depth is shown in tokens, never in dollars.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -278,7 +280,7 @@ export default function Overview() {
             ]}
           />
           <label className="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-line bg-ink-850 px-3 text-[12px] text-t2">
-            <input type="checkbox" checked={dexOnly} onChange={(e) => setDexOnly(e.target.checked)} className="h-3.5 w-3.5 accent-[#6aa6ff]" />
+            <input type="checkbox" checked={dexOnly} onChange={(e) => setDexOnly(e.target.checked)} className="h-3.5 w-3.5 accent-[#abb8ff]" />
             Verified venues only
           </label>
         </div>
@@ -288,7 +290,7 @@ export default function Overview() {
 
       {/* how it works */}
       <Card className="p-4">
-        <h2 className="mb-3 text-sm font-semibold text-white">How a transfer runs</h2>
+        <h2 className="mb-3 text-sm font-semibold text-t1">How a transfer runs</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { t: '1 · Quote', d: 'USDC fee comes from Circle Iris. Swap output comes from an on-chain QuoterV2 call. Nothing is simulated or mocked.' },
@@ -306,7 +308,7 @@ export default function Overview() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-4">
-          <h2 className="mb-1 text-sm font-semibold text-white">Recent activity</h2>
+          <h2 className="mb-1 text-sm font-semibold text-t1">Recent activity</h2>
           <p className="mb-3 text-[11px] text-t3">Stored locally in this browser. Nothing leaves your machine.</p>
           {activity.length === 0 ? (
             <div className="rounded-[10px] border border-dashed border-line px-4 py-8 text-center text-xs text-t3">
@@ -331,7 +333,7 @@ export default function Overview() {
         </Card>
 
         <Card className="p-4">
-          <h2 className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-white">
+          <h2 className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-t1">
             <ShieldCheck size={14} className="text-accent" /> Deliberately not integrated
           </h2>
           <p className="mb-3 text-[11px] text-t3">Researched, verified unavailable, and left out rather than faked.</p>
@@ -479,7 +481,7 @@ function LiquidityTable({
                   <span className="ml-1 text-[11px] text-t3">{p.symbol1}</span>
                 </td>
                 <td className="px-3 py-2.5 figure text-right">
-                  <span className={p.status === 'active' ? 'text-t1' : 'text-[#ffb4b6]'}>
+                  <span className={p.status === 'active' ? 'text-t1' : 'text-[#ffb4b4]'}>
                     {p.depth == null ? '-' : p.depth.toFixed(4)}
                   </span>
                 </td>

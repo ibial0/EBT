@@ -48,10 +48,10 @@ export function Toaster() {
           className={clsx(
             'enter rounded-[10px] border px-4 py-3 text-[13px] leading-5',
             t.tone === 'error'
-              ? 'border-[#e5484d]/40 bg-[#1b1113] text-[#ffb4b6]'
+              ? 'border-[#ff8f8f]/40 bg-[#241519] text-[#ffb4b4]'
               : t.tone === 'success'
-                ? 'border-[#4cc38a]/35 bg-[#111a15] text-[#c7ebd8]'
-                : 'border-line bg-ink-800 text-t1',
+                ? 'border-[#6adbb6]/40 bg-[#121d1a] text-[#a8ecd6]'
+                : 'border-line-strong bg-ink-800 text-t1',
           )}
         >
           {t.msg}
@@ -62,6 +62,26 @@ export function Toaster() {
 }
 
 /* ───────────────────────── primitives ───────────────────────── */
+
+/**
+ * The EBT mark: a hairline diamond with the Xi glyph in it, exactly as drawn in the design
+ * file. It is drawn with borders instead of an image so it stays crisp at any size and picks
+ * up the accent colour automatically.
+ */
+export function EbtMark({ size = 40 }: { size?: number }) {
+  const inner = size * 0.7
+  return (
+    <span className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }} aria-hidden="true">
+      <span
+        className="absolute border border-accent"
+        style={{ width: inner, height: inner, transform: 'rotate(45deg)' }}
+      />
+      <span className="display relative text-accent" style={{ fontSize: Math.round(size * 0.45), lineHeight: 1 }}>
+        Ξ
+      </span>
+    </span>
+  )
+}
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={clsx('card', className)}>{children}</div>
@@ -109,10 +129,10 @@ export function Badge({
     <span
       className={clsx(
         'chip',
-        tone === 'mint' && 'border-[#4cc38a]/30 text-[#a8e5c4]',
-        tone === 'amber' && 'border-[#e3c07b]/30 text-[#e3c07b]',
-        tone === 'red' && 'border-[#e5484d]/30 text-[#ffb4b6]',
-        tone === 'blue' && 'border-[#6aa6ff]/30 text-[#b7d3ff]',
+        tone === 'mint' && 'border-[#6adbb6]/35 text-[#6adbb6]',
+        tone === 'amber' && 'border-[#e6c17a]/35 text-[#e6c17a]',
+        tone === 'red' && 'border-[#ff8f8f]/35 text-[#ff8f8f]',
+        tone === 'blue' && 'border-[#abb8ff]/40 text-[#abb8ff]',
         className,
       )}
     >
@@ -280,7 +300,7 @@ export function Empty({ icon, title, hint }: { icon?: ReactNode; title: string; 
 }
 
 export function StatusDot({ tone, live }: { tone: 'mint' | 'amber' | 'red' | 'slate'; live?: boolean }) {
-  const c = tone === 'mint' ? '#4cc38a' : tone === 'amber' ? '#e3c07b' : tone === 'red' ? '#e5484d' : '#85858b'
+  const c = tone === 'mint' ? '#6adbb6' : tone === 'amber' ? '#e6c17a' : tone === 'red' ? '#ff8f8f' : '#85858b'
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="dot" style={{ background: c, boxShadow: live ? `0 0 0 3px ${c}1a` : undefined }} />
@@ -289,5 +309,5 @@ export function StatusDot({ tone, live }: { tone: 'mint' | 'amber' | 'red' | 'sl
 }
 
 export function CheckLine({ ok }: { ok: boolean }) {
-  return ok ? <Check size={14} className="text-[#4cc38a]" /> : <X size={14} className="text-[#e5484d]" />
+  return ok ? <Check size={14} className="text-[#6adbb6]" /> : <X size={14} className="text-[#ff8f8f]" />
 }
