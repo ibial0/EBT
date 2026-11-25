@@ -159,7 +159,6 @@ export default function Portfolio() {
           title="Portfolio"
           subtitle="Every testnet balance for one wallet. Values are estimated from mainnet spot prices."
         />
-        <RecoveryPanel />
         <div className="card">
           <Empty
             icon={<Wallet size={32} strokeWidth={1.25} />}

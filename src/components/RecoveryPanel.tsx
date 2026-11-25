@@ -9,8 +9,15 @@ import { useActivity } from '../lib/activity'
 import { recoverAll, recoverOne, scanRecoverables } from '../lib/recovery'
 
 export function RecoveryPanel({ compact }: { compact?: boolean }) {
-  const items = useActivity()
   const { address } = useAccount()
+  const records = useActivity()
+  /**
+   * Recovery is personal: only entries belonging to the wallet that is connected right now.
+   * Without this a disconnected browser still showed the previous wallet's claimable USDC.
+   */
+  const items = address
+    ? records.filter((i) => i.owner?.toLowerCase() === address.toLowerCase())
+    : []
   const chainId = useChainId()
   const { switchChainAsync } = useSwitchChain()
   const [busy, setBusy] = useState<string | null>(null)
@@ -23,9 +30,9 @@ export function RecoveryPanel({ compact }: { compact?: boolean }) {
   })
 
   const scan = useQuery({
-    queryKey: ['recoverables', items.map((i) => `${i.id}:${i.updatedAt}`).join('|')],
+    queryKey: ['recoverables', address, items.map((i) => `${i.id}:${i.updatedAt}`).join('|')],
     queryFn: scanRecoverables,
-    enabled: hasCandidates,
+    enabled: Boolean(address) && hasCandidates,
     staleTime: 30_000,
     retry: 0,
   })

@@ -47,12 +47,12 @@ export function Layout() {
   })
   const location = useLocation()
   useEffect(() => setMobileOpen(false), [location.pathname])
-  // the tab must name the screen you are on: "EBT — Portfolio", not one static string
+  // the tab must name the screen you are on: "EBT | Portfolio", never a dash
   useEffect(() => {
     const label = NAV.find((n) => n.to === location.pathname)?.label
     const extra: Record<string, string> = { '/recover': 'Recover' }
     const title = label ?? extra[location.pathname]
-    document.title = title ? `EBT — ${title}` : 'EBT'
+    document.title = title ? `EBT | ${title}` : 'EBT'
   }, [location.pathname])
   useEffect(() => {
     try {
@@ -67,7 +67,7 @@ export function Layout() {
       {/* desktop sidebar */}
       <aside
         className={clsx(
-          'fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-line-strong bg-ink-850 py-6 transition-[width] duration-200 lg:flex',
+          'fixed left-0 top-0 z-40 hidden h-dvh flex-col overflow-hidden border-r border-line-strong bg-ink-850 py-6 transition-[width,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex',
           collapsed ? 'w-[76px] px-2' : 'w-[256px] px-4',
         )}
       >
@@ -147,15 +147,13 @@ export function Layout() {
         </div>
       )}
 
-      <main className={clsx('transition-[padding] duration-200', collapsed ? 'lg:pl-[76px]' : 'lg:pl-[256px]')}>
-        <div className="sticky top-0 z-30 hidden h-14 items-center justify-end gap-3 border-b border-line bg-ink-900 px-6 lg:flex">
+      <main className={clsx('transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]', collapsed ? 'lg:pl-[76px]' : 'lg:pl-[256px]')}>
+        <div className="sticky top-0 z-30 hidden h-14 items-center justify-end gap-3 border-b border-line-strong bg-ink-900 px-6 lg:flex">
           <NotificationBell />
           <ConnectButton />
         </div>
         <div className="mx-auto w-full max-w-[1240px] px-4 pb-24 pt-6 sm:px-8 lg:pb-16">
-          <div key={location.pathname} className="enter">
-            <Outlet />
-          </div>
+          <Outlet />
         </div>
       </main>
 
@@ -182,21 +180,26 @@ export function Layout() {
 function Brand({ compact, onToggle }: { compact?: boolean; onToggle?: () => void }) {
   const inner = (
     <>
-      <EbtMark size={compact ? 34 : 38} className="text-accent" />
-      {!compact && (
-        <div className="leading-tight">
-          <div className="display text-[16px] leading-6 tracking-[-0.4px] text-t1">EBT</div>
-          <div className="text-[12px] leading-4 text-t2">Testnet bridge</div>
-        </div>
-      )}
+      <EbtMark size={compact ? 38 : 44} className="text-accent shrink-0" />
+      <div
+        className={clsx(
+          'min-w-0 overflow-hidden leading-tight transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          compact ? 'w-0 opacity-0' : 'w-auto opacity-100',
+        )}
+      >
+        {/* positive tracking so the three letters never touch */}
+        <div className="display whitespace-nowrap text-[22px] font-bold leading-7 tracking-[0.06em] text-t1">EBT</div>
+        <div className="mt-1 whitespace-nowrap text-[12px] leading-4 text-t2">Easy Bridge Testnet</div>
+      </div>
     </>
   )
-  if (!onToggle) return <div className={clsx('flex items-center gap-2.5', !compact && 'px-1')}>{inner}</div>
+  if (!onToggle)
+    return <div className={clsx('flex items-center gap-3', !compact && 'px-1')}>{inner}</div>
   return (
     <button
       onClick={onToggle}
       className={clsx(
-        'flex items-center gap-2.5 rounded-lg py-1 pr-1 transition-colors hover:bg-ink-700',
+        'flex items-center gap-3 rounded-lg py-1 transition-colors hover:bg-ink-700',
         compact ? 'justify-center px-0' : 'px-1.5',
       )}
       title="Toggle sidebar"
