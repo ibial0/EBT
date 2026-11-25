@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowDownUp, Check, ChevronDown, Info, Route as RouteIcon, UserRoundPlus, Wallet, X } from 'lucide-react'
+import { AlertTriangle, ArrowDownUp, Check, ChevronDown, Info, Plus, Route as RouteIcon, UserRoundPlus, Wallet, X } from 'lucide-react'
 import { formatUnits } from 'viem'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { getPublicClient, getWalletClient } from 'wagmi/actions'
@@ -579,9 +579,14 @@ export default function Bridge() {
                   <span className="display text-[16px] text-t1">{dest?.symbol ?? 'pick'}</span>
                   <ChevronDown size={15} className="text-t2" />
                 </button>
-                <span className="mono text-[11px] leading-none text-t2">
-                  {estimate.data && dest ? fmt(estimate.data.amountOut, dest.decimals, 4) : '—'}
-                </span>
+                <div className="mt-1 flex h-6 items-center justify-center">
+                  {amountIn > 0n && estimate.data && dest && (
+                    <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-[#6adbb6]">
+                      <Plus size={13} strokeWidth={2.5} />
+                      {fmt(estimate.data.amountOut, dest.decimals, 4)}
+                    </span>
+                  )}
+                </div>
               </div>
               </div>
             </div>
