@@ -452,7 +452,7 @@ export default function Bridge() {
   return (
     <div className="space-y-5">
 
-      <div className="mx-auto grid w-full max-w-[980px] gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+      <div className="grid w-full gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-start">
         <Card className="p-5">
           <div className="relative">
             <div className="rounded-[14px] border border-line-strong bg-ink-850 p-4">

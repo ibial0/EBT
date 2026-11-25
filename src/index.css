@@ -331,12 +331,12 @@
   /* portfolio: summary card + tabbed breakdown card */
   .dash-2 {
     display: grid;
-    gap: 20px;
+    gap: 28px;
   }
   @media (min-width: 1024px) {
     .dash-2 {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-      align-items: start;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: stretch;
     }
   }
   @keyframes rise {
