@@ -271,6 +271,7 @@ export default function Swap() {
       <div className="flex items-stretch gap-6">
         <div className="relative hidden flex-1 items-center justify-center xl:flex">
           <Wire side="left" />
+          <Plug side="left" />
           <WallToken token={tokenIn} />
         </div>
         <div className="w-full max-w-[560px] space-y-4">
@@ -528,6 +529,7 @@ export default function Swap() {
         </div>
         <div className="relative hidden flex-1 items-center justify-center xl:flex">
           <Wire side="right" />
+          <Plug side="right" />
           <WallToken token={tokenOut} />
         </div>
       </div>
@@ -617,8 +619,8 @@ function WallToken({ token }: { token: TokenCfg }) {
 function Wire({ side }: { side: 'left' | 'right' }) {
   const d =
     side === 'left'
-      ? 'M 50 52 C 70 70, 96 55, 105.2 40'
-      : 'M 50 52 C 30 70, 4 55, -5.2 40'
+      ? 'M 50 52 C 68 70, 88 46, 96 44 L 103.5 44'
+      : 'M 50 52 C 32 70, 12 46, 4 44 L -3.5 44'
   return (
     <svg
       aria-hidden="true"
@@ -629,5 +631,22 @@ function Wire({ side }: { side: 'left' | 'right' }) {
       <path d={d} fill="none" stroke="rgba(171,184,255,0.10)" strokeWidth="7" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       <path d={d} fill="none" stroke="rgba(171,184,255,0.42)" strokeWidth="2.2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
+  )
+}
+
+/** The connector the cable terminates in, plugged straight into the card's border. */
+function Plug({ side }: { side: 'left' | 'right' }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={
+        'pointer-events-none absolute top-[44%] hidden -translate-y-1/2 xl:block ' +
+        (side === 'left' ? '-right-6' : '-left-6')
+      }
+    >
+      <span className="block h-[18px] w-[11px] rounded-[3px] border border-[rgba(171,184,255,0.5)] bg-ink-800 shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
+        <span className="mt-1 block h-[2px] w-full bg-[rgba(171,184,255,0.35)]" />
+      </span>
+    </span>
   )
 }
