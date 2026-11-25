@@ -595,10 +595,10 @@ export default function Swap() {
 function WallToken({ token }: { token: TokenCfg }) {
   return (
     <div className="pointer-events-none relative">
-        <div className="grid size-[152px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+        <div className="grid size-[160px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
           <TokenIcon
             symbol={token.symbol}
-            size={112}
+            size={132}
             chainId={token.chainId}
             address={token.address}
             verified={token.address !== '0x0000000000000000000000000000000000000000' ? true : undefined}
