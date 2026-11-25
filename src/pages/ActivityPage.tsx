@@ -336,6 +336,15 @@ function Detail({ id }: { id: string }) {
             </div>
           </Card>
 
+          {(item.status === 'cancelled' || item.status === 'failed') && (
+            <button
+              onClick={() => navigate('/bridge')}
+              className="mb-2 w-full rounded-[10px] border border-line-strong py-2 text-[11px] text-t1 hover:border-accent/40 hover:text-accent"
+            >
+              Sign again on the bridge
+            </button>
+          )}
+
           {item.status === 'pending' && (
             <button
               onClick={() => {

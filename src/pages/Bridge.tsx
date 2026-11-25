@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, ArrowDownUp, Check, ChevronDown, Info, Plus, Route as RouteIcon, UserRoundPlus, Wallet, X } from 'lucide-react'
@@ -118,6 +118,20 @@ export default function Bridge() {
   /** off by default: the destination is your own wallet unless you ask otherwise */
   const [editRecipient, setEditRecipient] = useState(false)
   const [amountFocused, setAmountFocused] = useState(false)
+  /** chips stay clickable while either the input or the chips themselves have the pointer */
+  const [chipsOpen, setChipsOpen] = useState(false)
+  const chipsTimer = useRef<number | null>(null)
+  const openChips = () => {
+    if (chipsTimer.current) {
+      window.clearTimeout(chipsTimer.current)
+      chipsTimer.current = null
+    }
+    setChipsOpen(true)
+  }
+  const scheduleChipsClose = () => {
+    if (chipsTimer.current) window.clearTimeout(chipsTimer.current)
+    chipsTimer.current = window.setTimeout(() => setChipsOpen(false), 180)
+  }
   /** your own wallet unless the alternate-recipient field is open and filled */
   const effectiveRecipient = editRecipient ? recipient.trim() : (address ?? '')
   const [pick, setPick] = useState<'from' | 'to' | 'source' | 'dest' | null>(null)
@@ -290,6 +304,7 @@ export default function Bridge() {
   }
 
   async function run() {
+    let createdId: string | null = null
     if (!address) return notify('Connect a wallet first.', 'error')
     if (!source || !dest) return notify('Pick a source and destination asset.', 'error')
     if (!route) return notify('No bridge route available for this token pair.', 'error')
@@ -348,6 +363,8 @@ export default function Bridge() {
         },
         steps,
       })
+      createdId = item.id
+      setActiveId(item.id)
       setActiveId(item.id)
 
       let current = amountIn
@@ -452,10 +469,14 @@ export default function Bridge() {
       notify('Transfer submitted. Each step is a signature you approve.', 'success')
     } catch (e) {
       const d = decodeTxError(e, chainId)
-      notify(`${d.title}: ${d.detail}`, 'error')
-      if (activeId) {
-        if (d.kind === 'rejected') updateActivity(activeId, { status: 'cancelled', error: 'Rejected in wallet' })
-        else finalizeFromSteps(activeId)
+      const id = createdId ?? activeId
+      if (d.kind === 'rejected') {
+        // the wallet closed the request: stop the animation immediately instead of leaving it in flight
+        if (id) cancelActivity(id)
+        notify('Signature cancelled, the transfer was stopped.', 'info')
+      } else {
+        notify(`${d.title}: ${d.detail}`, 'error')
+        if (id) finalizeFromSteps(id)
       }
     } finally {
       setBusy(null)
@@ -474,7 +495,7 @@ export default function Bridge() {
               <div className="mb-2 flex items-center">
                 <span className="col-head">You send</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onFocus={openChips} onBlur={scheduleChipsClose}>
                 <input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
@@ -503,10 +524,11 @@ export default function Bridge() {
                         : fmt(balance, source?.decimals ?? 18, 4)}
                 </span>
                 <div
-                  className={
-                    'absolute right-0 top-full mt-3 flex items-center gap-1.5 transition-opacity duration-150 ' +
-                    (amountFocused || amount !== '' ? 'opacity-100' : 'pointer-events-none opacity-0')
-                  }
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={openChips}
+                  onMouseLeave={scheduleChipsClose}
+                  style={{ display: chipsOpen ? 'flex' : 'none' }}
+                  className="absolute right-0 top-full mt-3 items-center gap-1.5"
                 >
                   {[25, 50, 75].map((pct) => (
                     <button
