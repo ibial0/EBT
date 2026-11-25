@@ -18,7 +18,7 @@ import { Card, Button, Badge, Row, notify, TokenIcon, Modal, Spinner, ChainLogo 
 import { ConnectButton } from '../components/Layout'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
 import { TokenPicker } from '../components/TokenPicker'
-import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity, useActivity } from '../lib/activity'
+import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity } from '../lib/activity'
 import { quoteBest, maxFillable, applySlippage, erc20Balance, formatAmount, erc20Abi } from '../lib/uniswap'
 import { executeSwap, buildSwapCalldata } from '../lib/swapExec'
 import { assertSwapRoute } from '../lib/guard'
@@ -519,7 +519,6 @@ export default function Swap() {
             </Card>
           )}
 
-          <LiveStrip />
         </div>
       </div>
 
@@ -578,43 +577,5 @@ export default function Swap() {
         </div>
       </Modal>
     </div>
-  )
-}
-
-/** A short, live tail of this wallet's swaps: what is running and how far along it is. */
-function LiveStrip() {
-  const items = useActivity()
-  const { address } = useAccount()
-  const recent = items
-    .filter((i) => i.kind === 'swap' && address && i.owner?.toLowerCase() === address.toLowerCase())
-    .slice(0, 2)
-  if (recent.length === 0) return null
-  return (
-    <Card className="p-3">
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="col-head">Live</span>
-        <span className="mono text-[10px] text-t3">{recent.length}</span>
-      </div>
-      <div className="space-y-1.5">
-        {recent.map((i) => {
-          const done = i.steps.filter((s) => s.status === 'done' || s.status === 'skipped').length
-          const total = Math.max(i.steps.length, 1)
-          const active = i.steps.some((s) => s.status === 'active')
-          const pctv = Math.round(((done + (active ? 0.5 : 0)) / total) * 100)
-          const label =
-            i.steps.find((s) => s.status === 'active')?.label ??
-            (i.status === 'complete' ? 'Complete' : i.status === 'failed' ? 'Failed' : 'Queued')
-          const tone =
-            i.status === 'complete' ? 'bg-[#6adbb6]' : i.status === 'failed' ? 'bg-[#ff8f8f]' : 'bg-accent'
-          return (
-            <div key={i.id} className="flex items-center gap-2 text-[11px]">
-              <span className={`dot ${tone}`} style={i.status === 'pending' ? { animation: 'pulse 1.4s ease-in-out infinite' } : undefined} />
-              <span className="flex-1 truncate text-t2">{label}</span>
-              <span className="mono text-t3">{pctv}%</span>
-            </div>
-          )
-        })}
-      </div>
-    </Card>
   )
 }
