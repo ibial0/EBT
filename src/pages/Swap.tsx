@@ -268,10 +268,11 @@ export default function Swap() {
   return (
     <div className="space-y-5">
 
-      <div className="relative mx-auto w-full max-w-[560px]">
-        <WallToken token={tokenIn} side="left" />
-        <WallToken token={tokenOut} side="right" />
-        <div className="space-y-4">
+      <div className="flex items-stretch gap-6">
+        <div className="hidden flex-1 items-center justify-center xl:flex">
+          <WallToken token={tokenIn} />
+        </div>
+        <div className="w-full max-w-[560px] space-y-4">
         {!chainSupported && (
           <Card className="border-warn/40 p-4 lg:col-span-2">
             <div className="text-[14px] font-semibold text-t1">
@@ -524,6 +525,9 @@ export default function Swap() {
 
         </div>
         </div>
+        <div className="hidden flex-1 items-center justify-center xl:flex">
+          <WallToken token={tokenOut} />
+        </div>
       </div>
 
       <TokenPicker
@@ -588,25 +592,18 @@ export default function Swap() {
  * The token that is being sold (left) or bought (right), mounted on the wall beside the
  * card: a plain circular mark with a small bracket, no names, no chain chrome.
  */
-function WallToken({ token, side }: { token: TokenCfg; side: 'left' | 'right' }) {
+function WallToken({ token }: { token: TokenCfg }) {
   return (
-    <div
-      className={
-        'pointer-events-none absolute top-1/2 hidden -translate-y-1/2 xl:block ' +
-        (side === 'left' ? '-left-44' : '-right-44')
-      }
-    >
-      <div className="relative">
-        <div className="grid size-[124px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+    <div className="pointer-events-none relative">
+        <div className="grid size-[152px] place-items-center rounded-full border border-line-strong bg-ink-800/85 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
           <TokenIcon
             symbol={token.symbol}
-            size={88}
+            size={112}
             chainId={token.chainId}
             address={token.address}
             verified={token.address !== '0x0000000000000000000000000000000000000000' ? true : undefined}
           />
         </div>
-      </div>
     </div>
   )
 }
