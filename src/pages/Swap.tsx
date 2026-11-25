@@ -617,8 +617,8 @@ function WallToken({ token }: { token: TokenCfg }) {
 function Wire({ side }: { side: 'left' | 'right' }) {
   const d =
     side === 'left'
-      ? 'M 50 52 C 68 70, 92 58, 104 44'
-      : 'M 50 52 C 32 70, 8 58, -4 44'
+      ? 'M 50 52 C 70 70, 96 55, 105.2 40'
+      : 'M 50 52 C 30 70, 4 55, -5.2 40'
   return (
     <svg
       aria-hidden="true"
