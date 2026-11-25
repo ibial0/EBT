@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import { CHAINS, explorerAddress, getChain } from '../config/chains'
-import { Badge, Button, ChainLogo, CopyButton, Empty, Modal, Spinner, TokenIcon, notify } from '../components/ui'
+import { Badge, Button, ChainLogo, CopyButton, Empty, Modal, Spinner, TokenIcon, notify, AllChainsMark } from '../components/ui'
 import { ConnectButton, PageHeader } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { shortAddr, fmt } from '../lib/format'
@@ -694,9 +694,7 @@ function NetworkPicker({
               value === 'all' ? 'bg-ink-600' : 'hover:bg-ink-700'
             }`}
           >
-            <span className="grid size-[30px] place-items-center">
-              <span className="size-2.5 rotate-45 border border-t2" />
-            </span>
+            <AllChainsMark size={30} />
             <span className="flex-1 text-[14px] text-t1">All chains</span>
             <span className="mono text-[12px] text-t2">{totals.size}</span>
           </button>

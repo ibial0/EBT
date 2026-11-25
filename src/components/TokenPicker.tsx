@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Check, ChevronDown, LayoutGrid, Search, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 import { erc20Balance } from '../lib/uniswap'
 import { loadPrices, priceOf } from '../lib/prices'
@@ -11,7 +11,7 @@ import { isNativeToken, type TokenCfg } from '../config/tokens'
 import { getPublicClient } from 'wagmi/actions'
 import { useAccount } from 'wagmi'
 import { wagmiConfig } from '../lib/wallet'
-import { ChainLogo, TokenIcon } from './ui'
+import { ChainLogo, TokenIcon, AllChainsMark } from './ui'
 
 export interface PickerGroup {
   chain: ChainCfg
@@ -156,7 +156,7 @@ export function TokenPicker({
               </div>
             </div>
 
-            <div className="mt-2 flex-1 overflow-y-auto px-2 pb-4">
+            <div className="mt-2 flex-1 overflow-y-auto px-2 pb-8">
               <button
                 onClick={() => {
                   if (onChainChange) onChainChange(value?.chainId ?? chainOptions[0]?.id)
@@ -165,9 +165,7 @@ export function TokenPicker({
                 }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-ink-700"
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-850">
-                  <LayoutGrid size={16} className="text-t2" />
-                </span>
+                <AllChainsMark size={36} />
                 <span className="flex-1 text-[14px] text-t1">All chains</span>
                 {!onChainChange && chainFilter === 'all' && <Check size={16} className="text-accent" />}
               </button>
@@ -211,14 +209,14 @@ export function TokenPicker({
                 {onChainChange ? (
                   (() => {
                     const c = chains?.find((x) => x.id === value?.chainId)
-                    return c ? <ChainLogo chain={c} size={18} /> : <LayoutGrid size={15} className="text-t2" />
+                    return c ? <ChainLogo chain={c} size={18} /> : <AllChainsMark size={18} />
                   })()
                 ) : chainFilter === 'all' ? (
-                  <LayoutGrid size={15} className="text-t2" />
+                  <AllChainsMark size={18} />
                 ) : (
                   (() => {
                     const c = chains?.find((x) => x.id === chainFilter)
-                    return c ? <ChainLogo chain={c} size={18} /> : <LayoutGrid size={15} className="text-t2" />
+                    return c ? <ChainLogo chain={c} size={18} /> : <AllChainsMark size={18} />
                   })()
                 )}
                 <span className="max-w-[110px] truncate">

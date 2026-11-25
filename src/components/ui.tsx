@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore, type ButtonHTMLAttributes, t
 import clsx from 'clsx'
 import { Check, Copy, Loader2, X } from 'lucide-react'
 import { copy as doCopy } from '../lib/format'
-import type { ChainCfg } from '../config/chains'
+import { getChain, type ChainCfg } from '../config/chains'
 import { chainLogoById, chainLogoFile, tokenLogoFile } from '../config/logos'
 
 /* ───────────────────────── toast ───────────────────────── */
@@ -222,6 +222,39 @@ function LogoShell({ src, size, label }: { src?: string; size: number; label: st
       style={{ width: size, height: size }}
       aria-hidden
     />
+  )
+}
+
+
+/**
+ * "All chains" mark: four real chain logos in a 2x2 grid, the way wallet pickers draw it.
+ * Same component everywhere a chain filter appears so the language stays consistent.
+ */
+export function AllChainsMark({ size = 18 }: { size?: number }) {
+  const ids = [11155111, 84532, 43113, 11155420]
+  const cell = Math.floor((size - 1) / 2)
+  return (
+    <span
+      className="grid shrink-0 grid-cols-2 overflow-hidden rounded-[4px]"
+      style={{ width: size, height: size, gap: 1 }}
+      aria-hidden="true"
+    >
+      {ids.map((id) => {
+        const chain = getChain(id)
+        const file = chain ? chainLogoFile(chain.key, chain.id) : undefined
+        return (
+          <span
+            key={id}
+            className="overflow-hidden rounded-[2px] bg-ink-700"
+            style={{ width: cell, height: cell }}
+          >
+            {file && (
+              <img src={`/logos/chains/${file}`} alt="" className="h-full w-full object-cover" />
+            )}
+          </span>
+        )
+      })}
+    </span>
   )
 }
 
