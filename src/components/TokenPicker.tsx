@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { Check, ChevronDown, Search, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, LayoutGrid, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 import { erc20Balance } from '../lib/uniswap'
 import { loadPrices, priceOf } from '../lib/prices'
@@ -53,6 +53,7 @@ export function TokenPicker({
 }) {
   const [q, setQ] = useState('')
   const [chainFilter, setChainFilter] = useState<number | 'all'>('all')
+  const [chainQuery, setChainQuery] = useState('')
   const [showChains, setShowChains] = useState(false)
   const { address: account } = useAccount()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -127,56 +128,108 @@ export function TokenPicker({
         ref={panelRef}
         className="enter relative z-10 flex max-h-[min(88vh,760px)] w-full max-w-[520px] flex-col overflow-hidden rounded-[16px] border border-line-strong bg-ink-800 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
       >
+
+        {/* chain chooser: a full panel, not a dropdown that the card edge cuts off */}
+        {showChains && (
+          <div className="absolute inset-0 z-30 flex flex-col rounded-[16px] bg-ink-800">
+            <div className="flex items-center justify-between px-4 pt-4">
+              <button
+                onClick={() => setShowChains(false)}
+                aria-label="Back"
+                className="grid size-9 place-items-center rounded-lg text-t2 transition-colors hover:bg-ink-700 hover:text-t1"
+              >
+                <ArrowLeft size={17} />
+              </button>
+              <h2 className="display text-[17px] leading-7 text-t1">Select chain</h2>
+              <span className="size-9" />
+            </div>
+
+            <div className="px-4 pt-3">
+              <div className="field flex h-11 items-center gap-2 rounded-xl px-3">
+                <Search size={16} className="text-t2" />
+                <input
+                  value={chainQuery}
+                  onChange={(e) => setChainQuery(e.target.value)}
+                  placeholder="Search chains"
+                  className="input text-[14px]"
+                />
+              </div>
+            </div>
+
+            <div className="mt-2 flex-1 overflow-y-auto px-2 pb-4">
+              <button
+                onClick={() => {
+                  if (onChainChange) onChainChange(value?.chainId ?? chainOptions[0]?.id)
+                  else setChainFilter('all')
+                  setShowChains(false)
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-ink-700"
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-850">
+                  <LayoutGrid size={16} className="text-t2" />
+                </span>
+                <span className="flex-1 text-[14px] text-t1">All chains</span>
+                {!onChainChange && chainFilter === 'all' && <Check size={16} className="text-accent" />}
+              </button>
+
+              {chainOptions
+                .filter((c) =>
+                  chainQuery.trim() ? `${c.name} ${c.short}`.toLowerCase().includes(chainQuery.trim().toLowerCase()) : true,
+                )
+                .map((c) => {
+                  const selected = onChainChange ? value?.chainId === c.id : chainFilter === c.id
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        if (onChainChange) onChainChange(c.id)
+                        else setChainFilter(c.id)
+                        setShowChains(false)
+                        setChainQuery('')
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-ink-700"
+                    >
+                      <ChainLogo chain={c} size={36} />
+                      <span className="flex-1 truncate text-[14px] text-t1">{c.name}</span>
+                      {selected && <Check size={16} className="text-accent" />}
+                    </button>
+                  )
+                })}
+            </div>
+          </div>
+        )}
+
         {/* header */}
         <div className="flex items-center justify-between gap-3 px-5 pt-4">
           <h2 className="display text-[18px] leading-7 text-t1">{title}</h2>
           <div className="flex items-center gap-1.5">
             {multiChain && totalChains > 1 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowChains((v) => !v)}
-                  className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-2.5 text-[13px] text-t1 transition-colors hover:border-[#3f4a66] hover:bg-ink-700"
-                >
+              <button
+                onClick={() => setShowChains(true)}
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-2 text-[13px] text-t1 transition-colors hover:border-[#3f4a66] hover:bg-ink-700"
+              >
+                {onChainChange ? (
+                  (() => {
+                    const c = chains?.find((x) => x.id === value?.chainId)
+                    return c ? <ChainLogo chain={c} size={18} /> : <LayoutGrid size={15} className="text-t2" />
+                  })()
+                ) : chainFilter === 'all' ? (
+                  <LayoutGrid size={15} className="text-t2" />
+                ) : (
+                  (() => {
+                    const c = chains?.find((x) => x.id === chainFilter)
+                    return c ? <ChainLogo chain={c} size={18} /> : <LayoutGrid size={15} className="text-t2" />
+                  })()
+                )}
+                <span className="max-w-[110px] truncate">
                   {onChainChange
-                    ? (groups.find((g) => g.chain.id === value?.chainId)?.chain.short ?? 'Network')
+                    ? (chains?.find((x) => x.id === value?.chainId)?.short ?? 'Network')
                     : chainFilter === 'all'
                       ? 'All chains'
-                      : groups.find((g) => g.chain.id === chainFilter)?.chain.short}
-                  <ChevronDown size={13} className={clsx('text-t2 transition-transform', showChains && 'rotate-180')} />
-                </button>
-                {showChains && (
-                  <div className="enter absolute right-0 top-[calc(100%+6px)] z-20 max-h-64 w-52 overflow-y-auto rounded-[10px] border border-line-strong bg-ink-800 p-1 shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
-                    <button
-                      onClick={() => {
-                        setChainFilter('all')
-                        setShowChains(false)
-                      }}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-t1 hover:bg-ink-700"
-                    >
-                      <span className="size-4" /> All chains
-                    </button>
-                    {chainOptions.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => {
-                          if (onChainChange) onChainChange(c.id)
-                          else setChainFilter(c.id)
-                          setShowChains(false)
-                        }}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-t1 hover:bg-ink-700"
-                      >
-                        <span className="grid size-4 place-items-center">
-                          {(onChainChange
-                            ? value?.chainId === c.id
-                            : chainFilter === c.id) && <Check size={13} className="text-accent" />}
-                        </span>
-                        <ChainLogo chain={c} size={20} />
-                        <span className="truncate">{c.short}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      : (chains?.find((x) => x.id === chainFilter)?.short ?? 'Network')}
+                </span>
+                <ChevronDown size={13} className="text-t2" />
+              </button>
             )}
             <button
               onClick={onClose}

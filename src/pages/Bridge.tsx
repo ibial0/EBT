@@ -755,7 +755,12 @@ export default function Bridge() {
             </div>
             {route ? (
               <>
-                <p className="mb-2.5 rounded-lg bg-ink-850 px-2.5 py-2 text-[11px] leading-relaxed text-t2">{route.detail}</p>
+                <p
+                  title={route.detail}
+                  className="mb-2.5 truncate rounded-lg bg-ink-850 px-2.5 py-2 text-[11px] leading-5 text-t2"
+                >
+                  {route.detail}
+                </p>
                 <Row label="Source asset" value={source?.symbol ?? '-'} />
                 <Row label="Destination asset" value={dest?.symbol ?? '-'} />
                 <Row label="Wallet signatures" value={String(route.txCount)} />

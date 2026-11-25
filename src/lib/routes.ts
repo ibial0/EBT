@@ -173,7 +173,7 @@ export function directRoute(fromId: number, toId: number, token: TokenCfg): Rout
         outToken: dest,
         txCount: 1,
         label: `${token.symbol} → Native bridge → ${dest.symbol}`,
-        detail: `Canonical OP Stack deposit from ${from.short} into ${to.short}. Deposits are one-way; the 7-day withdrawal window is not offered.`,
+        detail: `Canonical OP Stack deposit ${from.short} → ${to.short}, one-way.`,
       }
     }
     if (orbitRouteExists(fromId, toId)) {
@@ -312,7 +312,7 @@ function push(
     outToken,
     txCount,
     label: describeLegs(legs, fromId, toId),
-    detail: legs.length === 1 ? 'Single verified operation.' : 'Composite route: you sign each operation yourself, one at a time.',
+    detail: legs.length === 1 ? 'Single verified operation.' : 'Composite route: you sign each operation yourself.',
   })
 }
 
