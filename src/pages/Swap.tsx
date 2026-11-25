@@ -40,6 +40,21 @@ export default function Swap() {
    * Swap has no network selector by design: it always runs on the wallet's own chain.
    * Disconnected, it previews Sepolia so the panel is not empty.
    */
+  /** every swap-capable chain with the tokens that actually have a pool there */
+  const swapGroups = useMemo(
+    () =>
+      SWAP_CHAINS.map((c) => {
+        const addrs = new Set<string>()
+        for (const pool of poolsForChain(c.id)) {
+          addrs.add(pool.token0.toLowerCase())
+          addrs.add(pool.token1.toLowerCase())
+        }
+        const tokens = tokensForChain(c.id).filter((t) => addrs.has(t.address.toLowerCase()))
+        return { chain: c, tokens }
+      }).filter((g) => g.tokens.length > 0),
+    [],
+  )
+
   const chainSupported = !isConnected || supportedSwap.has(chainId)
   // preview chain, used when there is no wallet to switch; the picker is the only place a
   // network is chosen on this page
@@ -474,18 +489,16 @@ export default function Swap() {
         open={pick !== null}
         onClose={() => setPick(null)}
         title={pick === 'in' ? 'Sell token' : 'Buy token'}
-        groups={[{ chain, tokens: pick === 'in' ? tradeable : outOptions }]}
+        groups={swapGroups}
         chains={SWAP_CHAINS}
-        onChainChange={(id) => {
-          if (isConnected) switchChainAsync({ chainId: id as never }).catch(() => undefined)
-          else setPreviewChain(id)
-        }}
         value={
           pick === 'in'
             ? { chainId: swapChainId, address: tokenIn.address }
             : { chainId: swapChainId, address: tokenOut.address }
         }
-        onSelect={(_c, t) => {
+        onSelect={(c, t) => {
+          if (isConnected && c.id !== chainId) switchChainAsync({ chainId: c.id as never }).catch(() => undefined)
+          else if (!isConnected) setPreviewChain(c.id)
           if (pick === 'in') {
             if (t.address === tokenOut.address) setTokenOut(tokenIn)
             setTokenIn(t)

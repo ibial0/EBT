@@ -274,6 +274,15 @@ export default function Bridge() {
     retry: 0,
   })
 
+  /** every allowlisted chain that has a known token list, for the all-chains picker */
+  const allGroups = useMemo(
+    () =>
+      CHAINS.map((c) => ({ chain: c, tokens: tokensForChain(c.id), notes: sourceNotes })).filter(
+        (g) => g.tokens.length > 0,
+      ),
+    [sourceNotes],
+  )
+
   const activity = activeId ? getActivity(activeId) : undefined
 
   async function ensureChain(id: number) {
@@ -833,22 +842,26 @@ export default function Bridge() {
       <TokenPicker
         open={pick === 'source'}
         title="Send asset"
-        groups={[{ chain: from, tokens: sourceOptions, notes: sourceNotes }]}
+        groups={allGroups}
         chains={CHAINS}
-        onChainChange={(id) => setFromId(id)}
         value={source ? { chainId: fromId, address: source.address } : null}
         onClose={() => setPick(null)}
-        onSelect={(c, t) => setSourceId(keyOf(c.id, t.address))}
+        onSelect={(c, t) => {
+          setFromId(c.id)
+          setSourceId(keyOf(c.id, t.address))
+        }}
       />
       <TokenPicker
         open={pick === 'dest'}
         title="Receive asset"
-        groups={[{ chain: to, tokens: destOptions, notes: destNotes }]}
+        groups={allGroups}
         chains={CHAINS}
-        onChainChange={(id) => setToId(id)}
         value={dest ? { chainId: toId, address: dest.address } : null}
         onClose={() => setPick(null)}
-        onSelect={(c, t) => setDestId(keyOf(c.id, t.address))}
+        onSelect={(c, t) => {
+          setToId(c.id)
+          setDestId(keyOf(c.id, t.address))
+        }}
       />
     </div>
   )

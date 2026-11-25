@@ -231,7 +231,7 @@ function LogoShell({ src, size, label }: { src?: string; size: number; label: st
  * Same component everywhere a chain filter appears so the language stays consistent.
  */
 export function AllChainsMark({ size = 18 }: { size?: number }) {
-  const ids = [11155111, 84532, 43113, 11155420]
+  const ids = [11155111, 84532, 46630, 11155420]
   const cell = Math.floor((size - 1) / 2)
   return (
     <span
