@@ -455,17 +455,8 @@ export default function Bridge() {
         <Card className="flex h-full flex-col p-5">
           <div className="relative flex flex-1 flex-col gap-3">
             <div className="flex min-h-[140px] flex-1 flex-col justify-center rounded-[16px] border border-line-strong bg-ink-850 p-5">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center">
                 <span className="col-head">You send</span>
-                <span className={"mono text-[12px] " + (sourceBalance.isError ? 'text-[#e6c17a]' : 'text-t2')}>
-                  {!isConnected
-                    ? '-'
-                    : sourceBalance.isLoading
-                      ? 'loading…'
-                      : sourceBalance.isError || balance == null
-                        ? 'balance unavailable'
-                        : `${fmt(balance, source?.decimals ?? 18, 5)} ${source?.symbol ?? ''}`}
-                </span>
               </div>
               <div className="flex items-center gap-3">
                 <input
@@ -475,6 +466,7 @@ export default function Bridge() {
                   inputMode="decimal"
                   className="input display text-[56px] leading-[66px] tracking-[-0.02em]"
                 />
+                <div className="flex shrink-0 flex-col items-center gap-1.5">
                 <button
                   onClick={() => setPick('source')}
                   className="flex h-16 shrink-0 items-center gap-2.5 rounded-full border border-line-strong bg-ink-700 pl-2 pr-4 transition-colors hover:border-accent/50 hover:bg-ink-600"
@@ -483,6 +475,16 @@ export default function Bridge() {
                   <span className="display text-[16px] text-t1">{source?.symbol ?? 'select'}</span>
                   <ChevronDown size={15} className="text-t2" />
                 </button>
+                <span className="mono text-[11px] leading-none text-t2">
+                  {!isConnected
+                    ? '-'
+                    : sourceBalance.isLoading
+                      ? '…'
+                      : sourceBalance.isError || balance == null
+                        ? 'n/a'
+                        : fmt(balance, source?.decimals ?? 18, 4)}
+                </span>
+              </div>
               </div>
             </div>
 
@@ -498,9 +500,8 @@ export default function Bridge() {
             </button>
 
             <div className="flex flex-1 flex-col justify-center rounded-[16px] border border-line-strong bg-ink-850 p-5">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center">
                 <span className="col-head">You receive</span>
-                <span>{estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : '-'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="input display flex-1 truncate text-[56px] leading-[66px] tracking-[-0.02em] text-t1">
@@ -510,6 +511,7 @@ export default function Bridge() {
                     <span className="text-t3">0.0</span>
                   )}
                 </div>
+                <div className="flex shrink-0 flex-col items-center gap-1.5">
                 <button
                   onClick={() => setPick('dest')}
                   className="flex h-16 shrink-0 items-center gap-2.5 rounded-full border border-line-strong bg-ink-700 pl-2 pr-4 transition-colors hover:border-accent/50 hover:bg-ink-600"
@@ -518,6 +520,10 @@ export default function Bridge() {
                   <span className="display text-[16px] text-t1">{dest?.symbol ?? 'pick'}</span>
                   <ChevronDown size={15} className="text-t2" />
                 </button>
+                <span className="mono text-[11px] leading-none text-t2">
+                  {estimate.data && dest ? fmt(estimate.data.amountOut, dest.decimals, 4) : '—'}
+                </span>
+              </div>
               </div>
             </div>
           </div>
@@ -575,23 +581,40 @@ export default function Bridge() {
                 </div>
               )}
             </div>
-            <button
-              onClick={() => {
-                if (balance == null || !source) return
-                if (source.address.toLowerCase() === NATIVE) {
-                  const keep = balance / 50n
-                  setAmount(formatUnits(balance > keep ? balance - keep : 0n, source.decimals))
-                } else {
-                  setAmount(formatUnits(balance, source.decimals))
-                }
-              }}
-              className="mono shrink-0 text-[11px] text-t2 transition-colors hover:text-accent"
-            >
-              MAX
-            </button>
+            <div className="mt-2 flex items-center justify-end gap-1">
+              {[25, 50, 75].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => {
+                    if (balance == null || !source) return
+                    const raw = (balance * BigInt(pct)) / 100n
+                    const keep = source.address.toLowerCase() === NATIVE ? balance / 50n : 0n
+                    setAmount(formatUnits(raw > keep ? raw - keep : 0n, source.decimals))
+                  }}
+                  className="mono rounded-md border border-line px-1.5 py-0.5 text-[10px] text-t3 transition-colors hover:border-line-strong hover:text-t1"
+                >
+                  {pct}%
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  if (balance == null || !source) return
+                  if (source.address.toLowerCase() === NATIVE) {
+                    const keep = balance / 50n
+                    setAmount(formatUnits(balance > keep ? balance - keep : 0n, source.decimals))
+                  } else {
+                    setAmount(formatUnits(balance, source.decimals))
+                  }
+                }}
+                className="mono rounded-md border border-line px-1.5 py-0.5 text-[10px] text-t2 transition-colors hover:border-accent/50 hover:text-accent"
+              >
+                MAX
+              </button>
+            </div>
           </div>
 
-          {route?.legs.some((l) => l.kind === 'swap') && (
+          {/* always on screen: the form must not jump when the direction changes */}
+          {true && (
             <div className="mt-3 flex items-center justify-between rounded-lg border border-line bg-ink-850 px-3 py-2">
               <div>
                 <div className="text-[12px] font-medium text-t1">Slippage tolerance</div>
@@ -615,7 +638,7 @@ export default function Bridge() {
             </div>
           )}
 
-          {route?.legs.some((l) => l.kind === 'cctp') && (
+          {true && (
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button onClick={() => setFast(true)} className={`panel p-3 text-left transition ${fast ? 'border-accent/50 bg-accent/8' : 'hover:bg-ink-700'}`}>
                 <div className="flex items-center justify-between">
@@ -634,40 +657,14 @@ export default function Bridge() {
             </div>
           )}
 
-          <div className="mt-auto pt-4">
-            {!isConnected ? (
-              <ConnectButton full />
-            ) : (
-              <Button
-                full
-                variant="primary"
-                className="h-[64px] w-full text-[17px]"
-                disabled={!hasRoute || amountIn <= 0n || insufficient}
-                loading={busy === 'start'}
-                onClick={run}
-              >
-                {route ? (
-                  <span className="flex items-center gap-1.5">
-                    {`Bridge ${source?.symbol ?? ''}`}
-                    {route.type !== 'direct' && (
-                      <span className="text-[13px] font-medium opacity-70">+ swap</span>
-                    )}
-                  </span>
-                ) : (
-                  'No route for this pair'
-                )}
-              </Button>
-            )}
-          </div>
-          <div className="mt-4">
+          <div className="mt-3">
             {!editRecipient ? (
               <button
                 onClick={() => setEditRecipient(true)}
-                title="Send to a different wallet"
-                aria-label="Send to a different wallet"
-                className="flex items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-2 text-t2 transition-colors hover:border-accent/40 hover:text-t1"
+                className="group flex w-full items-center justify-between rounded-lg border border-line px-3 py-2.5 text-left transition-colors hover:border-line-strong"
               >
-                <UserRoundPlus size={14} />
+                <span className="text-[12px] text-t2">Sending to a different address?</span>
+                <ChevronDown size={13} className="text-t3 transition-colors group-hover:text-accent" />
               </button>
             ) : (
               <div className="field p-3">
@@ -676,22 +673,19 @@ export default function Bridge() {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => setRecipient(address ?? '')}
-                      title="Use my connected wallet"
-                      aria-label="Use my connected wallet"
-                      className="grid size-7 place-items-center rounded-md border border-line-strong text-t2 transition-colors hover:text-accent"
+                      className="mono rounded-md border border-line px-1.5 py-0.5 text-[10px] text-t3 transition-colors hover:border-line-strong hover:text-t1"
                     >
-                      <Wallet size={13} />
+                      my wallet
                     </button>
                     <button
                       onClick={() => {
                         setEditRecipient(false)
                         setRecipient('')
                       }}
-                      title="Close"
                       aria-label="Close"
-                      className="grid size-7 place-items-center rounded-md border border-line-strong text-t2 transition-colors hover:text-t1"
+                      className="grid size-6 place-items-center rounded-md border border-line text-t2 transition-colors hover:text-t1"
                     >
-                      <X size={13} />
+                      <X size={12} />
                     </button>
                   </div>
                 </div>
@@ -706,6 +700,29 @@ export default function Bridge() {
             )}
           </div>
 
+          <div className="mt-3">
+            {!isConnected ? (
+              <ConnectButton full />
+            ) : (
+              <Button
+                full
+                variant="primary"
+                className="h-[64px] w-full text-[17px]"
+                disabled={!hasRoute || amountIn <= 0n || insufficient}
+                loading={busy === 'start'}
+                onClick={run}
+              >
+                {route ? (
+                  <span className="flex items-center gap-1.5">
+                    {`Bridge ${source?.symbol ?? ''}`}
+                    {route.type !== 'direct' && <span className="text-[13px] font-medium opacity-70">+ swap</span>}
+                  </span>
+                ) : (
+                  'No route for this pair'
+                )}
+              </Button>
+            )}
+          </div>
         </Card>
 
         <div className="space-y-3">
@@ -721,7 +738,7 @@ export default function Bridge() {
                 <Row label="Source asset" value={source?.symbol ?? '-'} />
                 <Row label="Destination asset" value={dest?.symbol ?? '-'} />
                 <Row label="Wallet signatures" value={String(route.txCount)} />
-                {estimate.data && <Row label="You receive" value={`${fmt(estimate.data.amountOut, dest?.decimals ?? 18, 6)} ${dest?.symbol ?? ''}`} />}
+                <Row label="You receive" value={estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : '—'} />
                 <Row
                   label="ETA"
                   value={
@@ -757,21 +774,6 @@ export default function Bridge() {
             )}
           </Card>
 
-          {routes.length > 1 && (
-            <Card className="p-4">
-              <h3 className="mb-2 text-sm font-semibold text-t1">Other valid routes</h3>
-              <div className="space-y-1.5">
-                {routes.slice(1, 4).map((r) => (
-                  <div key={r.id} className="panel p-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] text-t1">{r.label}</span>
-                      <Badge tone="default">{r.txCount} tx</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
 
           {lastError && (
             <Card className="border-[#ff8f8f]/30 p-4">
