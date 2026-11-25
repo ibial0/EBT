@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-25T10:27:00.073Z",
+  "ranAt": "2026-11-25T10:46:49.627Z",
   "results": [
     {
       "id": "guard: mainnet rejected",
@@ -34,12 +34,12 @@
     {
       "id": "swap: quote WETH→USDC on Sepolia",
       "ok": true,
-      "detail": "out=30041521 fee=500 impact=5bps"
+      "detail": "out=30041452 fee=500 impact=5bps"
     },
     {
       "id": "swap: native ETH→USDC executes",
       "ok": true,
-      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001ca65b1"
+      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001ca66cc"
     },
     {
       "id": "opstack: GIWA deposit accepted",

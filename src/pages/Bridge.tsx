@@ -9,7 +9,7 @@ import { CHAINS, getChain, type Address } from '../config/chains'
 import { nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
 import { Card, Button, Badge, Row, notify, ChainLogo, TokenIcon } from '../components/ui'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
-import { ConnectButton, PageHeader } from '../components/Layout'
+import { ConnectButton } from '../components/Layout'
 import { Timeline } from '../components/Timeline'
 import { addActivity, updateStep, updateActivity, finalizeFromSteps, getActivity } from '../lib/activity'
 import { fetchCctpFees, maxFeeFor } from '../lib/cctp'
@@ -449,13 +449,8 @@ export default function Bridge() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        eyebrow="Asset movement"
-        title="Bridge"
-        subtitle="Pick two networks and the app works out what can actually move between them: direct same-asset routes through Circle CCTP or the canonical OP Stack portal, and bridge plus swap routes where that is the only way. Nothing is inferred from token symbols."
-      />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mx-auto w-full max-w-[560px] space-y-4">
         <Card className="p-5">
           <div className="relative">
             <div className="rounded-[14px] border border-line-strong bg-ink-850 p-4">

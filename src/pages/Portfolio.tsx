@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Copy, ExternalLink, Plus, RefreshCw, Search, Wallet } from 'lucide-react'
+import { ChevronDown, Copy, Plus, RefreshCw, Search, Wallet } from 'lucide-react'
 import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
@@ -175,193 +175,190 @@ export default function Portfolio() {
   }
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        eyebrow="Wallet view"
-        title="Portfolio"
-        subtitle="One wallet across every allowlisted testnet. Dollar figures are estimates, not withdrawable value."
-        right={
-          <Button variant="secondary" onClick={() => portfolio.refetch()} loading={portfolio.isFetching}>
-            <RefreshCw size={14} /> Refresh
-          </Button>
-        }
-      />
-
-      {/* value + chart */}
+    <div className="dash-2">
+      {/* ── left: value + chart ───────────────────────────── */}
       <div className="card p-6">
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div>
-            <div className="col-head">{selected ? `${selected.name} value` : 'Total testnet value'}</div>
-            <div className="figure mt-2 text-[44px] leading-[48px] font-bold tracking-[-0.03em] text-t1">
-              {portfolio.isLoading ? <span className="skeleton inline-block h-10 w-44 align-middle" /> : usd(selected ? scopedUsd : totalUsd)}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
-                {assets(scoped.length)} / {network === 'all' ? fundedNetworks : 1}{' '}
-                {(network === 'all' ? fundedNetworks : 1) === 1 ? 'network' : 'networks'}
-              </span>
-              <span className="mono flex items-center gap-1.5 text-[12px] uppercase tracking-[0.6px] text-t2">
-                <span className={`size-1.5 rotate-45 border ${prices.data?.live ? 'border-pos' : 'border-t3'}`} />
-                {prices.data?.live ? 'Live prices' : 'Estimated'}
-              </span>
-              {unpriced > 0 && (
-                <span className="mono text-[12px] uppercase tracking-[0.6px] text-warn">{unpriced} unpriced</span>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setPickNetwork(true)}
-              className="flex h-[38px] items-center gap-2 rounded-lg border border-line-strong bg-ink-850 px-3 text-[14px] text-t1 transition-colors hover:border-[#3f4a66] hover:bg-ink-700"
-            >
-              {selected ? <ChainLogo chain={selected} size={18} /> : <span className="size-1.5 rotate-45 border border-t3" />}
-              {selected ? selected.short : 'All networks'}
-              <ChevronDown size={13} className="text-t2" />
-            </button>
-            <div className="flex h-[38px] items-center rounded-lg border border-line-strong bg-ink-850 p-0.5">
-              {(['1D', '1W', '1M'] as Range[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRange(r)}
-                  className={`mono h-[32px] rounded-md px-3 text-[12px] uppercase tracking-[0.6px] transition-colors ${
-                    range === r ? 'bg-accent text-[#111628]' : 'text-t2 hover:text-t1'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center justify-between">
+          <div className="col-head">Portfolio</div>
+          <button
+            onClick={() => portfolio.refetch()}
+            title="Refresh balances"
+            className="grid size-9 place-items-center rounded-full border border-line-strong bg-ink-850 text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
+          >
+            <RefreshCw size={14} className={portfolio.isFetching ? 'spin' : undefined} />
+          </button>
         </div>
 
-        <ValueChart points={chartPoints} />
-      </div>
-
-      {/* tabs */}
-      <div className="flex items-center gap-1 border-b border-line-strong">
-        {(['overview', 'tokens'] as View[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`relative -mb-px px-4 py-2.5 text-[14px] capitalize transition-colors ${
-              tab === t ? 'text-t1' : 'text-t2 hover:text-t1'
-            }`}
-          >
-            {t}
-            {tab === t && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent" />}
-          </button>
-        ))}
-      </div>
-
-      <div className="split-rail">
-        <div className="split-rail-main space-y-4">
-          {/* toolbar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="field flex h-[38px] w-full max-w-[380px] items-center gap-2 px-3">
-              <Search size={15} className="text-t2" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search asset or network"
-                className="input text-[14px]"
-              />
-            </div>
-            <label className="ml-auto flex h-[38px] cursor-pointer items-center gap-2.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[13px] text-t2">
-              <input
-                type="checkbox"
-                checked={showEmpty}
-                onChange={(e) => setShowEmpty(e.target.checked)}
-                className="size-3.5 accent-[#abb8ff]"
-              />
-              Empty networks
-            </label>
-            <span className="mono flex h-[38px] items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-3 text-[12px] text-t2">
-              {shortAddr(address, 4)}
-              <button
-                onClick={() => {
-                  navigator.clipboard?.writeText(address ?? '')
-                  notify('Address copied', 'success')
-                }}
-                className="hover:text-t1"
-              >
-                <Copy size={12} />
-              </button>
-            </span>
-          </div>
-
-          {portfolio.isLoading && (
-            <div className="card flex items-center gap-2 p-5 text-[13px] text-t2">
-              <Spinner /> Reading {CHAINS.length} chains, five at a time
-            </div>
-          )}
-          {portfolio.isError && (
-            <div className="card p-4 text-[13px] text-neg">Portfolio failed: {(portfolio.error as Error).message}</div>
-          )}
-
-          {tab === 'overview' ? (
-            <div className="card overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4">
-                <h2 className="display text-[18px] leading-7 text-t1">Top holdings</h2>
-                <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">{top.length} of {groups.length}</span>
-              </div>
-              <div className="border-t border-line-strong">
-                {top.length === 0 && <div className="px-5 py-8 text-[13px] text-t2">No funded asset yet.</div>}
-                {top.map((g) => {
-                  const share = (scopedUsd > 0 ? (g.usd ?? 0) / scopedUsd : 0) * 100
-                  return (
-                    <button
-                      key={g.symbol}
-                      onClick={() => {
-                        setTab('tokens')
-                        setOpenGroups((prev) => new Set(prev).add(g.symbol.toUpperCase()))
-                      }}
-                      className="flex w-full items-center gap-3 border-b border-line px-5 py-3.5 text-left transition-colors last:border-0 hover:bg-ink-700/60"
-                    >
-                      <Ring pct={share} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] font-semibold text-t1">{g.symbol}</span>
-                        <span className="block truncate text-[12px] leading-4 text-t2">{g.name}</span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="display block text-[15px] leading-5 text-t1">
-                          {g.usd == null ? '—' : usd(g.usd)}
-                        </span>
-                        <span className="mt-0.5 flex items-center justify-end gap-1">
-                          {g.rows.slice(0, 3).map((r) => {
-                            const c = getChain(r.chainId)
-                            return c ? <ChainLogo key={r.chainId} chain={c} size={13} /> : null
-                          })}
-                          {g.rows.length > 3 && (
-                            <span className="mono text-[10px] text-t3">+{g.rows.length - 3}</span>
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+        <div className="figure mt-4 text-[48px] leading-[56px] font-bold tracking-[-0.035em] text-t1">
+          {portfolio.isLoading ? (
+            <span className="skeleton inline-block h-12 w-52 align-middle" />
           ) : (
-            <div className="card overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4">
-                <h2 className="display text-[18px] leading-7 text-t1">Tokens</h2>
-                <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
-                  {groups.length} asset{groups.length === 1 ? '' : 's'}
-                </span>
+            usd(selected ? scopedUsd : totalUsd)
+          )}
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
+            {scoped.length} assets · {network === 'all' ? fundedNetworks : 1} networks
+          </span>
+          {unpriced > 0 && (
+            <span className="mono text-[12px] uppercase tracking-[0.6px] text-warn">{unpriced} unpriced</span>
+          )}
+          <span className="mono flex items-center gap-1.5 text-[12px] uppercase tracking-[0.6px] text-t2">
+            <span className={`size-1.5 rotate-45 border ${prices.data?.live ? 'border-pos' : 'border-t3'}`} />
+            {prices.data?.live ? 'live prices' : 'estimated'}
+          </span>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-1">
+          {(['1D', '1W', '1M'] as Range[]).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`mono rounded-md px-2.5 py-1 text-[12px] uppercase tracking-[0.6px] transition-colors ${
+                range === r ? 'bg-ink-600 text-t1' : 'text-t2 hover:text-t1'
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+          <button
+            onClick={() => setPickNetwork(true)}
+            className="ml-auto flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-2.5 text-[12px] text-t1 transition-colors hover:border-[#3f4a66]"
+          >
+            {selected ? <ChainLogo chain={selected} size={14} /> : <span className="size-1.5 rotate-45 border border-t3" />}
+            {selected ? selected.short : 'All networks'}
+            <ChevronDown size={12} className="text-t2" />
+          </button>
+        </div>
+
+        <div className="mt-3">
+          <ValueChart points={chartPoints} />
+        </div>
+      </div>
+
+      {/* ── right: Overview | Tokens ──────────────────────── */}
+      <div className="card flex flex-col overflow-hidden">
+        <div className="flex items-center gap-1 border-b border-line-strong px-4">
+          {(['overview', 'tokens'] as View[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`relative -mb-px px-3 py-3 text-[14px] capitalize transition-colors ${
+                tab === t ? 'text-t1' : 'text-t2 hover:text-t1'
+              }`}
+            >
+              {t}
+              {tab === t && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-accent" />}
+            </button>
+          ))}
+          {tab === 'tokens' && (
+            <span className="mono ml-auto text-[11px] uppercase tracking-[0.6px] text-t2">
+              {scoped.length} assets
+            </span>
+          )}
+        </div>
+
+        {portfolio.isLoading && (
+          <div className="flex items-center gap-2 px-5 py-8 text-[13px] text-t2">
+            <Spinner /> Reading {CHAINS.length} chains
+          </div>
+        )}
+        {portfolio.isError && (
+          <div className="px-5 py-6 text-[13px] text-neg">Portfolio failed: {(portfolio.error as Error).message}</div>
+        )}
+
+        {tab === 'overview' ? (
+          /* the ring strip: icon wrapped in its share of the portfolio */
+          <div className="grid grid-cols-2 gap-x-2 gap-y-5 p-5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+            {top.length === 0 && !portfolio.isLoading && (
+              <div className="col-span-full py-6 text-[13px] text-t2">No funded asset yet.</div>
+            )}
+            {top.map((g) => {
+              const share = scopedUsd > 0 ? ((g.usd ?? 0) / scopedUsd) * 100 : 0
+              return (
+                <button
+                  key={g.symbol}
+                  onClick={() => {
+                    setTab('tokens')
+                    setOpenGroups((prev) => new Set(prev).add(g.symbol.toUpperCase()))
+                  }}
+                  className="group flex flex-col items-center gap-2 rounded-[10px] py-2 transition-colors hover:bg-ink-700/50"
+                >
+                  <RingIcon pct={share} symbol={g.symbol} chainId={g.rows[0].chainId} address={g.rows[0].address} verified={g.rows[0].verified} />
+                  <span className="display text-[15px] leading-5 text-t1">{g.usd == null ? '—' : usd(g.usd)}</span>
+                  {g.rows.length > 1 ? (
+                    <span className="flex items-center gap-0.5">
+                      {g.rows.slice(0, 3).map((r) => {
+                        const c = getChain(r.chainId)
+                        return c ? <ChainLogo key={r.chainId} chain={c} size={12} /> : null
+                      })}
+                      {g.rows.length > 3 && <span className="mono text-[9px] text-t3">+{g.rows.length - 3}</span>}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      {getChain(g.rows[0].chainId) && (
+                        <ChainLogo chain={getChain(g.rows[0].chainId)!} size={12} />
+                      )}
+                      <span className="mono text-[10px] text-t3">{g.symbol}</span>
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="flex min-h-0 flex-col">
+            <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+              <div className="field flex h-9 w-full max-w-[240px] items-center gap-2 px-2.5">
+                <Search size={14} className="text-t2" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search asset or network"
+                  className="input text-[13px]"
+                />
               </div>
-              <div className="border-t border-line-strong">
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] text-t2">
+                <input
+                  type="checkbox"
+                  checked={showEmpty}
+                  onChange={(e) => setShowEmpty(e.target.checked)}
+                  className="size-3.5 accent-[#abb8ff]"
+                />
+                Empty
+              </label>
+              <span className="mono ml-auto flex items-center gap-1 text-[11px] text-t3">
+                {shortAddr(address, 4)}
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(address ?? '')
+                    notify('Address copied', 'success')
+                  }}
+                  className="hover:text-t1"
+                >
+                  <Copy size={11} />
+                </button>
+              </span>
+            </div>
+
+            <div className="flex max-h-[560px] overflow-y-auto">
+              <div className="min-w-0 flex-1">
                 {groups.length === 0 && (
                   <div className="px-5 py-8 text-[13px] text-t2">
-                    {showEmpty ? 'Nothing matches this filter.' : 'No funded asset. Turn on empty networks to see every chain.'}
+                    {showEmpty ? 'Nothing matches this filter.' : 'No funded asset. Turn on empty to see every chain.'}
                   </div>
                 )}
                 {groups.map((g) => {
                   const open = openGroups.has(g.symbol.toUpperCase())
                   const multi = g.rows.length > 1
+                  const first = g.rows[0]
+                  const firstChain = getChain(first.chainId)
                   return (
                     <div key={g.symbol} className="border-b border-line last:border-0">
                       <button
                         onClick={() =>
+                          multi &&
                           setOpenGroups((prev) => {
                             const next = new Set(prev)
                             const k = g.symbol.toUpperCase()
@@ -370,62 +367,79 @@ export default function Portfolio() {
                             return next
                           })
                         }
-                        className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-ink-700/60"
+                        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                          multi ? 'hover:bg-ink-700/60' : 'cursor-default'
+                        }`}
                       >
-                        <span className="relative">
-                          <TokenIcon symbol={g.symbol} size={36} chainId={g.rows[0].chainId} address={g.rows[0].address ?? undefined} verified={g.rows[0].verified} />
-                          {multi && (
-                            <span className="absolute -bottom-1 -right-1 rounded-full border border-ink-800">
-                              <ChainLogo chain={getChain(g.rows[0].chainId)!} size={15} />
+                        <span className="relative shrink-0">
+                          <TokenIcon
+                            symbol={g.symbol}
+                            size={34}
+                            chainId={first.chainId}
+                            address={first.address ?? undefined}
+                            verified={first.verified}
+                          />
+                          {!multi && firstChain && (
+                            <span className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-ink-800">
+                              <ChainLogo chain={firstChain} size={14} />
                             </span>
                           )}
                         </span>
+                        {multi && (
+                          <span className="flex shrink-0 items-center gap-0.5">
+                            {g.rows.slice(0, 3).map((r) => {
+                              const c = getChain(r.chainId)
+                              return c ? <ChainLogo key={r.chainId} chain={c} size={13} /> : null
+                            })}
+                            {g.rows.length > 3 && <span className="mono text-[10px] text-t3">+{g.rows.length - 3}</span>}
+                          </span>
+                        )}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[14px] font-semibold text-t1">{g.symbol}</span>
-                          <span className="block truncate text-[12px] leading-4 text-t2">
-                            {g.name}
-                            {multi ? ` · ${g.rows.length} networks` : ` · ${getChain(g.rows[0].chainId)?.short}`}
-                          </span>
+                          {!multi && (
+                            <span className="block truncate text-[12px] leading-4 text-t2">
+                              {firstChain?.name ?? g.name}
+                            </span>
+                          )}
                         </span>
                         <span className="shrink-0 text-right">
-                          <span className="display block text-[15px] leading-5 text-t1">{g.usd == null ? '—' : usd(g.usd)}</span>
+                          <span className="display block text-[15px] leading-5 text-t1">
+                            {g.usd == null ? '—' : usd(g.usd)}
+                          </span>
                           <span className="mono block text-[12px] leading-4 text-t2">
                             {g.amount > 0 ? `${fmtAmount(g.amount)} ${g.symbol}` : '—'}
                           </span>
                         </span>
                         {multi && (
-                          <ChevronDown
-                            size={15}
-                            className={`shrink-0 text-t2 transition-transform ${open ? 'rotate-180' : ''}`}
-                          />
+                          <ChevronDown size={14} className={`shrink-0 text-t2 transition-transform ${open ? 'rotate-180' : ''}`} />
                         )}
                       </button>
+
                       {multi && open && (
-                        <div className="pb-2 pl-[4.4rem] pr-5">
+                        <div className="pb-2 pl-[3.7rem] pr-4">
                           {g.rows.map((r) => {
                             const c = getChain(r.chainId)
                             const amt = r.amount == null ? null : Number(formatUnits(r.amount, r.decimals))
                             return (
-                              <div key={`${r.chainId}-${r.address ?? 'native'}`} className="flex items-center gap-2 py-1.5">
-                                {c ? <ChainLogo chain={c} size={15} /> : null}
-                                <span className="min-w-0 flex-1 truncate text-[12px] text-t2">{c?.short ?? r.chainId}</span>
-                                <span className="mono text-[12px] text-t2">
-                                  {amt == null ? '—' : `${fmtAmount(amt)} ${r.symbol}`}
+                              <div key={`${r.chainId}-${r.address ?? 'native'}`} className="flex items-center gap-2.5 py-1.5">
+                                <span className="relative shrink-0">
+                                  <TokenIcon symbol={r.symbol} size={22} chainId={r.chainId} address={r.address ?? undefined} verified={r.verified} />
+                                  {c && (
+                                    <span className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-ink-800">
+                                      <ChainLogo chain={c} size={11} />
+                                    </span>
+                                  )}
                                 </span>
-                                <span className="mono w-20 text-right text-[12px] text-t1">
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-[12px] text-t1">{r.symbol}</span>
+                                  <span className="block truncate text-[11px] leading-3 text-t3">{c?.name ?? r.chainId}</span>
+                                </span>
+                                <span className="mono shrink-0 text-right text-[12px] text-t1">
                                   {r.usdValue == null ? '—' : usd(r.usdValue)}
                                 </span>
-                                {c && (
-                                  <a
-                                    href={explorerAddress(c.id, address ?? '')}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-t3 hover:text-t1"
-                                    title="Open in explorer"
-                                  >
-                                    <ExternalLink size={11} />
-                                  </a>
-                                )}
+                                <span className="mono w-24 shrink-0 text-right text-[11px] text-t2">
+                                  {amt == null ? '—' : fmtAmount(amt)}
+                                </span>
                               </div>
                             )
                           })}
@@ -435,37 +449,37 @@ export default function Portfolio() {
                   )
                 })}
               </div>
-              <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
-                <button
-                  onClick={() => setImportFor(network === 'all' ? 11155111 : network)}
-                  className="inline-flex items-center gap-1.5 text-[12px] text-t2 transition-colors hover:text-t1"
-                >
-                  <Plus size={12} /> Import an ERC-20
-                </button>
-                <span className="mono text-[11px] text-t3">
-                  {prices.data?.at
-                    ? `prices ${new Date(prices.data.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · DefiLlama`
-                    : ''}
-                </span>
+
+              {/* recovery sits inside the Tokens tab, on its right */}
+              <div className="hidden w-[268px] shrink-0 border-l border-line-strong p-3 xl:block">
+                <RecoveryPanel compact />
               </div>
             </div>
-          )}
-        </div>
 
-        {/* rail */}
-        <aside className="space-y-4">
-          <RecoveryPanel />
-          <div className="card p-4">
-            <h2 className="display text-[16px] leading-6 text-t1">How these numbers are made</h2>
-            <p className="mt-1 text-[12px] leading-5 text-t2">
-              Balances are read from each chain's RPC. Dollar figures use mainnet spot prices and are a reading aid only —
-              testnet tokens cannot be withdrawn or sold.
-            </p>
+            <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
+              <button
+                onClick={() => setImportFor(network === 'all' ? 11155111 : network)}
+                className="inline-flex items-center gap-1.5 text-[12px] text-t2 transition-colors hover:text-t1"
+              >
+                <Plus size={12} /> Import an ERC-20
+              </button>
+              <span className="mono ml-auto text-[11px] text-t3">
+                {prices.data?.at
+                  ? `prices ${new Date(prices.data.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · DefiLlama`
+                  : ''}
+              </span>
+            </div>
           </div>
-        </aside>
+        )}
       </div>
 
-      <NetworkPicker open={pickNetwork} onClose={() => setPickNetwork(false)} value={network} onSelect={setNetwork} totals={networkTotals} />
+      <NetworkPicker
+        open={pickNetwork}
+        onClose={() => setPickNetwork(false)}
+        value={network}
+        onSelect={setNetwork}
+        totals={networkTotals}
+      />
 
       {importFor != null && (
         <ImportToken chainId={importFor} onClose={() => setImportFor(null)} onDone={() => portfolio.refetch()} />
@@ -473,6 +487,7 @@ export default function Portfolio() {
     </div>
   )
 }
+
 
 const assets = (n: number) => `${n} asset${n === 1 ? '' : 's'}`
 
@@ -489,29 +504,41 @@ function valueOf(amount: bigint | null, decimals: number, symbol: string, prices
   return Number(formatUnits(amount, decimals)) * p
 }
 
-/** share-of-portfolio ring: the arc is the asset's weight, so a glance ranks the list */
-function Ring({ pct }: { pct: number }) {
-  const r = 15
+/** the token icon wrapped in its share of the portfolio, as the design draws it */
+function RingIcon({
+  pct,
+  symbol,
+  chainId,
+  address,
+  verified,
+}: {
+  pct: number
+  symbol: string
+  chainId: number
+  address: string | null
+  verified: boolean
+}) {
+  const r = 26
   const c = 2 * Math.PI * r
   const clamped = Math.max(0, Math.min(100, pct))
   return (
-    <span className="relative grid size-11 shrink-0 place-items-center">
-      <svg width="44" height="44" viewBox="0 0 44 44" className="-rotate-90">
-        <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(171,184,255,0.14)" strokeWidth="3.5" />
+    <span className="relative grid size-[64px] place-items-center">
+      <svg width="64" height="64" viewBox="0 0 64 64" className="absolute -rotate-90">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(171,184,255,0.13)" strokeWidth="3" />
         <circle
-          cx="22"
-          cy="22"
+          cx="32"
+          cy="32"
           r={r}
           fill="none"
           stroke="var(--color-accent)"
-          strokeWidth="3.5"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c - (c * clamped) / 100}
-          style={{ transition: 'stroke-dashoffset 600ms cubic-bezier(0.22,1,0.36,1)' }}
+          style={{ transition: 'stroke-dashoffset 700ms cubic-bezier(0.22,1,0.36,1)' }}
         />
       </svg>
-      <span className="mono absolute text-[9px] text-t2">{Math.round(clamped)}%</span>
+      <TokenIcon symbol={symbol} size={38} chainId={chainId} address={address ?? undefined} verified={verified} />
     </span>
   )
 }

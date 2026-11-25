@@ -18,7 +18,6 @@ import { Card, Button, Badge, Row, notify, TokenIcon, Modal, Spinner, ChainLogo 
 import { ConnectButton } from '../components/Layout'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
 import { TokenPicker } from '../components/TokenPicker'
-import { PageHeader } from '../components/Layout'
 import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity } from '../lib/activity'
 import { quoteBest, maxFillable, applySlippage, erc20Balance, formatAmount, erc20Abi } from '../lib/uniswap'
 import { executeSwap, buildSwapCalldata } from '../lib/swapExec'
@@ -249,13 +248,8 @@ export default function Swap() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        eyebrow="Same chain"
-        title="Swap"
-        subtitle="Same-chain swaps against real Uniswap v3 pools. Every quote is an eth_call to QuoterV2, if a pool has no liquidity the route simply is not offered."
-      />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mx-auto w-full max-w-[560px] space-y-4">
         {!chainSupported && (
           <Card className="border-warn/40 p-4 lg:col-span-2">
             <div className="text-[14px] font-semibold text-t1">
