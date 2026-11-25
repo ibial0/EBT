@@ -22,14 +22,44 @@ export interface PendingView {
   hash?: string
   elapsedMs: number
   provider: string
+  etaMs: number
+  remainingMs: number
+}
+
+/** Rough expected duration per provider, used when a record has no explicit eta. */
+export function etaFor(item: ActivityItem): number {
+  const explicit = Number(item.meta?.etaMs)
+  if (Number.isFinite(explicit) && explicit > 0) return explicit
+  if (item.provider === 'cctp') return 150_000
+  if (item.provider === 'orbit') return 600_000
+  if (item.provider === 'opstack') return 180_000
+  return 90_000
+}
+
+/** 95s -> "1:35", 12s -> "0:12" */
+export function clock(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000))
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+/** 95s -> "1m 35s" */
+export function duration(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000))
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
 export function pendingFrom(items: ActivityItem[]): PendingView[] {
   return items
-    .filter((i) => i.status === 'pending' && i.steps.some((s) => s.status === 'done' && s.hash))
+    // anything still in flight belongs here, signed or not - the row shows its real percentage
+    .filter((i) => i.status === 'pending' && i.steps.length > 0)
     .map((i) => {
       const active = i.steps.find((s) => s.status === 'active') ?? i.steps.find((s) => s.status === 'pending')
       const firstHash = i.steps.find((s) => s.hash)?.hash
+      const etaMs = etaFor(i)
       return {
         id: i.id,
         fromChainId: i.fromChainId,
@@ -40,6 +70,8 @@ export function pendingFrom(items: ActivityItem[]): PendingView[] {
         hash: firstHash,
         elapsedMs: Date.now() - i.createdAt,
         provider: i.provider,
+        etaMs,
+        remainingMs: Math.max(0, etaMs - (Date.now() - i.createdAt)),
       }
     })
 }

@@ -24,6 +24,7 @@ import { startDepositTracking, pollDepositOnce, isDepositTracking } from '../lib
 import { submitReceiveMessage, isMessageUsed } from '../lib/bridgeExec'
 import { decodeTxError } from '../lib/errors'
 import { shortAddr, timeAgo } from '../lib/format'
+import { etaFor, clock, duration } from '../lib/notifyCenter'
 import { wagmiConfig } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
 import type { Address } from '../config/chains'
@@ -297,6 +298,19 @@ function Detail({ id }: { id: string }) {
             <DetailRow label="Slippage / fee tier" value={item.meta?.feeTier ? `${Number(item.meta.feeTier) / 10000}%` : item.meta?.fast ? 'fast transfer' : '-'} />
             {item.meta?.maxFee && <DetailRow label="Max CCTP fee" value={`${item.meta.maxFee} (subunits)`} />}
             <DetailRow label="Updated" value={timeAgo(item.updatedAt)} />
+            {item.status === 'pending' && (
+              <>
+                <DetailRow label="Running for" value={duration(Date.now() - item.createdAt)} />
+                <DetailRow
+                  label="Expected in"
+                  value={
+                    etaFor(item) - (Date.now() - item.createdAt) > 0
+                      ? `~${clock(etaFor(item) - (Date.now() - item.createdAt))}`
+                      : 'any moment now'
+                  }
+                />
+              </>
+            )}
           </Card>
 
           <Card className="p-4">

@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, CheckCircle2, XCircle } from 'lucide-react'
 import { useActivity } from '../lib/activity'
-import { pendingFrom, elapsed, labelFor, useFinishFlash, shortAmount } from '../lib/notifyCenter'
-import { explorerTx, getChain } from '../config/chains'
+import { pendingFrom, useFinishFlash, clock, shortAmount, elapsed, labelFor } from '../lib/notifyCenter'
+import { getChain } from '../config/chains'
+import { ChainLogo } from './ui'
 
 export function NotificationBell() {
   const items = useActivity()
@@ -50,34 +51,42 @@ export function NotificationBell() {
             </div>
             <div className="hairline mb-1" />
             {pending.length === 0 && <div className="px-2 py-6 text-center text-[12px] text-t3">Nothing in flight</div>}
-            {pending.map((p) => (
-              <Link
-                key={p.id}
-                to={`/activity/${p.id}`}
-                onClick={() => setOpen(false)}
-                className="block rounded-lg px-2 py-2 transition-colors hover:bg-ink-700"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[13px] text-t1">
-                    {shortAmount(p.amount)} {p.symbol}
-                  </span>
-                  <span className="mono text-[11px] text-t3">{elapsed(p.elapsedMs)}</span>
-                </div>
-                <div className="mt-0.5 text-[11px] text-t2">{labelFor(p)}</div>
-                <div className="mt-0.5 text-[11px] text-t3">{p.stage}</div>
-                {p.hash && (
-                  <a
-                    href={explorerTx(p.fromChainId, p.hash)}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="mono mt-0.5 block text-[10px] text-t3 hover:text-t1"
-                  >
-                    {p.hash.slice(0, 14)}…
-                  </a>
-                )}
-              </Link>
-            ))}
+            {pending.map((p) => {
+              const item = items.find((i) => i.id === p.id)
+              const steps = item?.steps ?? []
+              const done = steps.filter((st) => st.status === 'done' || st.status === 'skipped').length
+              const active = steps.some((st) => st.status === 'active')
+              const pct = steps.length ? Math.round(((done + (active ? 0.5 : 0)) / steps.length) * 100) : 0
+              const fromC = getChain(p.fromChainId)
+              const toC = getChain(p.toChainId)
+              return (
+                <Link
+                  key={p.id}
+                  to={`/activity/${p.id}`}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-2 py-2 transition-colors hover:bg-ink-700"
+                >
+                  <div className="flex items-center gap-2.5">
+                    {fromC && <ChainLogo chain={fromC} size={18} />}
+                    <div className="relative h-px flex-1 bg-line-strong">
+                      <span
+                        className="absolute top-1/2 size-1 -translate-y-1/2 rounded-full bg-accent"
+                        style={{ animation: 'flow 1.8s linear infinite' }}
+                      />
+                    </div>
+                    {toC && <ChainLogo chain={toC} size={18} />}
+                    <span className="mono w-8 shrink-0 text-right text-[12px] font-semibold text-t1">{pct}%</span>
+                  </div>
+                  <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr] items-center text-[10px] text-t3">
+                    <span />
+                    <span className="truncate text-center">
+                      {fromC?.short ?? p.fromChainId} → {toC?.short ?? p.toChainId}
+                    </span>
+                    <span className="mono justify-self-end">{p.remainingMs > 0 ? `~${clock(p.remainingMs)}` : 'soon'}</span>
+                  </div>
+                </Link>
+              )
+            })}
             <div className="hairline my-1" />
             <Link
               to="/activity"

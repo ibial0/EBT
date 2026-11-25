@@ -326,7 +326,16 @@ export default function Bridge() {
         amountIn: amount,
         amountOut: estimate.data ? fmt(estimate.data.amountOut, dest.decimals, 6) : '',
         status: 'pending',
-        meta: { routeType: route.type, routeLabel: route.label, txCount: route.txCount, recipient: effectiveRecipient },
+        meta: {
+          routeType: route.type,
+          routeLabel: route.label,
+          txCount: route.txCount,
+          recipient: effectiveRecipient,
+          etaMs: route.legs.reduce(
+            (a, l) => a + (l.kind === 'portal' ? 180000 : l.kind === 'arbitrum' ? 600000 : l.kind === 'cctp' ? 120000 : 30000),
+            0,
+          ),
+        },
         steps,
       })
       setActiveId(item.id)
@@ -446,10 +455,10 @@ export default function Bridge() {
   const hasRoute = Boolean(route) && Boolean(dest)
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex min-h-0 flex-col gap-5 lg:h-[calc(100dvh-7rem)] lg:flex-none">
 
-      <div className="grid w-full flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
-        <Card className="flex h-full flex-col p-5">
+      <div className="grid w-full min-h-0 flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden p-5">
           <div className="relative flex flex-1 flex-col gap-3">
             <div className="flex min-h-[140px] flex-1 flex-col justify-center rounded-[16px] border border-line-strong bg-ink-850 p-5">
               <div className="mb-2 flex items-center">
