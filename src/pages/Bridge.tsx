@@ -452,9 +452,9 @@ export default function Bridge() {
     <div className="flex flex-1 flex-col gap-5">
 
       <div className="grid w-full flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
-        <Card className="p-5">
-          <div className="relative">
-            <div className="rounded-[16px] border border-line-strong bg-ink-850 p-5">
+        <Card className="flex h-full flex-col p-5">
+          <div className="relative flex flex-1 flex-col gap-3">
+            <div className="flex min-h-[140px] flex-1 flex-col justify-center rounded-[16px] border border-line-strong bg-ink-850 p-5">
               <div className="mb-2 flex items-center justify-between">
                 <span className="col-head">You send</span>
                 <span className={"mono text-[12px] " + (sourceBalance.isError ? 'text-[#e6c17a]' : 'text-t2')}>
@@ -473,14 +473,14 @@ export default function Bridge() {
                   onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder="0.0"
                   inputMode="decimal"
-                  className="input display text-[46px] leading-[56px] tracking-[-0.02em]"
+                  className="input display text-[56px] leading-[66px] tracking-[-0.02em]"
                 />
                 <button
                   onClick={() => setPick('source')}
-                  className="flex h-14 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-2 pr-3.5 transition-colors hover:border-accent/50 hover:bg-ink-600"
+                  className="flex h-16 shrink-0 items-center gap-2.5 rounded-full border border-line-strong bg-ink-700 pl-2 pr-4 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {source ? <TokenIcon symbol={source.symbol} size={34} chainId={fromId} address={source.address} verified={source.verified} /> : null}
-                  <span className="display text-[15px] text-t1">{source?.symbol ?? 'select'}</span>
+                  {source ? <TokenIcon symbol={source.symbol} size={38} chainId={fromId} address={source.address} verified={source.verified} /> : null}
+                  <span className="display text-[16px] text-t1">{source?.symbol ?? 'select'}</span>
                   <ChevronDown size={15} className="text-t2" />
                 </button>
               </div>
@@ -491,19 +491,19 @@ export default function Bridge() {
                 setFromId(toId)
                 setToId(fromId)
               }}
-              className="absolute left-1/2 top-1/2 z-10 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-800 text-t1 transition-all duration-150 hover:scale-110 hover:border-accent/60 hover:text-accent"
+              className="absolute left-1/2 top-1/2 z-10 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-800 text-t1 transition-all duration-150 hover:scale-110 hover:border-accent/60 hover:text-accent"
               title="Swap direction"
             >
               <ArrowDownUp size={14} />
             </button>
 
-            <div className="mt-3 rounded-[16px] border border-line-strong bg-ink-850 p-5">
+            <div className="flex flex-1 flex-col justify-center rounded-[16px] border border-line-strong bg-ink-850 p-5">
               <div className="mb-2 flex items-center justify-between">
                 <span className="col-head">You receive</span>
                 <span>{estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : '-'}</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="input display flex-1 truncate text-[46px] leading-[56px] tracking-[-0.02em] text-t1">
+                <div className="input display flex-1 truncate text-[56px] leading-[66px] tracking-[-0.02em] text-t1">
                   {estimate.data && dest ? (
                     fmt(estimate.data.amountOut, dest.decimals, 6)
                   ) : (
@@ -512,10 +512,10 @@ export default function Bridge() {
                 </div>
                 <button
                   onClick={() => setPick('dest')}
-                  className="flex h-14 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-ink-700 pl-2 pr-3.5 transition-colors hover:border-accent/50 hover:bg-ink-600"
+                  className="flex h-16 shrink-0 items-center gap-2.5 rounded-full border border-line-strong bg-ink-700 pl-2 pr-4 transition-colors hover:border-accent/50 hover:bg-ink-600"
                 >
-                  {dest ? <TokenIcon symbol={dest.symbol} size={34} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
-                  <span className="display text-[15px] text-t1">{dest?.symbol ?? 'pick'}</span>
+                  {dest ? <TokenIcon symbol={dest.symbol} size={38} chainId={toId} address={dest.address} verified={dest.verified} /> : null}
+                  <span className="display text-[16px] text-t1">{dest?.symbol ?? 'pick'}</span>
                   <ChevronDown size={15} className="text-t2" />
                 </button>
               </div>
@@ -634,14 +634,14 @@ export default function Bridge() {
             </div>
           )}
 
-          <div className="mt-auto pt-5">
+          <div className="mt-auto pt-4">
             {!isConnected ? (
               <ConnectButton full />
             ) : (
               <Button
                 full
                 variant="primary"
-                className="h-[58px] w-full text-[16px]"
+                className="h-[64px] w-full text-[17px]"
                 disabled={!hasRoute || amountIn <= 0n || insufficient}
                 loading={busy === 'start'}
                 onClick={run}
