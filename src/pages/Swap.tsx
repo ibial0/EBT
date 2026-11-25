@@ -304,29 +304,40 @@ export default function Swap() {
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="col-head">Sell</span>
                 <div className="flex items-center gap-2">
-                  {[25, 50, 75].map((pct) => (
+                  <div
+                    style={{ display: sellFocus ? 'flex' : 'none' }}
+                    className="items-center gap-1.5"
+                  >
+                    {[25, 50, 75].map((pct) => (
+                      <button
+                        key={pct}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          if (!address || balanceIn.data == null) return
+                          const raw = (balanceIn.data * BigInt(pct)) / 100n
+                          const keep = isNativeToken(tokenIn) ? balanceIn.data / 50n : 0n
+                          setAmount(formatUnits(raw > keep ? raw - keep : 0n, tokenIn.decimals))
+                        }}
+                        className="mono rounded border border-line px-1.5 py-[2px] text-[10px] leading-none text-t3 transition-colors hover:border-line-strong hover:text-t1"
+                      >
+                        {pct}%
+                      </button>
+                    ))}
                     <button
-                      key={pct}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         if (!address || balanceIn.data == null) return
-                        const raw = (balanceIn.data * BigInt(pct)) / 100n
                         const keep = isNativeToken(tokenIn) ? balanceIn.data / 50n : 0n
-                        setAmount(formatUnits(raw > keep ? raw - keep : 0n, tokenIn.decimals))
-                        setSellFocus(true)
+                        setAmount(formatUnits(balanceIn.data > keep ? balanceIn.data - keep : 0n, tokenIn.decimals))
                       }}
-                      style={{ display: sellFocus ? 'inline-flex' : 'none' }}
-                      className="mono rounded border border-line px-1.5 py-[2px] text-[10px] leading-none text-t3 transition-colors hover:border-line-strong hover:text-t1"
+                      className="mono rounded border border-line px-1.5 py-[2px] text-[10px] leading-none text-t2 transition-colors hover:border-accent/50 hover:text-accent"
                     >
-                      {pct}%
+                      MAX
                     </button>
-                  ))}
-                  <button
-                    onClick={() => address && balanceIn.data != null && setAmount(formatUnits(balanceIn.data, tokenIn.decimals))}
-                    className="mono text-[12px] text-t2 transition-colors hover:text-accent"
-                  >
-                    max {balanceIn.data != null ? fmt(balanceIn.data, tokenIn.decimals, 5) : '—'}
-                  </button>
+                  </div>
+                  <span className="mono text-[12px] text-t2">
+                    {balanceIn.data != null ? fmt(balanceIn.data, tokenIn.decimals, 5) : '—'}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-3">
