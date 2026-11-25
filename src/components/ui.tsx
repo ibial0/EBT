@@ -79,14 +79,11 @@ export function EbtMark({ size = 40, className }: { size?: number; className?: s
       aria-hidden="true"
       className={clsx('shrink-0', className)}
     >
-      <rect
-        x="19"
-        y="19"
-        width="26"
-        height="26"
-        transform="rotate(45 32 32)"
+      <path
+        d="M32 13.62 L50.38 32 L32 50.38 L13.62 32 Z"
         stroke="currentColor"
         strokeWidth="2.4"
+        strokeLinejoin="round"
       />
       <path d="M24 25h16M27 32h10M24 39h16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
