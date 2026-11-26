@@ -7,6 +7,7 @@ import { explorerTx, getChain } from '../config/chains'
 import { Badge, Button, Card, ChainLogo, Empty, notify, CopyButton } from '../components/ui'
 import { PageHeader } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
+import { ClaimableWithdrawals } from '../components/ClaimableWithdrawals'
 import { Timeline } from '../components/Timeline'
 import {
   clearActivity,
@@ -40,6 +41,7 @@ export default function ActivityPage() {
 
   return (
     <div className="space-y-5">
+      <ClaimableWithdrawals />
       <PageHeader
         eyebrow="Local ledger"
         title="Activity"

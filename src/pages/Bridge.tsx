@@ -9,7 +9,7 @@ import { CHAINS, getChain, type Address } from '../config/chains'
 import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/networks'
 import { WETH, isNativeToken, nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
 import { useSearchParams } from 'react-router-dom'
-import { OrbitWithdrawPanel } from '../components/OrbitWithdrawPanel'
+import { initiateWithdrawEth, rememberWithdrawal } from '../lib/orbitWithdraw'
 import { Card, Button, Badge, Row, notify, ChainLogo, NetworkLogo, TokenIcon, Spinner } from '../components/ui'
 import {
   NON_EVM_BRIDGE_ENDPOINTS,
@@ -972,6 +972,45 @@ export default function Bridge() {
     }
   }
 
+  /** Canonical withdrawal for a parent-settled Orbit chain: the bridge button starts it here. */
+  async function runWithdraw() {
+    if (!isCanonicalWithdraw || amountIn <= 0n || !address) return
+    setBusy('start')
+    const human = formatUnits(amountIn, 18)
+    const item = addActivity({
+      kind: 'bridge',
+      provider: 'orbit',
+      fromChainId: fromId,
+      toChainId: toId,
+      owner: address,
+      tokenIn: { symbol: source?.symbol ?? 'ETH', decimals: 18 },
+      amountIn: human,
+      amountOut: human,
+      status: 'pending',
+      steps: [
+        { key: 'withdraw', label: `Withdraw on ${fromShort}`, status: 'active', chainId: fromId },
+        { key: 'confirm', label: `Wait for ${toShort} confirmation`, status: 'pending', chainId: toId },
+        { key: 'claim', label: `Claim on ${toShort}`, status: 'pending', chainId: toId },
+      ],
+      meta: { routeType: 'orbit-withdraw', routeLabel: 'Canonical withdrawal', txCount: 2, etaMs: 2700000 },
+    })
+    try {
+      const hash = await initiateWithdrawEth(fromId, amountIn)
+      updateStep(item.id, 'withdraw', { status: 'done', hash })
+      updateStep(item.id, 'confirm', { status: 'active' })
+      rememberWithdrawal({ txHash: hash, fromId, toId, amount: human, createdAt: Date.now(), activityId: item.id })
+      notify(`Withdrawal started — claim it from Activity once ${toShort} confirms.`, 'success')
+      setAmount('')
+    } catch (e) {
+      const d = decodeTxError(e, fromId)
+      updateStep(item.id, 'withdraw', { status: 'failed', note: d.detail })
+      finalizeFromSteps(item.id)
+      notify(`${d.title}: ${d.detail}`, 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const hasRoute = Boolean(route) && Boolean(dest)
   /** Robinhood-like Orbit chains settle on their parent: value leaves by withdrawal, not a bridge. */
   const isCanonicalWithdraw = orbitBridgeFor(fromId)?.parentChainId === toId
@@ -1127,6 +1166,12 @@ export default function Bridge() {
                     <ChevronDown size={15} className="text-t2" />
                   </button>
                   <div className="mt-1 flex h-6 items-center justify-center">
+                    {!isNonEvmBridge && isCanonicalWithdraw && amountIn > 0n && (
+                      <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-[#6adbb6]">
+                        <Plus size={13} strokeWidth={2.5} />
+                        {fmt(amountIn, 18, 4)}
+                      </span>
+                    )}
                     {!isNonEvmBridge && amountIn > 0n && estimate.data && dest && (
                       <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-[#6adbb6]">
                         <Plus size={13} strokeWidth={2.5} />
@@ -1175,22 +1220,10 @@ export default function Bridge() {
                 </span>
               </div>
               <p className="mt-1.5 text-[11.5px] leading-relaxed text-t2">
-                {fromShort} is an Orbit chain that settles on {toShort}, so value does not hop over a bridge —
-                it is withdrawn here and released on {toShort}. You sign once to start it; the rollup then
-                confirms your message on {toShort} (this testnet has been taking tens of minutes, the panel
-                shows the live count) and you sign once more to claim. Nothing is lost while it waits.
+                {fromShort} is an Orbit chain that settles on {toShort}, so this is a withdrawal rather than a
+                fast bridge: the rollup confirms your message on {toShort} (≈ tens of minutes on this testnet)
+                and the value is then claimable from Activity. Nothing is lost while it waits.
               </p>
-              <OrbitWithdrawPanel fromId={fromId} toId={toId} />
-              {orbitWithdrawLink && (
-                <a
-                  href={orbitWithdrawLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 text-[10.5px] text-t3 underline-offset-2 hover:text-t1 hover:underline"
-                >
-                  Or open the same withdrawal on the Arbitrum portal ↗
-                </a>
-              )}
             </div>
           ) : !route ? (
             <div className="mt-3 rounded-lg border border-[#ff8f8f]/25 bg-[#ff8f8f]/8 px-3 py-2.5">
@@ -1270,6 +1303,7 @@ export default function Bridge() {
             </div>
           </div>
 
+          {!isCanonicalWithdraw && (
           <div className="mt-3 flex items-center justify-between rounded-lg border border-line bg-ink-850 px-3 py-2">
             <div>
               <div className="text-[12px] font-medium text-t1">Slippage tolerance</div>
@@ -1291,8 +1325,9 @@ export default function Bridge() {
               ))}
             </div>
           </div>
+          )}
 
-          {hasAcrossLeg && !hasCctpLeg ? (
+          {isCanonicalWithdraw ? null : hasAcrossLeg && !hasCctpLeg ? (
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="panel border-accent/40 bg-accent/8 p-3 text-left">
                 <div className="flex items-center justify-between">
@@ -1402,9 +1437,13 @@ export default function Bridge() {
                 full
                 variant="primary"
                 className="h-[64px] w-full text-[17px]"
-                disabled={!hasRoute || amountIn <= 0n || insufficient || Boolean(estimate.data?.failed)}
+                disabled={
+                  isCanonicalWithdraw
+                    ? !address || amountIn <= 0n || insufficient
+                    : !hasRoute || amountIn <= 0n || insufficient || Boolean(estimate.data?.failed)
+                }
                 loading={busy === 'start'}
-                onClick={run}
+                onClick={isCanonicalWithdraw ? () => void runWithdraw() : run}
               >
                 {route ? (
                   <span className="flex items-center gap-1.5">
@@ -1413,6 +1452,8 @@ export default function Bridge() {
                       <span className="text-[13px] font-medium opacity-70">+ swap</span>
                     )}
                   </span>
+                ) : isCanonicalWithdraw ? (
+                  <span className="flex items-center gap-1.5">{`Bridge ${source?.symbol ?? ''}`}</span>
                 ) : (
                   'No route for this pair'
                 )}
@@ -1505,7 +1546,7 @@ export default function Bridge() {
           </Card>
 
           {/* ── Aggregator quotes: LI.FI + Relay (EVM pairs) ─────────────── */}
-          {!isNonEvmBridge && (
+          {!isNonEvmBridge && !isCanonicalWithdraw && (
             <AggregatorQuotes
               fromId={fromId}
               toId={toId}

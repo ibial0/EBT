@@ -206,3 +206,46 @@ export async function claimWithdrawal(
     chain: null,
   })
 }
+
+/** A withdrawal this browser started, kept so Activity can finish (claim) it later. */
+export interface SavedWithdrawal {
+  txHash: `0x${string}`
+  fromId: number
+  toId: number
+  amount: string
+  createdAt: number
+  claimedHash?: string
+  /** the local activity record this withdrawal writes to */
+  activityId?: string
+}
+
+const STORE = 'ebt.withdrawals.v1'
+
+export function loadWithdrawals(): SavedWithdrawal[] {
+  try {
+    const raw = localStorage.getItem(STORE)
+    const arr = raw ? (JSON.parse(raw) as unknown) : []
+    return Array.isArray(arr) ? (arr as SavedWithdrawal[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function rememberWithdrawal(rec: SavedWithdrawal): void {
+  try {
+    const list = loadWithdrawals().filter((s) => s.txHash !== rec.txHash)
+    list.unshift(rec)
+    localStorage.setItem(STORE, JSON.stringify(list.slice(0, 20)))
+  } catch {
+    /* storage full or blocked */
+  }
+}
+
+export function markWithdrawalClaimed(txHash: string, claimedHash: string): void {
+  try {
+    const list = loadWithdrawals().map((s) => (s.txHash === txHash ? { ...s, claimedHash } : s))
+    localStorage.setItem(STORE, JSON.stringify(list.slice(0, 20)))
+  } catch {
+    /* storage full or blocked */
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowDownLeft, ArrowUpRight, Check, ChevronRight, Copy, X } from 'lucide-react'
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Check, ChevronDown, ChevronRight, Copy, X } from 'lucide-react'
 import { formatUnits } from 'viem'
 import type { NetworkEntry } from '../config/networks'
 import { getChain } from '../config/chains'
@@ -219,6 +219,7 @@ export function TokenActions({
   initialRowKey,
   initialMode = 'send',
   lockedRowKey = null,
+  onBack,
   onClose,
   onSent,
   receiveAddressFor,
@@ -227,6 +228,8 @@ export function TokenActions({
   initialRowKey?: string | null
   initialMode?: 'send' | 'receive'
   lockedRowKey?: string | null
+  /** Shown as a back arrow in the header — returns to the previous step (the chain summary). */
+  onBack?: () => void
   onClose: () => void
   onSent?: () => void
   receiveAddressFor?: (row: TokenRow) => string
@@ -234,11 +237,16 @@ export function TokenActions({
   const rows = useMemo(() => group.rows.slice().sort(byBalance), [group.rows])
   const sendable = useMemo(() => rows.filter((r) => r.chainId != null), [rows])
   const [mode, setMode] = useState<'send' | 'receive'>(initialMode)
-  /** Opened from one chain row: that chain is the only option in From. */
+  /** Opened from one chain row: that chain is the only option. */
   const selectable = useMemo(
     () => (lockedRowKey ? rows.filter((r) => rowKey(r) === lockedRowKey) : sendable.length > 0 ? sendable : rows),
     [rows, lockedRowKey, sendable],
   )
+  /** More than one network to choose from: the From card opens a picker instead of listing them all. */
+  const multi = !lockedRowKey && rows.length > 1
+  const [picker, setPicker] = useState(() => initialMode === 'receive' && !lockedRowKey && group.rows.length > 1)
+  /** Receive with several networks asks which one first, then shows the QR. */
+  const [receivePicked, setReceivePicked] = useState(() => !(initialMode === 'receive' && !lockedRowKey && group.rows.length > 1))
 
   const [selected, setSelected] = useState<string>(initialRowKey ?? rowKey(rows[0]))
   const [to, setTo] = useState('')
@@ -362,7 +370,16 @@ export function TokenActions({
         style={{ animation: 'popupCardIn 280ms cubic-bezier(0.34,1.56,0.64,1) both' }}
       >
         {/* header */}
-        <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+        <div className="flex items-center gap-3 border-b border-line px-4 py-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              aria-label="Back"
+              className="rounded-lg p-2 text-t2 transition-colors hover:bg-ink-700 hover:text-t1"
+            >
+              <ArrowLeft size={17} />
+            </button>
+          )}
           <TokenIcon
             symbol={group.symbol}
             size={44}
@@ -396,7 +413,14 @@ export function TokenActions({
           ] as const).map(([key, label, Icon]) => (
             <button
               key={key}
-              onClick={() => setMode(key)}
+              onClick={() => {
+                setMode(key)
+                // several networks: ask which one to receive on before showing an address
+                if (key === 'receive' && multi) {
+                  setReceivePicked(false)
+                  setPicker(true)
+                }
+              }}
               className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold transition-all ${
                 mode === key ? 'bg-accent/15 text-accent ring-1 ring-accent/40' : 'text-t2 hover:text-t1'
               }`}
@@ -408,18 +432,38 @@ export function TokenActions({
 
         {mode === 'send' ? (
           <div className="space-y-3.5 px-5 pb-5 pt-4">
-            {/* from: chain row(s) with the chain logo and balance */}
+            {/* from: the selected chain only — tap the card to pick another network */}
             <div className="space-y-1.5">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-t3">
-                From{lockedRowKey && rows.length > 1 ? ' · this chain' : ''}
-              </p>
-              <div className={`space-y-1.5 ${lockedRowKey ? '' : 'max-h-[168px] overflow-y-auto pr-0.5'}`}>
-                {selectable.map((r) => (
-                  <div key={rowKey(r)} className={r.chainId == null ? 'opacity-55' : undefined}>
-                    <ChainPickerRow row={r} active={rowKey(r) === rowKey(row)} onSelect={() => setSelected(rowKey(r))} />
-                  </div>
-                ))}
-              </div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-t3">From</p>
+              <button
+                type="button"
+                disabled={!multi}
+                onClick={() => multi && setPicker(true)}
+                className={`relative flex w-full items-center gap-3 rounded-xl border border-line bg-ink-850 px-3.5 pt-3 text-left transition-all ${
+                  multi ? 'cursor-pointer pb-5 hover:border-line-strong hover:bg-ink-750' : 'pb-3'
+                }`}
+              >
+                <span className="relative shrink-0">
+                  <TokenIcon
+                    symbol={row.symbol}
+                    size={34}
+                    chainId={row.chainId ?? undefined}
+                    address={row.chainId != null ? (row.address ?? undefined) : undefined}
+                    verified={row.verified}
+                  />
+                  <span className="absolute -bottom-1 -left-1 rounded-full ring-2 ring-ink-850">
+                    <RowBadge row={row} size={15} />
+                  </span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13.5px] font-medium text-t1">{row.chainShort}</span>
+                  <span className="block truncate text-[11.5px] text-t3">{row.chainName}</span>
+                </span>
+                <span className="mono shrink-0 text-right text-[13px] text-t1">{amountText(row)}</span>
+                {multi && (
+                  <ChevronDown size={14} className="absolute bottom-1 left-1/2 -translate-x-1/2 text-t3" />
+                )}
+              </button>
             </div>
 
             {/* to: single field with the placeholder inside */}
@@ -460,30 +504,52 @@ export function TokenActions({
             >
               {sending ? 'Waiting for wallet…' : `Send ${group.symbol}`}
             </button>
-            <p className="text-center text-[10.5px] leading-4 text-t3">
-              You sign in your own wallet — the app never holds a key.
-            </p>
           </div>
         ) : (
           <div className="space-y-3.5 px-5 pb-5 pt-4">
-            {!lockedRowKey && rows.length > 1 && (
+            {multi && (
               <div className="space-y-1.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-t3">Network</p>
-                <div className="max-h-[132px] space-y-1.5 overflow-y-auto pr-0.5">
-                  {rows.map((r) => (
-                    <div key={rowKey(r)} className={r.chainId == null ? 'opacity-55' : undefined}>
-                      <ChainPickerRow
-                        row={r}
-                        active={rowKey(r) === rowKey(row)}
-                        onSelect={() => setSelected(rowKey(r))}
-                        size={30}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setPicker(true)}
+                  className="relative flex w-full cursor-pointer items-center gap-3 rounded-xl border border-line bg-ink-850 px-3.5 pb-5 pt-3 text-left transition-all hover:border-line-strong hover:bg-ink-750"
+                >
+                  <span className="relative shrink-0">
+                    <TokenIcon
+                      symbol={row.symbol}
+                      size={32}
+                      chainId={row.chainId ?? undefined}
+                      address={row.chainId != null ? (row.address ?? undefined) : undefined}
+                      verified={row.verified}
+                    />
+                    <span className="absolute -bottom-1 -left-1 rounded-full ring-2 ring-ink-850">
+                      <RowBadge row={row} size={14} />
+                    </span>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13.5px] font-medium text-t1">{row.chainShort}</span>
+                    <span className="block truncate text-[11.5px] text-t3">{row.chainName}</span>
+                  </span>
+                  <span className="mono shrink-0 text-right text-[13px] text-t1">{amountText(row)}</span>
+                  <ChevronDown size={14} className="absolute bottom-1 left-1/2 -translate-x-1/2 text-t3" />
+                </button>
               </div>
             )}
-            <div className="flex flex-col items-center gap-3">
+            {!receivePicked ? (
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-line px-4 py-10 text-center">
+                <p className="text-[12.5px] leading-5 text-t2">
+                  Choose a network to receive {group.symbol} on.
+                </p>
+                <button
+                  onClick={() => setPicker(true)}
+                  className="h-11 rounded-xl bg-accent px-5 text-[13px] font-semibold text-[#111628]"
+                >
+                  Select network
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
               {qr ? (
                 <img
                   src={qr}
@@ -513,6 +579,48 @@ export function TokenActions({
                 {copied ? <Check size={15} /> : <Copy size={14} />}
                 {copied ? 'Address copied' : 'Copy address'}
               </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* network picker: slides over the popup so the previous step stays behind it */}
+        {picker && (
+          <div
+            className="absolute inset-0 z-20 flex flex-col bg-ink-850"
+            style={{ animation: 'popupCardIn 220ms cubic-bezier(0.34,1.56,0.64,1) both' }}
+          >
+            <div className="flex items-center gap-2 border-b border-line px-3 py-3">
+              <button
+                onClick={() => setPicker(false)}
+                aria-label="Back"
+                className="rounded-lg p-2 text-t2 transition-colors hover:bg-ink-700 hover:text-t1"
+              >
+                <ArrowLeft size={17} />
+              </button>
+              <p className="text-[14px] font-semibold text-t1">Select network</p>
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                className="ml-auto rounded-lg p-2 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="max-h-[60vh] space-y-1.5 overflow-y-auto p-4">
+              {rows.map((r) => (
+                <div key={rowKey(r)} className={r.chainId == null ? 'opacity-55' : undefined}>
+                  <ChainPickerRow
+                    row={r}
+                    active={rowKey(r) === rowKey(row)}
+                    onSelect={() => {
+                      setSelected(rowKey(r))
+                      setPicker(false)
+                      setReceivePicked(true)
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         )}

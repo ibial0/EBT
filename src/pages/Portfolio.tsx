@@ -99,6 +99,8 @@ export default function Portfolio() {
   /** Opened from the Overview for a token that lives on several chains. */
   const [sheetGroup, setSheetGroup] = useState<Group | null>(null)
   const [popupMode, setPopupMode] = useState<'send' | 'receive'>('send')
+  /** The chain summary to return to when Back is pressed inside the popup. */
+  const [sheetReturn, setSheetReturn] = useState<Group | null>(null)
   /** When set, the popup is pinned to that chain row (Tokens tab drill-down). */
   const [popupLock, setPopupLock] = useState<string | null>(null)
   const [popupRowKey, setPopupRowKey] = useState<string | null>(null)
@@ -906,6 +908,7 @@ export default function Portfolio() {
             setPopupMode('send')
             setPopupLock(null)
             setPopupRowKey(rk ?? null)
+            setSheetReturn(sheetGroup)
             setPopupGroup(sheetGroup)
             setSheetGroup(null)
           }}
@@ -913,6 +916,7 @@ export default function Portfolio() {
             setPopupMode('receive')
             setPopupLock(null)
             setPopupRowKey(rk ?? null)
+            setSheetReturn(sheetGroup)
             setPopupGroup(sheetGroup)
             setSheetGroup(null)
           }}
@@ -920,6 +924,7 @@ export default function Portfolio() {
             setPopupMode('send')
             setPopupLock(rk)
             setPopupRowKey(rk)
+            setSheetReturn(sheetGroup)
             setPopupGroup(sheetGroup)
             setSheetGroup(null)
           }}
@@ -933,10 +938,22 @@ export default function Portfolio() {
           initialRowKey={popupRowKey}
           initialMode={popupMode}
           lockedRowKey={popupLock}
+          onBack={
+            sheetReturn
+              ? () => {
+                  setPopupGroup(null)
+                  setPopupRowKey(null)
+                  setPopupLock(null)
+                  setSheetGroup(sheetReturn)
+                  setSheetReturn(null)
+                }
+              : undefined
+          }
           onClose={() => {
             setPopupGroup(null)
             setPopupRowKey(null)
             setPopupLock(null)
+            setSheetReturn(null)
           }}
           onSent={() => portfolio.refetch()}
           receiveAddressFor={(r) =>
