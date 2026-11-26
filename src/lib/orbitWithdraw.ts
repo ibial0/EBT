@@ -26,8 +26,10 @@ const l2ToL1Event = parseAbiItem(
 )
 const nodeAbi = parseAbi([
   'function constructOutboxProof(uint64 size, uint64 leaf) view returns (bytes32 send, bytes32 root, bytes32[] proof)',
-  'function getL1Confirmations(bytes32 blockHash) view returns (uint64)',
 ])
+const assertionConfirmedEvent = parseAbiItem(
+  'event AssertionConfirmed(bytes32 indexed assertionId, bytes32 blockHash, bytes32 sendRoot)',
+)
 const outboxAbi = parseAbi([
   'function executeTransaction(bytes32[] proof, uint256 index, address l2Sender, address to, uint256 l2Block, uint256 l1Block, uint256 l2Timestamp, uint256 value, bytes data)',
 ])
@@ -92,19 +94,47 @@ export async function readWithdrawal(chainId: number, txHash: `0x${string}`): Pr
   throw new Error('No L2ToL1Tx event in that transaction.')
 }
 
-/** How many L1 blocks the node has confirmed for the L2 block that carries the message. */
-export async function l1Confirmations(chainId: number, blockHash: `0x${string}`): Promise<bigint> {
-  const client = getPublicClient(wagmiConfig, { chainId: chainId as never })
-  if (!client) return 0n
+/**
+ * What the rollup has actually confirmed on the parent chain.
+ *
+ * A withdrawal is claimable only once the assertion that *contains* its send is confirmed,
+ * and every assertion carries a snapshot: `sendCount` (how many L2->L1 sends it covers) and
+ * `sendRoot` (the merkle root of those sends). Until `sendCount` is past your position the
+ * message simply is not in a confirmed tree yet — that is the real wait, not a timer.
+ */
+export interface RollupProgress {
+  size: bigint
+  sendRoot: `0x${string}`
+  blockHash: `0x${string}`
+  l1Block: bigint
+}
+
+export async function confirmedSends(chainId: number, parentChainId: number): Promise<RollupProgress | null> {
+  const cfg = ORBIT_BRIDGES[chainId]
+  if (!cfg) return null
+  const l1 = getPublicClient(wagmiConfig, { chainId: parentChainId as never })
+  const l2 = getPublicClient(wagmiConfig, { chainId: chainId as never })
+  if (!l1 || !l2) return null
+  const head = await l1.getBlockNumber().catch(() => 0n)
+  const from = head > 6000n ? head - 6000n : 0n
+  const logs = await l1
+    .getLogs({ address: cfg.rollup, event: assertionConfirmedEvent, fromBlock: from, toBlock: head })
+    .catch(() => [])
+  const last = logs[logs.length - 1]
+  if (!last) return null
   try {
-    return (await client.readContract({
-      address: NODE_INTERFACE,
-      abi: nodeAbi,
-      functionName: 'getL1Confirmations',
-      args: [blockHash],
-    })) as bigint
+    const block = (await l2.getBlock({ blockHash: last.args.blockHash as `0x${string}` })) as unknown as {
+      sendCount?: `0x${string}` | number
+    }
+    if (block.sendCount == null) return null
+    return {
+      size: BigInt(block.sendCount as unknown as string),
+      sendRoot: last.args.sendRoot as `0x${string}`,
+      blockHash: last.args.blockHash as `0x${string}`,
+      l1Block: last.blockNumber ?? 0n,
+    }
   } catch {
-    return 0n
+    return null
   }
 }
 
@@ -124,37 +154,38 @@ export async function findOutboxProof(
   const l1 = getPublicClient(wagmiConfig, { chainId: parentChainId as never })
   if (!l2 || !l1) throw new Error('Missing RPC for the withdrawal.')
 
-  for (let k = 0n; k <= 12n; k++) {
-    const size = w.position + k
-    let proof: `0x${string}`[] | null = null
-    try {
-      const [, , p] = (await l2.readContract({
-        address: NODE_INTERFACE,
-        abi: nodeAbi,
-        functionName: 'constructOutboxProof',
-        args: [size, w.position],
-      })) as unknown as [`0x${string}`, `0x${string}`, `0x${string}`[]]
-      if (p?.length) proof = p
-    } catch {
-      continue
-    }
-    if (!proof) continue
-    // The outbox is the only authority on whether this proof is claimable, so ask it:
-    // a static call that reverts with UnknownRoot means "not confirmed yet".
-    try {
-      await l1.simulateContract({
-        address: cfg.outbox,
-        abi: outboxAbi,
-        functionName: 'executeTransaction',
-        args: [proof, w.position, w.caller, w.destination, w.arbBlockNum, w.ethBlockNum, w.timestamp, w.callvalue, w.data],
-        account: w.destination,
-      })
-      return { proof, index: w.position, size }
-    } catch {
-      /* not claimable at this size yet */
-    }
+  const confirmed = await confirmedSends(chainId, parentChainId)
+  if (!confirmed) throw new Error('Could not read the rollup confirmation state.')
+  if (confirmed.size <= w.position) {
+    throw new Error(
+      `Not in a confirmed assertion yet — the rollup has confirmed sends up to #${confirmed.size}, your message is #${w.position + 1n}.`,
+    )
   }
-  throw new Error('The outbox has not confirmed this withdrawal yet. Try again in a minute.')
+
+  const [, root, proof] = (await l2.readContract({
+    address: NODE_INTERFACE,
+    abi: nodeAbi,
+    functionName: 'constructOutboxProof',
+    args: [confirmed.size, w.position],
+  })) as unknown as [`0x${string}`, `0x${string}`, `0x${string}`[]]
+  if (!proof?.length) throw new Error('The node returned no proof.')
+  if (root.toLowerCase() !== confirmed.sendRoot.toLowerCase()) {
+    throw new Error('The node proof does not match the confirmed send root.')
+  }
+
+  // Final say belongs to the outbox itself: a static call that would revert means "not yet".
+  try {
+    await l1.simulateContract({
+      address: cfg.outbox,
+      abi: outboxAbi,
+      functionName: 'executeTransaction',
+      args: [proof, w.position, w.caller, w.destination, w.arbBlockNum, w.ethBlockNum, w.timestamp, w.callvalue, w.data],
+      account: w.destination,
+    })
+  } catch {
+    throw new Error('The outbox rejected the proof — the withdrawal is not claimable yet.')
+  }
+  return { proof, index: w.position, size: confirmed.size }
 }
 
 /** Step 3 — release the value on the parent chain. */

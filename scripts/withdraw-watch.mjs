@@ -46,18 +46,26 @@ while (Date.now() < deadline) {
   if (newest) line += ` newestSendRoot=${newest.args.sendRoot.slice(0, 10)} @${newest.blockNumber}`
 
   let proof = null
-  for (let k = 0n; k <= 8n && !proof; k++) {
-    try {
-      const [, , p] = await l2.readContract({
-        address: NODE,
-        abi: nodeAbi,
-        functionName: 'constructOutboxProof',
-        args: [w.position + k, w.position],
-      })
-      if (p?.length) proof = p
-    } catch {
-      /* try next size */
+  let size = 0n
+  if (newest) {
+    const blk = await l2.getBlock({ blockHash: newest.args.blockHash }).catch(() => null)
+    if (blk?.sendCount != null) {
+      size = BigInt(blk.sendCount)
+      if (size > w.position && blk.sendRoot?.toLowerCase() === newest.args.sendRoot.toLowerCase()) {
+        try {
+          const [, , p] = await l2.readContract({
+            address: NODE,
+            abi: nodeAbi,
+            functionName: 'constructOutboxProof',
+            args: [size, w.position],
+          })
+          if (p?.length) proof = p
+        } catch {
+          /* node has no proof for that size yet */
+        }
+      }
     }
+    line += ` confirmedSize=${size}`
   }
 
   if (proof) {

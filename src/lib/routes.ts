@@ -565,7 +565,7 @@ export function noRouteReason(fromId: number, toId: number, token: TokenCfg): st
    */
   const orbitFrom = orbitBridgeFor(fromId)
   if (orbitFrom && orbitFrom.parentChainId === toId) {
-    return `Going from ${from.short} back to ${to.short} is a canonical Arbitrum withdrawal, not a one-shot transfer: withdraw on ${from.short}, wait for that block to be confirmed on ${to.short} (this testnet: about 4 minutes; mainnet Arbitrum: 7 days), then claim it with the proof the chain itself builds. All three steps are below and each one is signed by you.`
+    return `Going from ${from.short} back to ${to.short} is a canonical Arbitrum withdrawal, not a one-shot transfer: withdraw on ${from.short}, wait for that block to be confirmed on ${to.short} (the rollup confirms a snapshot of the chain every so often — tens of minutes on this testnet, 7 days on mainnet Arbitrum), then claim it with the proof the chain itself builds. All three steps are below and each one is signed by you.`
   }
 
   if (isNative) {

@@ -8,10 +8,11 @@ import { ChainLogo, notify } from './ui'
 import { addActivity, finalizeFromSteps, updateStep } from '../lib/activity'
 import {
   claimWithdrawal,
+  confirmedSends,
   findOutboxProof,
   initiateWithdrawEth,
-  l1Confirmations,
   readWithdrawal,
+  type RollupProgress,
   type Withdrawal,
 } from '../lib/orbitWithdraw'
 import { shortAddr } from '../lib/format'
@@ -62,7 +63,7 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
   const [amount, setAmount] = useState('')
   const [phase, setPhase] = useState<Phase>('idle')
   const [withdrawal, setWithdrawal] = useState<Withdrawal | null>(null)
-  const [confirms, setConfirms] = useState(0n)
+  const [progress, setProgress] = useState<RollupProgress | null>(null)
   const [proof, setProof] = useState<`0x${string}`[] | null>(null)
   const [claimed, setClaimed] = useState<string | null>(null)
   const [activityId, setActivityId] = useState<string | null>(null)
@@ -97,14 +98,14 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
     if (!withdrawal || phase === 'done' || phase === 'claiming') return
     let alive = true
     const tick = async () => {
-      const c = await l1Confirmations(fromId, withdrawal.l2BlockHash).catch(() => 0n)
+      const p = await confirmedSends(fromId, toId).catch(() => null)
       if (!alive) return
-      setConfirms(c)
-      if (c > 0n) {
+      setProgress(p)
+      if (p && p.size > withdrawal.position) {
         try {
-          const p = await findOutboxProof(fromId, toId, withdrawal)
+          const built = await findOutboxProof(fromId, toId, withdrawal)
           if (alive) {
-            setProof(p.proof)
+            setProof(built.proof)
             setPhase('ready')
           }
         } catch {
@@ -247,7 +248,9 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
               <span className={s.done ? 'text-t1' : s.active ? 'text-accent' : 'text-t3'}>{s.label}</span>
               {s.active && phase === 'waiting' && (
                 <span className="mono ml-auto text-[10.5px] text-t3">
-                  {confirms === 0n ? 'not confirmed yet' : `${confirms} L1 confirmations`}
+                  {progress
+                    ? `confirmed #${progress.size}/${withdrawal ? withdrawal.position + 1n : 0n}`
+                    : 'reading rollup…'}
                 </span>
               )}
             </div>
