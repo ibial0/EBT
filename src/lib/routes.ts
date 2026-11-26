@@ -556,9 +556,16 @@ export function noRouteReason(fromId: number, toId: number, token: TokenCfg): st
   if (toIsParentOfFrom) {
     return `Canonical withdrawals from ${from.short} back to ${to.short} need a 7-day challenge period, so this app does not offer them (Across v3 fast exits cover Sepolia/Base/Arb/OP/Unichain/Amoy only).`
   }
-  const fromZig = orbitBridgeFor(fromId)
-  if (fromZig && fromZig.parentChainId === toId) {
-    return `Withdrawals from ${from.short} back to ${to.short} need a 7-day challenge period, so this app does not offer them.`
+
+  /**
+   * Robinhood Chain (and every Arbitrum Orbit chain) can be entered with one signed
+   * transaction, but the way back is a three-step withdrawal: initiate on the L2, wait for
+   * the rollup's challenge period, then claim on the L1. There is no single transaction to
+   * sign here, so the user is told exactly why and sent to the canonical bridge.
+   */
+  const orbitFrom = orbitBridgeFor(fromId)
+  if (orbitFrom && orbitFrom.parentChainId === toId) {
+    return `Going from ${from.short} back to ${to.short} is a canonical Arbitrum withdrawal, not a one-shot transfer: initiate it on ${from.short}, wait out the challenge period, then claim it on ${to.short}. This app does not sign the claim step — the Arbitrum bridge handles all three for you.`
   }
 
   if (isNative) {

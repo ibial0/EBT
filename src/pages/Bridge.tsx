@@ -41,6 +41,9 @@ import { findRoutes, nativeSymbolOf, noRouteReason, reachableDestTokens, usableS
 import { TokenPicker, syntheticChainForNetwork, type PickerGroup } from '../components/TokenPicker'
 
 const NATIVE = '0x0000000000000000000000000000000000000000'
+
+/** Arbitrum bridge portal slugs, used for chains whose exit is a canonical withdrawal. */
+const PORTAL_SLUG: Record<number, string> = { 46630: 'robinhood-chain-testnet', 11155111: 'sepolia' }
 const keyOf = (chainId: number, address: string) => `${chainId}:${address.toLowerCase()}`
 
 interface ExtraBridgeChain {
@@ -676,6 +679,15 @@ export default function Bridge() {
 
   const allPickerChains = useMemo(() => allGroups.map((g) => g.chain), [allGroups])
 
+  /** Going back out of an Orbit chain is a canonical withdrawal, not a one-shot bridge. */
+  const orbitWithdrawLink = useMemo(() => {
+    const cfg = orbitBridgeFor(fromId)
+    if (!cfg || cfg.parentChainId !== toId) return null
+    const src = PORTAL_SLUG[fromId]
+    const dst = PORTAL_SLUG[toId]
+    return `https://portal.arbitrum.io/bridge${src && dst ? `?sourceChain=${src}&destinationChain=${dst}` : ''}`
+  }, [fromId, toId])
+
   const activity = activeId ? getActivity(activeId) : undefined
 
   async function ensureChain(id: number) {
@@ -1147,6 +1159,16 @@ export default function Bridge() {
                       : 'No verified provider covers this pair in this direction.'))
                   : 'Pick an asset to see whether it can move.'}
               </p>
+              {orbitWithdrawLink && (
+                <a
+                  href={orbitWithdrawLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-[11px] font-semibold text-[#111628] hover:bg-accent-2"
+                >
+                  Withdraw on Arbitrum Bridge <span aria-hidden>↗</span>
+                </a>
+              )}
               {reachableSources.length > 0 && (
                 <p className="mt-1 text-[11px] leading-relaxed text-t3">
                   Assets that can leave {fromShort} for {toShort}:{' '}
