@@ -36,7 +36,7 @@ import { ORBIT_ETH_NATIVE, orbitBridgeFor } from '../config/orbit'
 import { fmt, safeParseUnits } from '../lib/format'
 import { checkGas, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
-import { wagmiConfig } from '../lib/wallet'
+import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
 import { findRoutes, nativeSymbolOf, noRouteReason, reachableDestTokens, usableSourceTokens, type RouteCandidate, type RouteLeg } from '../lib/routes'
 import { TokenPicker, syntheticChainForNetwork, type PickerGroup } from '../components/TokenPicker'
 
@@ -650,7 +650,7 @@ export default function Bridge() {
   const activity = activeId ? getActivity(activeId) : undefined
 
   async function ensureChain(id: number) {
-    if (chainId !== id) await switchChainAsync({ chainId: id as never })
+    await ensureWalletChain(id)
   }
 
   async function run() {

@@ -1,5 +1,6 @@
 import { createConfig, http } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
+import { getAccount, switchChain } from 'wagmi/actions'
 import type { Chain } from 'viem'
 import { CHAINS, VIEM_CHAINS } from '../config/chains'
 
@@ -102,3 +103,62 @@ declare module 'wagmi' {
 
 export const WALLETCONNECT_NOTE =
   'Injected EVM wallets only (MetaMask, Rabby, Coinbase Wallet browser extension…). WalletConnect needs a third-party Project ID, which we deliberately do not require.'
+
+
+/**
+ * Puts the wallet on `chainId` before a transaction is built.
+ *
+ * The bug this exists for: `useChainId()` reports the *config* chain, which stays on the
+ * last allowlisted testnet even when the wallet itself sits on Ethereum mainnet. The old
+ * check therefore passed, and wagmi threw "current chain of the connector (id: 1) does not
+ * match the connection's chain" only once the user pressed Confirm. Here we read the
+ * connector's own chain, ask the wallet to switch, and wait until it actually reports the
+ * target chain — so the failure is a clear message before any signing prompt.
+ */
+export async function ensureWalletChain(chainId: number): Promise<void> {
+  const account = getAccount(wagmiConfig)
+  if (!account.isConnected) throw new Error('Connect a wallet first.')
+
+  const target = CHAINS.find((c) => c.id === chainId)
+  const label = target?.name ?? `chain ${chainId}`
+
+  /**
+   * The store only tracks chains that exist in `config.chains`. A wallet sitting on
+   * mainnet therefore looks "stuck" on the last testnet, so ask the provider itself
+   * which chain it is really on.
+   */
+  const providerChainId = async (): Promise<number | undefined> => {
+    try {
+      const provider = (await account.connector?.getProvider?.()) as
+        | { request?: (a: { method: string }) => Promise<unknown> }
+        | undefined
+      const hex = await provider?.request?.({ method: 'eth_chainId' })
+      if (typeof hex === 'string' && hex.startsWith('0x')) return Number.parseInt(hex, 16)
+    } catch {
+      /* provider may refuse while locked — fall through to the store value */
+    }
+    return getAccount(wagmiConfig).chainId
+  }
+
+  if ((await providerChainId()) === chainId) return
+
+  try {
+    await switchChain(wagmiConfig, { chainId: chainId as never })
+  } catch (e) {
+    const msg = (e as Error).message ?? ''
+    if (/reject|denied|cancel/i.test(msg)) {
+      throw new Error(`Switch the network in your wallet to ${label} to continue.`)
+    }
+    throw new Error(`Could not switch to ${label}: ${msg.slice(0, 120)}`)
+  }
+
+  // The wallet acknowledges the switch before its provider state settles; wait for it.
+  const deadline = Date.now() + 5_000
+  while (Date.now() < deadline) {
+    if ((await providerChainId()) === chainId) return
+    await new Promise((resolve) => setTimeout(resolve, 150))
+  }
+  throw new Error(
+    `Your wallet is still on another network. Switch it to ${label} in the wallet, then retry.`,
+  )
+}

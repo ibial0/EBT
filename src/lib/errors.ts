@@ -35,6 +35,17 @@ export function decodeTxError(e: unknown, chainId?: number): DecodedError {
   if (e instanceof UserRejectedRequestError || /user rejected|user denied|rejected the request/.test(lower)) {
     return { title: 'Signature rejected', detail: 'You cancelled the request in your wallet.', raw, kind: 'rejected' }
   }
+  if (/does not match the connection'?s chain|current chain of the connector/.test(lower)) {
+    return {
+      title: 'Wrong network',
+      detail: chainId
+        ? `Your wallet is on a different network than ${getChain(chainId)?.name ?? 'this chain'}.`
+        : 'Your wallet is on a different network than this app expects.',
+      hint: 'Switch the network inside your wallet, then retry — this app only runs on testnets.',
+      raw,
+      kind: 'wallet',
+    }
+  }
   if (/insufficient funds|exceeds the balance|not enough funds|insufficient balance for gas/.test(lower)) {
     return {
       title: 'Not enough gas',

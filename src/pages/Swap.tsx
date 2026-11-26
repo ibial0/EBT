@@ -35,7 +35,7 @@ import { assertSwapRoute } from '../lib/guard'
 import { decodeTxError } from '../lib/errors'
 import { fmt, safeParseUnits, pct } from '../lib/format'
 import { pairsForChain, poolsForChain } from '../config/pools'
-import { wagmiConfig } from '../lib/wallet'
+import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
 
 const SLIPPAGE_PRESETS = [10, 50, 100]
@@ -446,7 +446,7 @@ export default function Swap() {
   }
 
   async function ensureChain(id: number) {
-    if (chainId !== id) await switchChainAsync({ chainId: id as never })
+    await ensureWalletChain(id)
   }
 
   async function runSwap() {

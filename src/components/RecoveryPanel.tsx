@@ -7,6 +7,7 @@ import { Badge, Button, Card, ChainLogo, Spinner, notify } from './ui'
 import { getChain } from '../config/chains'
 import { useActivity } from '../lib/activity'
 import { recoverAll, recoverOne, scanRecoverables } from '../lib/recovery'
+import { ensureWalletChain } from '../lib/wallet'
 
 export function RecoveryPanel({ compact }: { compact?: boolean }) {
   const { address } = useAccount()
@@ -48,7 +49,7 @@ export function RecoveryPanel({ compact }: { compact?: boolean }) {
     if (!target || !address) return
     setBusy(id)
     try {
-      if (chainId !== target.destChainId) await switchChainAsync({ chainId: target.destChainId as never })
+      await ensureWalletChain(target.destChainId)
       const res = await recoverOne(target, address as Address)
       setResults((r) => [...r.filter((x) => x.id !== res.id), { id: res.id, ok: res.ok, error: res.error }])
       notify(res.ok ? `Recovered ${target.amount} USDC on ${target.destChainName}` : res.error ?? 'Recovery failed', res.ok ? 'success' : 'error')

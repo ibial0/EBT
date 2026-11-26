@@ -26,7 +26,7 @@ import { submitReceiveMessage, isMessageUsed } from '../lib/bridgeExec'
 import { decodeTxError } from '../lib/errors'
 import { shortAddr, timeAgo } from '../lib/format'
 import { etaFor, clock, duration } from '../lib/notifyCenter'
-import { wagmiConfig } from '../lib/wallet'
+import { wagmiConfig, ensureWalletChain } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
 import type { Address } from '../config/chains'
 
@@ -158,7 +158,7 @@ function Detail({ id }: { id: string }) {
     if (!address || !msg || !att) return
     setBusy(true)
     try {
-      if (chainId !== item!.toChainId) await switchChainAsync({ chainId: item!.toChainId as never })
+      await ensureWalletChain(item!.toChainId)
       const client = getPublicClient(wagmiConfig, { chainId: item!.toChainId as never })!
       const wallet = await getWalletClient(wagmiConfig, { chainId: item!.toChainId as never })
       if (await isMessageUsed(client, msg as `0x${string}`)) {

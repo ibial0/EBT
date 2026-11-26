@@ -15,7 +15,7 @@ import { isMessageUsed, submitReceiveMessage } from '../lib/bridgeExec'
 import { decodeTxError } from '../lib/errors'
 import { addActivity, finalizeFromSteps, getActivity, updateStep } from '../lib/activity'
 import { formatUnits } from 'viem'
-import { wagmiConfig } from '../lib/wallet'
+import { wagmiConfig, ensureWalletChain } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
 
 export default function Recover() {
@@ -87,7 +87,7 @@ export default function Recover() {
     const dest = getChain(state.destChainId)!
     setBusy('mint')
     try {
-      if (chainId !== dest.id) await switchChainAsync({ chainId: dest.id as never })
+      await ensureWalletChain(dest.id)
       const client = getPublicClient(wagmiConfig, { chainId: dest.id as never })!
       const wallet = await getWalletClient(wagmiConfig, { chainId: dest.id as never })
 
