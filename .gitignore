@@ -8,3 +8,4 @@ scripts/portfolio-probe.mjs
 .DS_Store
 scripts/pools.mjs
 .scratch/
+.test-wallet.json
