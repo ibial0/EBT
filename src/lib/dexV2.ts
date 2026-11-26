@@ -216,7 +216,17 @@ export const V2_PAIRS: V2PairCfg[] = [
   },
 ]
 
+const v2PairsCache = new Map<number, Array<{ token0: Address; token1: Address }>>()
+
 export function v2PairsForChain(chainId: number): Array<{ token0: Address; token1: Address }> {
+  const cached = v2PairsCache.get(chainId)
+  if (cached) return cached
+  const built = buildV2PairsForChain(chainId)
+  v2PairsCache.set(chainId, built)
+  return built
+}
+
+function buildV2PairsForChain(chainId: number): Array<{ token0: Address; token1: Address }> {
   const direct = V2_PAIRS.filter((p) => p.chainId === chainId)
   const out = direct.map(({ token0, token1 }) => ({ token0, token1 }))
   const dexes = V2_DEXES[chainId] ?? []

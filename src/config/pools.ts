@@ -1801,8 +1801,15 @@ export const POOLS: PoolCfg[] = [
     "verifiedAt": "2026-11-26"
   }
 ]
+const poolsByChain = new Map<number, PoolCfg[]>()
+
 export function poolsForChain(chainId: number): PoolCfg[] {
-  return POOLS.filter((p) => p.chainId === chainId)
+  let list = poolsByChain.get(chainId)
+  if (!list) {
+    list = POOLS.filter((p) => p.chainId === chainId)
+    poolsByChain.set(chainId, list)
+  }
+  return list
 }
 
 /** Distinct tradeable pairs on a chain, one entry per unordered token pair. */

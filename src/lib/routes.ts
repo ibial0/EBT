@@ -311,7 +311,23 @@ export function directRoute(fromId: number, toId: number, token: TokenCfg): Rout
  * All executable routes for a source and destination chain, best first.
  * Direct routes come first, then composites ordered by transaction count.
  */
+const routeCache = new Map<string, RouteCandidate[]>()
+
+/**
+ * Route search is pure config maths, and the UI asks the same pairs over and over
+ * (every candidate token, every render). Memoising by chain + asset pair turns the
+ * Bridge page's mount cost from ~700ms of repeated search into a lookup.
+ */
 export function findRoutes(fromId: number, toId: number, inToken: TokenCfg, outToken: TokenCfg): RouteCandidate[] {
+  const key = `${fromId}:${inToken.address.toLowerCase()}>${toId}:${outToken.address.toLowerCase()}`
+  const hit = routeCache.get(key)
+  if (hit) return hit
+  const built = buildRoutes(fromId, toId, inToken, outToken)
+  routeCache.set(key, built)
+  return built
+}
+
+function buildRoutes(fromId: number, toId: number, inToken: TokenCfg, outToken: TokenCfg): RouteCandidate[] {
   if (fromId === toId) return []
   const matchingDirect = directRoutes(fromId, toId, inToken).filter(
     (d) => assetKey(toId, d.outToken.address) === assetKey(toId, outToken.address),
@@ -478,7 +494,18 @@ export function hasAnyRoute(fromId: number, toId: number, token: TokenCfg): bool
  * whether directly, through a swap, or through a bridge plus a swap. Tokens with no
  * route are not listed, so an unsupported pair can never be the default.
  */
+const usableSourceCache = new Map<string, TokenCfg[]>()
+
 export function usableSourceTokens(fromId: number, toId: number): TokenCfg[] {
+  const key = `${fromId}>${toId}`
+  const hit = usableSourceCache.get(key)
+  if (hit) return hit
+  const built = buildUsableSourceTokens(fromId, toId)
+  usableSourceCache.set(key, built)
+  return built
+}
+
+function buildUsableSourceTokens(fromId: number, toId: number): TokenCfg[] {
   const all = [...tokensForChain(fromId)]
   const native = nativeOf(fromId)
   const hasNative = all.some((t) => t.address.toLowerCase() === NATIVE_SENTINEL.toLowerCase())
@@ -487,7 +514,18 @@ export function usableSourceTokens(fromId: number, toId: number): TokenCfg[] {
 }
 
 /** Destination assets reachable from a given source asset. */
+const reachableDestCache = new Map<string, TokenCfg[]>()
+
 export function reachableDestTokens(fromId: number, toId: number, inToken: TokenCfg): TokenCfg[] {
+  const key = `${fromId}>${toId}:${inToken.address.toLowerCase()}`
+  const hit = reachableDestCache.get(key)
+  if (hit) return hit
+  const built = buildReachableDestTokens(fromId, toId, inToken)
+  reachableDestCache.set(key, built)
+  return built
+}
+
+function buildReachableDestTokens(fromId: number, toId: number, inToken: TokenCfg): TokenCfg[] {
   const out = new Map<string, TokenCfg>()
   const all = tokensForChain(toId)
   const native = nativeOf(toId)

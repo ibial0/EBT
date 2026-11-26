@@ -252,15 +252,33 @@ export const TOKENS: TokenCfg[] = [
   t(296, '0x00000000000000000000000000000000003991ed', 'KARATE', 'Karate Combat', 8, 'token', '#ef4444'),
 ]
 
+const tokensByChain = new Map<number, TokenCfg[]>()
+
 export function tokensForChain(chainId?: number | null): TokenCfg[] {
   if (chainId == null) return []
-  return TOKENS.filter((tk) => tk.chainId === chainId)
+  // The token list is static, so filtering it once per chain beats re-scanning it on
+  // every render (route search alone calls this hundreds of times).
+  let list = tokensByChain.get(chainId)
+  if (!list) {
+    list = TOKENS.filter((tk) => tk.chainId === chainId)
+    tokensByChain.set(chainId, list)
+  }
+  return list
+}
+
+let tokenIndex: Map<string, TokenCfg> | null = null
+
+function tokenIndexFor(): Map<string, TokenCfg> {
+  if (!tokenIndex) {
+    tokenIndex = new Map()
+    for (const tk of TOKENS) tokenIndex.set(`${tk.chainId}:${tk.address.toLowerCase()}`, tk)
+  }
+  return tokenIndex
 }
 
 export function findToken(chainId: number, address?: string | null): TokenCfg | undefined {
   if (!address) return undefined
-  const a = address.toLowerCase()
-  return TOKENS.find((tk) => tk.chainId === chainId && tk.address.toLowerCase() === a)
+  return tokenIndexFor().get(`${chainId}:${address.toLowerCase()}`)
 }
 
 export function tokenBySymbol(chainId: number, symbol: string): TokenCfg | undefined {

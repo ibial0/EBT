@@ -337,10 +337,27 @@ export default function Bridge() {
     return out
   }, [nonEvmPortfolioQ.data])
 
-  const reachableSources = useMemo(
-    () => (isNonEvmBridge ? [] : usableSourceTokens(fromId, toId)),
-    [isNonEvmBridge, fromId, toId],
-  )
+  /**
+   * Route reachability is the expensive part of this page (a search over every token
+   * pair), so it is computed after the first paint instead of inside it. The page shows
+   * its normal token list immediately and the "route available" ordering settles a
+   * moment later — no more ~700ms blank before the panel appears.
+   */
+  const [reachableSources, setReachableSources] = useState<TokenCfg[]>([])
+  useEffect(() => {
+    if (isNonEvmBridge) {
+      setReachableSources([])
+      return
+    }
+    let alive = true
+    const id = window.setTimeout(() => {
+      if (alive) setReachableSources(usableSourceTokens(fromId, toId))
+    }, 0)
+    return () => {
+      alive = false
+      window.clearTimeout(id)
+    }
+  }, [isNonEvmBridge, fromId, toId])
 
   const sourceOptions = useMemo(() => {
     if (fromExtra) return fromExtra.tokens
@@ -389,10 +406,22 @@ export default function Bridge() {
     [sourceOptions, sourceId, fromId, isNonEvmBridge, reachableSources],
   )
 
-  const reachableDests = useMemo(
-    () => (isNonEvmBridge || !source ? [] : reachableDestTokens(fromId, toId, source)),
-    [isNonEvmBridge, fromId, toId, source],
-  )
+  const [reachableDests, setReachableDests] = useState<TokenCfg[]>([])
+  useEffect(() => {
+    if (isNonEvmBridge || !source) {
+      setReachableDests([])
+      return
+    }
+    let alive = true
+    const token = source
+    const id = window.setTimeout(() => {
+      if (alive) setReachableDests(reachableDestTokens(fromId, toId, token))
+    }, 0)
+    return () => {
+      alive = false
+      window.clearTimeout(id)
+    }
+  }, [isNonEvmBridge, fromId, toId, source])
   const destOptions = useMemo(() => {
     if (toExtra) return toExtra.tokens
     const all = [nativeToken(toId), ...tokensForChain(toId)]
