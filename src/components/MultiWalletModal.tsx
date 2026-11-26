@@ -4,6 +4,7 @@ import { Check, ExternalLink, Search, Wallet, X } from 'lucide-react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { Modal, notify } from './ui'
 import { NON_EVM_NETWORKS } from '../config/networks'
+import { walletLogo } from '../config/walletLogos'
 import {
   WALLET_FAMILIES,
   closeWalletModal,
@@ -133,14 +134,23 @@ function initials(name: string): string {
 }
 
 function BrandAvatar({ iconSrc, name, size = 44 }: { iconSrc?: string; name: string; size?: number }) {
-  if (iconSrc) {
+  const [broken, setBroken] = useState(false)
+  if (iconSrc && !broken) {
+    // Favicons and extension icons are drawn edge-to-edge, so the mark sits inside the
+    // circle with breathing room instead of being cropped by a circular mask.
     return (
-      <img
-        src={iconSrc}
-        alt=""
-        className="shrink-0 rounded-full bg-ink-900 object-cover"
+      <span
+        className="grid shrink-0 place-items-center rounded-full border border-line-strong bg-ink-900"
         style={{ width: size, height: size }}
-      />
+      >
+        <img
+          src={iconSrc}
+          alt=""
+          onError={() => setBroken(true)}
+          className="object-contain"
+          style={{ width: Math.round(size * 0.76), height: Math.round(size * 0.76) }}
+        />
+      </span>
     )
   }
   const generic = /injected/i.test(name)
@@ -387,7 +397,7 @@ export function MultiWalletModal({
           <div className="flex flex-col items-center text-center">
             <div className="eco-orb relative grid size-[104px] place-items-center rounded-full border border-line bg-ink-850">
               <span className="pointer-events-none absolute inset-0 rounded-full bg-accent/10 blur-xl" aria-hidden />
-              <BrandAvatar iconSrc={ecoBrand.iconSrc} name={ecoBrand.name} size={64} />
+              <BrandAvatar iconSrc={ecoBrand.iconSrc ?? walletLogo(ecoBrand.key)} name={ecoBrand.name} size={64} />
             </div>
             <div className="mt-4 text-[15px] font-semibold text-t1">{ecoBrand.name}</div>
             <p className="mt-1.5 max-w-[300px] text-[12.5px] leading-[1.6] text-t2">
@@ -455,7 +465,7 @@ export function MultiWalletModal({
                 const active = activeMap[acct.family]?.id === acct.id
                 return (
                   <div key={acct.id} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1">
-                    <BrandAvatar iconSrc={acct.iconSrc} name={acct.providerName} size={26} />
+                    <BrandAvatar iconSrc={acct.iconSrc ?? walletLogo(brandKey(acct.providerName))} name={acct.providerName} size={26} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[12px] font-medium text-t1">{cleanBrandName(acct.providerName)}</div>
                       <div className="mono text-[10.5px] text-t3">{shortAddr(acct.address, 5)}</div>
@@ -504,7 +514,7 @@ export function MultiWalletModal({
                   style={{ animationDelay: `${Math.min(i, 12) * 24}ms` }}
                   className="wallet-row flex w-full items-center gap-3.5 rounded-[14px] border border-line bg-ink-850 px-3 py-2.5 text-left transition-all duration-200 hover:border-line-strong hover:bg-ink-700 active:scale-[0.985] disabled:opacity-70"
                 >
-                  <BrandAvatar iconSrc={b.iconSrc} name={b.name} size={44} />
+                  <BrandAvatar iconSrc={b.iconSrc ?? walletLogo(b.key)} name={b.name} size={44} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14.5px] font-semibold leading-tight text-t1">{b.name}</div>
                     {multichain && (
