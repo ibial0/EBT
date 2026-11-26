@@ -1,16 +1,20 @@
-import { Download, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Download, Search, Trash2 } from 'lucide-react'
 import { CHAINS } from '../config/chains'
+import { DEPRECATED_NETWORKS, NON_EVM_NETWORKS } from '../config/networks'
 import { PROVIDERS } from '../config/providers'
 import { RPC } from '../lib/wallet'
-import { Badge, Button, Card, ChainLogo, CopyButton, notify, StatusDot } from '../components/ui'
+import { Badge, Button, Card, ChainLogo, CopyButton, NetworkLogo, notify, StatusDot } from '../components/ui'
 import { PageHeader } from '../components/Layout'
 import { clearActivity, listActivity } from '../lib/activity'
-import { useNetworkHealth } from '../lib/health'
+import { useNetworkHealth, useNonEvmHealth } from '../lib/health'
 import { allowlistSummary } from '../lib/guard'
 import { capabilitiesOf } from '../lib/capabilities'
 
 export default function Settings() {
   const health = useNetworkHealth()
+  const nonEvmHealth = useNonEvmHealth()
+  const [chainQuery, setChainQuery] = useState('')
   const records = listActivity()
 
   function exportData() {
@@ -56,13 +60,24 @@ export default function Settings() {
       </Card>
 
       <Card className="p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-t1">Chain registry</h3>
-          <span className="text-[11px] text-t3">verified 2026-11-23</span>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-t1">Chain registry ({CHAINS.length} EVM)</h3>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-ink-850 px-2.5 py-1">
+              <Search size={12} className="text-t3" />
+              <input
+                value={chainQuery}
+                onChange={(e) => setChainQuery(e.target.value)}
+                placeholder="Filter registry…"
+                className="input w-36 text-[11px]"
+              />
+            </div>
+            <span className="text-[11px] text-t3">verified 2026-11-26</span>
+          </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="max-h-[420px] overflow-auto">
           <table className="w-full min-w-[640px] text-left text-[11px]">
-            <thead className="text-t3">
+            <thead className="sticky top-0 bg-ink-800 text-t3">
               <tr className="border-b border-line">
                 <th className="py-1.5 pr-3 font-medium">Chain</th>
                 <th className="py-1.5 pr-3 font-medium">id</th>
@@ -73,7 +88,7 @@ export default function Settings() {
               </tr>
             </thead>
             <tbody>
-              {CHAINS.map((c) => {
+              {CHAINS.filter((c) => !chainQuery.trim() || `${c.name} ${c.short} ${c.id}`.toLowerCase().includes(chainQuery.trim().toLowerCase())).map((c) => {
                 const h = health.data?.find((x) => x.id === c.id)
                 return (
                   <tr key={c.id} className="border-b border-white/4 text-t1">
@@ -93,7 +108,7 @@ export default function Settings() {
                         '-'
                       )}
                     </td>
-                    <td className="py-1.5 pr-3">{c.uniswap ? <Badge tone="blue">v3</Badge> : '-'}</td>
+                    <td className="py-1.5 pr-3">{c.uniswap ? <Badge tone="blue">v3</Badge> : c.dexV2?.length ? <Badge tone="blue">v2</Badge> : '-'}</td>
                     <td className="py-1.5">
                       <span className="flex items-center gap-1.5">
                         <StatusDot tone={h?.ok ? 'mint' : health.isLoading ? 'amber' : 'red'} />
@@ -113,6 +128,66 @@ export default function Settings() {
       </Card>
 
       <Card className="p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-t1">
+            Non-EVM &amp; Deprecated Testnet Registry ({NON_EVM_NETWORKS.length} active · {DEPRECATED_NETWORKS.length} deprecated)
+          </h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-[11px]">
+            <thead className="text-t3">
+              <tr className="border-b border-line">
+                <th className="py-1.5 pr-3 font-medium">Network</th>
+                <th className="py-1.5 pr-3 font-medium">Family</th>
+                <th className="py-1.5 pr-3 font-medium">Identifier</th>
+                <th className="py-1.5 pr-3 font-medium">Native</th>
+                <th className="py-1.5 pr-3 font-medium">Status</th>
+                <th className="py-1.5 font-medium">Endpoint / Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {NON_EVM_NETWORKS.map((n) => {
+                const h = nonEvmHealth.data?.find((x) => x.id === n.id)
+                return (
+                  <tr key={n.id} className="border-b border-white/4 text-t1">
+                    <td className="py-1.5 pr-3">
+                      <span className="flex items-center gap-1.5">
+                        <NetworkLogo network={n} size={16} /> {n.name}
+                      </span>
+                    </td>
+                    <td className="mono py-1.5 pr-3">{n.family}</td>
+                    <td className="mono py-1.5 pr-3">{n.nativeId.slice(0, 18)}</td>
+                    <td className="mono py-1.5 pr-3">{n.nativeCurrency.symbol}</td>
+                    <td className="py-1.5 pr-3"><Badge tone="mint">active</Badge></td>
+                    <td className="py-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <StatusDot tone={h?.ok ? 'mint' : nonEvmHealth.isLoading ? 'amber' : 'red'} />
+                        <span className="mono text-[10px] text-t3">{h?.ok ? `${h.latencyMs}ms` : nonEvmHealth.isLoading ? '…' : 'down'}</span>
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+              {DEPRECATED_NETWORKS.map((n) => (
+                <tr key={n.id} className="border-b border-white/4 text-t3">
+                  <td className="py-1.5 pr-3">
+                    <span className="flex items-center gap-1.5 opacity-70">
+                      <NetworkLogo network={n} size={16} /> {n.name}
+                    </span>
+                  </td>
+                  <td className="mono py-1.5 pr-3">{n.family}</td>
+                  <td className="mono py-1.5 pr-3">{n.nativeId}</td>
+                  <td className="mono py-1.5 pr-3">{n.nativeCurrency.symbol}</td>
+                  <td className="py-1.5 pr-3"><Badge tone="red">deprecated</Badge></td>
+                  <td className="py-1.5 text-[10px]">{n.statusNote}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card className="p-4">
         <h3 className="mb-1 text-sm font-semibold text-t1">Capability matrix</h3>
         <p className="mb-3 text-[11px] leading-relaxed text-t3">
           Each feature is decided separately. A chain that can receive a bridge but has no swap venue is not
@@ -123,7 +198,7 @@ export default function Settings() {
             <thead className="text-t3">
               <tr className="border-b border-line">
                 <th className="py-1.5 pr-3 font-medium">Chain</th>
-                {['Wallet', 'Native', 'ERC-20', 'Swap', 'USDC bridge', 'ETH deposit', 'Cross-chain', 'Recovery'].map((h) => (
+                {['Wallet', 'Native', 'ERC-20', 'Swap', 'USDC bridge', 'ETH deposit', 'Orbit ETH', 'Cross-chain', 'Recovery'].map((h) => (
                   <th key={h} className="py-1.5 px-2 font-medium">
                     {h}
                   </th>

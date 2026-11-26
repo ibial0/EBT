@@ -143,7 +143,8 @@ export function LIQUID_CHAIN_IDS(): number[] {
 
 /** True when the chain has a verified deployment, whether or not pools were found. */
 export function chainHasVenue(chainId: number) {
-  return Boolean(getChain(chainId)?.uniswap)
+  const c = getChain(chainId)
+  return Boolean(c?.uniswap || c?.dexV2?.length)
 }
 
 export { POOLS }

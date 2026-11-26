@@ -89,8 +89,9 @@ export async function quoteBest(
   }
 
   const probeAmount = amountIn / 2n > 0n ? amountIn / 2n : 1n
+  const tiers = dep.feeTiers ?? FEE_TIERS
   const candidates = await Promise.all(
-    FEE_TIERS.map(async (fee) => {
+    tiers.map(async (fee) => {
       const [out, probe] = await Promise.all([read(fee, amountIn), read(fee, probeAmount)])
       if (out === null || probe === null) return null
       // a genuine quote must beat the smaller probe; flat output means a partial fill.
@@ -168,8 +169,9 @@ export async function maxFillable(
   }
 
   // every tier is searched in parallel so the UI waits on the slowest one, not the sum
+  const tiers = dep.feeTiers ?? FEE_TIERS
   const perTier = await Promise.all(
-    FEE_TIERS.map(async (fee) => {
+    tiers.map(async (fee) => {
       let lo = ceiling / 1000n
       if (lo === 0n) lo = 1n
       let hi = ceiling

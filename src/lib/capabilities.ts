@@ -17,6 +17,8 @@
  */
 import { CHAINS, getChain, type ChainCfg } from '../config/chains'
 import { pairsForChain } from '../config/pools'
+import { v2PairsForChain } from './dexV2'
+import { ACROSS_SPOKE_POOLS } from './across'
 import { getPortalAddress } from './opstack'
 import { ORBIT_BRIDGES, orbitBridgeFor } from '../config/orbit'
 
@@ -56,7 +58,12 @@ const LABELS: Record<Capability, string> = {
 const CCTP_COUNTERPART = new Set(CHAINS.filter((c) => c.cctpDomain != null && c.usdc).map((c) => c.id))
 
 export function capabilitiesOf(chain: ChainCfg): CapabilityRow[] {
-  const hasPools = pairsForChain(chain.id).length > 0
+  const v3Pools = pairsForChain(chain.id)
+  const v2Pools = v2PairsForChain(chain.id)
+  const totalPairs = v3Pools.length + v2Pools.length
+  const hasSwapVenue = Boolean(chain.uniswap || chain.dexV2?.length)
+  const hasPools = totalPairs > 0
+  const hasAcross = Boolean(ACROSS_SPOKE_POOLS[chain.id])
   const cctpPeer = chain.cctpDomain != null && chain.usdc
   const portal = chain.opStackParent != null ? getPortalAddress(chain) : null
   const canDepositEth = Boolean(portal) && chain.opStackParent != null
@@ -78,15 +85,14 @@ export function capabilitiesOf(chain: ChainCfg): CapabilityRow[] {
     {
       key: 'swap',
       label: LABELS.swap,
-      state: chain.uniswap ? (hasPools ? 'yes' : 'partial') : 'no',
-      note:
-        chain.key === 'robinhoodTestnet'
-          ? 'No Uniswap v3 deployment: the canonical factories (0x0227628f…, 0x1F98431c…, 0x4752ba5D…) have no code on this chain.'
-          : chain.uniswap
-        ? hasPools
-          ? `${pairsForChain(chain.id).length} verified pair${pairsForChain(chain.id).length === 1 ? '' : 's'} with real liquidity.`
-          : 'Deployment verified, no pool currently holds liquidity.'
-        : 'No Uniswap deployment with a bound router and liquidity was found.',
+      state: hasSwapVenue ? (hasPools ? 'yes' : 'partial') : 'no',
+      note: chain.dexV2?.length
+        ? `${chain.dexV2.map((d) => d.name).join(' / ')} (V2 AMM): ${v2Pools.length} verified pair${v2Pools.length === 1 ? '' : 's'} with on-chain reserves.`
+        : chain.uniswap
+          ? hasPools
+            ? `${totalPairs} verified pair${totalPairs === 1 ? '' : 's'} with real liquidity.`
+            : 'Deployment verified, no pool currently holds liquidity.'
+          : 'No DEX deployment with verified liquidity was found.',
     },
     {
       key: 'bridgeUsdc',
@@ -119,12 +125,12 @@ export function capabilitiesOf(chain: ChainCfg): CapabilityRow[] {
     {
       key: 'crossChain',
       label: LABELS.crossChain,
-      state: chain.uniswap && hasPools && CCTP_COUNTERPART.has(chain.id) ? 'yes' : chain.uniswap ? 'partial' : 'no',
+      state: hasSwapVenue && hasPools && (CCTP_COUNTERPART.has(chain.id) || hasAcross) ? 'yes' : hasSwapVenue ? 'partial' : 'no',
       note:
-        chain.uniswap && hasPools && CCTP_COUNTERPART.has(chain.id)
-          ? 'Can receive USDC by CCTP and swap it locally.'
-          : chain.uniswap
-            ? 'Has a swap venue but no CCTP route, so it can only be a destination for assets that already exist here.'
+        hasSwapVenue && hasPools && (CCTP_COUNTERPART.has(chain.id) || hasAcross)
+          ? `Can receive ${CCTP_COUNTERPART.has(chain.id) && hasAcross ? 'USDC/ETH via CCTP & Across' : hasAcross ? 'ETH/USDC via Across v3' : 'USDC via CCTP'} and swap locally.`
+          : hasSwapVenue
+            ? 'Has a swap venue without CCTP/Across, so composite routes depend on canonical bridges or existing balances.'
             : 'No swap venue, so a cross-chain swap cannot finish here.',
     },
     {
@@ -151,6 +157,7 @@ export function badgesFor(chain: ChainCfg): string[] {
   const caps = capabilityMap(chain)
   const out: string[] = []
   if (caps.swap.state === 'yes') out.push('SWAP')
+  if (ACROSS_SPOKE_POOLS[chain.id]) out.push('ACROSS')
   if (caps.bridgeUsdc.state === 'yes') out.push('CCTP')
   if (caps.bridgeEth.state === 'yes') out.push('ETH DEPOSIT')
   if (caps.orbitEth.state === 'yes') out.push('ORBIT DEPOSIT')

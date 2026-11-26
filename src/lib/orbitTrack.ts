@@ -29,7 +29,8 @@ export async function pollOrbitOnce(id: string, l2: PublicClient): Promise<'pend
   if (step?.status === 'done' && item.status === 'complete') return 'complete'
   if (expected === 0n || baseline == null) return 'idle'
 
-  const balance = await l2.getBalance({ address: item.owner as `0x${string}` }).catch(() => null)
+  const target = (item.meta?.recipient as `0x${string}` | undefined) ?? (item.owner as `0x${string}`)
+  const balance = await l2.getBalance({ address: target }).catch(() => null)
   if (balance == null) return 'pending'
 
   const key = step?.key ?? 'arrive0'

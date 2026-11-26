@@ -40,7 +40,7 @@ export function assertContract(chainId: number, actual: string, expected?: strin
 export function assertSwapRoute(chainId: number) {
   assertTestnet(chainId)
   const c = mustChain(chainId)
-  if (!c.uniswap) throw new TestnetViolation(`No verified Uniswap deployment on ${c.name}.`)
+  if (!c.uniswap && !c.dexV2?.length) throw new TestnetViolation(`No verified DEX deployment on ${c.name}.`)
   return c
 }
 
@@ -64,7 +64,7 @@ export function sanitizeChainId(id: unknown): number | null {
 }
 
 export function allowlistSummary() {
-  return CHAINS.map((c) => ({ id: c.id, name: c.name, bridge: c.bridge, swap: Boolean(c.uniswap) }))
+  return CHAINS.map((c) => ({ id: c.id, name: c.name, bridge: c.bridge, swap: Boolean(c.uniswap || c.dexV2?.length) }))
 }
 
 export function assertAddressLike(addr: string): asserts addr is Address {

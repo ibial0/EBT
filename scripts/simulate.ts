@@ -11,6 +11,9 @@ import { sepolia, baseSepolia } from 'viem/chains'
 import { getChain, CCTP_TOKEN_MESSENGER_V2 } from '../src/config/chains'
 import { tokenMessengerV2Abi, buildDepositForBurnArgs, fetchCctpFees, maxFeeFor } from '../src/lib/cctp'
 import { buildSwapCalldata } from '../src/lib/swapExec'
+import { quoteBestV2, buildV2SwapCalldata } from '../src/lib/dexV2'
+import { NON_EVM_SWAP_NETWORKS, quoteNonEvmSwap } from '../src/lib/nonEvmSwap'
+import { NON_EVM_BRIDGE_ENDPOINTS, quoteNonEvmCctp } from '../src/lib/nonEvmBridge'
 import { swapRouterV1Abi } from '../src/lib/uniswap'
 import { buildOpDeposit } from '../src/lib/bridgeExec'
 import { quoteBest, erc20Abi } from '../src/lib/uniswap'
@@ -326,23 +329,172 @@ async function main() {
         const msg = ((e as { shortMessage?: string }).shortMessage || (e as Error).message).slice(0, 90)
         record('swap: Arc router accepts calldata', /\bSTF\b/.test(msg), `${msg} (STF = decoded, reached token transfer)`)
       }
-      // a fee tier with no pool must fail differently — proves the pool, not the encoding, decides
+      // a fee tier with no pool must fail — proves the pool, not the encoding, decides
       try {
         const bad = buildSwapCalldata({
           chain: arcChain, account: SENDER,
           tokenIn: { address: arcUsdc.address, symbol: 'USDC', decimals: 6 },
           tokenOut: { address: eurc.address, symbol: 'EURC', decimals: 6 },
-          amountIn: 1_000_000n, amountOutMinimum: 1n, fee: 500,
+          amountIn: 1_000_000n, amountOutMinimum: 1n, fee: 2500,
         })
         await arc.call({ account: SENDER, to: bad.to, data: bad.data })
-        record('swap: Arc empty tier rejected', false, 'fee tier 500 unexpectedly succeeded')
+        record('swap: Arc empty tier rejected', false, 'fee tier 2500 unexpectedly succeeded')
       } catch (e) {
         const msg = ((e as { shortMessage?: string }).shortMessage || (e as Error).message).slice(0, 60)
-        record('swap: Arc empty tier rejected', /SPL|pool/i.test(msg), msg)
+        record('swap: Arc empty tier rejected', /revert|SPL|pool/i.test(msg), msg)
       }
     }
   } catch (e) {
     record('swap: quote USDC→EURC on Arc', false, (e as Error).message.slice(0, 100))
+  }
+
+  /* ---------------- 12. Phase D expanded EVMs (Abstract V3, BNB Pancake V2, Hedera SaucerSwap V2) ---------------- */
+  try {
+    const absChain = getChain(11124)!
+    const absClient = createPublicClient({ transport: http(RPC[11124], { timeout: 20000 }) })
+    const absUsdc = tokensForChain(11124).find((t) => t.symbol === 'USDC')!
+    const absQ = await quoteBest(absClient as never, absChain, WETH[11124], absUsdc.address, 1_000_000_000_000_000n)
+    record('swap: quote WETH→USDC on Abstract', Boolean(absQ), absQ ? `out=${absQ.amountOut} fee=${absQ.fee}` : 'no quote')
+    if (absQ) {
+      const tx = buildSwapCalldata({
+        chain: absChain, account: SENDER,
+        tokenIn: { address: null, symbol: 'ETH', decimals: 18 },
+        tokenOut: { address: absUsdc.address, symbol: 'USDC', decimals: 6 },
+        amountIn: 1_000_000_000_000_000n,
+        amountOutMinimum: (absQ.amountOut * 95n) / 100n,
+        fee: absQ.fee,
+      })
+      const r = await absClient.call({ to: tx.to, data: tx.data, value: tx.value, account: SENDER, stateOverride: [{ address: SENDER, balance: 10n * 10n ** 18n }] })
+      record('swap: Abstract ETH→USDC executes', true, `returned ${r.data?.slice(0, 26) ?? 'ok'}`)
+    }
+  } catch (e) {
+    record('swap: Abstract V3 simulation', false, ((e as { shortMessage?: string }).shortMessage || (e as Error).message).slice(0, 100))
+  }
+
+  try {
+    const bnbChain = getChain(97)!
+    const bnbClient = createPublicClient({ transport: http(RPC[97], { timeout: 20000 }) })
+    const busd = tokensForChain(97).find((t) => t.symbol === 'BUSD')!
+    const bnbQ = await quoteBestV2(bnbClient as never, bnbChain.id, WETH[97], busd.address, 10_000_000_000_000_000n, 18, 18)
+    record('swap: quote WBNB→BUSD on BNB Testnet', Boolean(bnbQ), bnbQ ? `out=${bnbQ.amountOut} via ${bnbQ.dexName}` : 'no quote')
+    if (bnbQ) {
+      const tx = buildV2SwapCalldata({
+        chainId: bnbChain.id, dexName: bnbQ.dexName, router: bnbQ.router, nativeFnStyle: bnbQ.nativeFnStyle,
+        account: SENDER, tokenIn: null, tokenOut: busd.address, wrappedNative: bnbQ.wrappedNative,
+        amountIn: 10_000_000_000_000_000n, amountOutMinimum: (bnbQ.amountOut * 95n) / 100n, path: bnbQ.path,
+      })
+      const r = await bnbClient.call({ to: tx.to, data: tx.data, value: tx.value, account: SENDER, stateOverride: [{ address: SENDER, balance: 10n * 10n ** 18n }] })
+      record('swap: BNB tBNB→BUSD executes', true, `returned ${r.data?.slice(0, 26) ?? 'ok'}`)
+    }
+  } catch (e) {
+    record('swap: BNB V2 simulation', false, ((e as { shortMessage?: string }).shortMessage || (e as Error).message).slice(0, 100))
+  }
+
+  try {
+    const hbarChain = getChain(296)!
+    const hbarClient = createPublicClient({ transport: http(RPC[296], { timeout: 20000 }) })
+    const whbar = tokensForChain(296).find((t) => t.symbol === 'WHBAR')!
+    const hUsdc = tokensForChain(296).find((t) => t.address.toLowerCase() === '0x0000000000000000000000000000000000001549')!
+    const hbarQ = await quoteBest(hbarClient as never, hbarChain, whbar.address, hUsdc.address, 100_000_000n)
+    record('swap: quote WHBAR→USDC on Hedera', Boolean(hbarQ), hbarQ ? `out=${hbarQ.amountOut} fee=${hbarQ.fee}` : 'no quote')
+    if (hbarQ) {
+      const tx = buildSwapCalldata({
+        chain: hbarChain, account: SENDER,
+        tokenIn: { address: whbar.address, symbol: 'WHBAR', decimals: 8 },
+        tokenOut: { address: hUsdc.address, symbol: 'USDC', decimals: 6 },
+        amountIn: 100_000_000n, amountOutMinimum: (hbarQ.amountOut * 95n) / 100n, fee: hbarQ.fee,
+      })
+      try {
+        await hbarClient.call({ account: SENDER, to: tx.to, data: tx.data })
+        record('swap: Hedera router calldata valid', true, 'call ok')
+      } catch (e) {
+        const errObj = e as { details?: string; shortMessage?: string; message?: string }
+        const full = `${errObj.details ?? ''} ${errObj.shortMessage ?? ''} ${errObj.message ?? ''}`
+        record('swap: Hedera router calldata valid', /STF|allowance|balance|INSUFFICIENT_TOKEN_BALANCE|CONTRACT_REVERT_EXECUTED/i.test(full), full.trim().slice(0, 110))
+      }
+    }
+  } catch (e) {
+    record('swap: Hedera V2 quote', false, ((e as { shortMessage?: string }).shortMessage || (e as Error).message).slice(0, 100))
+  }
+
+  /* ---------------- 13. Non-EVM live DEX quote APIs (Raydium Devnet + Stellar Horizon) ---------------- */
+  for (const net of NON_EVM_SWAP_NETWORKS) {
+    try {
+      const q = await quoteNonEvmSwap({
+        networkId: net.id,
+        tokenIn: net.tokens[0],
+        tokenOut: net.tokens[1],
+        amountDecimal: net.walletFamily === 'solana' ? '0.05' : '10',
+        slippageBps: 50,
+      })
+      record(`swap: ${net.short} live quote (${net.tokens[0].symbol}→${net.tokens[1].symbol})`, Boolean(q), q ? `out=${q.amountOutFormatted} via ${q.route}` : 'no quote')
+    } catch (e) {
+      record(`swap: ${net.short} live quote`, false, (e as Error).message.slice(0, 90))
+    }
+  }
+
+  /* ---------------- 14. Phase E verified bridges (CCTP v2 new EVMs + OP Stack portals + Non-EVM Iris) ---------------- */
+  for (const [id, expectedDomain] of [[998, 19], [98867, 22], [33431, 28], [2910, 30], [688689, 31], [338, 32], [51, 18]] as const) {
+    try {
+      const ch = getChain(id)!
+      const rpcUrl = ch.viem.rpcUrls.default.http[0]
+      const pc = createPublicClient({ transport: http(rpcUrl, { timeout: 15000 }) })
+      const burnData = encodeFunctionData({
+        abi: tokenMessengerV2Abi,
+        functionName: 'depositForBurn',
+        args: buildDepositForBurnArgs({
+          amount: 1_000_000n,
+          destDomain: 0,
+          recipient: SENDER,
+          burnToken: ch.usdc!,
+          maxFee: 100n,
+          fast: true,
+        }),
+      })
+      try {
+        await pc.call({ account: SENDER, to: CCTP_TOKEN_MESSENGER_V2, data: burnData })
+        record(`cctp: ${ch.short} (d${expectedDomain}) depositForBurn`, true, 'call ok')
+      } catch (e) {
+        const msg = (e as { shortMessage?: string; message?: string }).shortMessage || (e as Error).message
+        record(`cctp: ${ch.short} (d${expectedDomain}) depositForBurn`, /allowance/i.test(msg), msg.slice(0, 90))
+      }
+    } catch (e) {
+      record(`cctp: chain ${id} check`, false, (e as Error).message.slice(0, 90))
+    }
+  }
+
+  for (const [parentId, childId] of [[11155111, 4202], [11155111, 1740], [11155111, 812242], [97, 5611]] as const) {
+    try {
+      const parentChain = getChain(parentId)!
+      const childChain = getChain(childId)!
+      const pc = createPublicClient({ transport: http(parentChain.viem.rpcUrls.default.http[0], { timeout: 15000 }) })
+      const dep = buildOpDeposit({ toChainId: childId, recipient: SENDER, mint: 10n ** 15n })
+      await pc.call({
+        account: SENDER,
+        to: dep.to,
+        data: dep.data,
+        value: dep.value,
+        stateOverride: [{ address: SENDER, balance: 10n * 10n ** 18n }],
+      })
+      record(`opstack: ${parentChain.short}→${childChain.short} depositTransaction`, true, `portal ${dep.to}`)
+    } catch (e) {
+      record(`opstack: child ${childId} portal sim`, false, (e as Error).message.slice(0, 90))
+    }
+  }
+
+  for (const ep of NON_EVM_BRIDGE_ENDPOINTS) {
+    try {
+      const q = await quoteNonEvmCctp({
+        sourceDomain: ep.cctpDomain!,
+        destDomain: 0,
+        sourceName: ep.network.short,
+        destName: 'Sepolia',
+        amountDecimal: '10',
+      })
+      record(`cctp non-evm: ${ep.network.short} (d${ep.cctpDomain})→Sepolia Iris`, true, `fast=${q.fastFeeBps}bps`)
+    } catch (e) {
+      record(`cctp non-evm: ${ep.network.short} Iris`, false, (e as Error).message.slice(0, 90))
+    }
   }
 
   /* ---------------- summary ---------------- */

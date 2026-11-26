@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-25T11:09:50.300Z",
+  "ranAt": "2026-11-26T15:02:40.038Z",
   "results": [
     {
       "id": "guard: mainnet rejected",
@@ -34,12 +34,12 @@
     {
       "id": "swap: quote WETH→USDC on Sepolia",
       "ok": true,
-      "detail": "out=30025824 fee=500 impact=5bps"
+      "detail": "out=45156604 fee=100 impact=4bps"
     },
     {
       "id": "swap: native ETH→USDC executes",
       "ok": true,
-      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000001ca2860"
+      "detail": "returned 0x0000000000000000000000000000000000000000000000000000000002b108fc"
     },
     {
       "id": "opstack: GIWA deposit accepted",
@@ -49,7 +49,7 @@
     {
       "id": "swap: quote USDC→WETH on Sepolia",
       "ok": true,
-      "detail": "out=33296545289634 fee=100"
+      "detail": "out=22187613867247 fee=3000"
     },
     {
       "id": "swap: USDC.approve(router, exact)",
@@ -64,7 +64,7 @@
     {
       "id": "swap: quote USDC→WETH on Base Sepolia",
       "ok": true,
-      "detail": "out=4663606739747224 fee=100"
+      "detail": "out=588200996260518 fee=100"
     },
     {
       "id": "swap: quote USDC→WETH on OP Sepolia",
@@ -79,7 +79,7 @@
     {
       "id": "swap: executable pair coverage",
       "ok": true,
-      "detail": "36 live pairs / 46 probed"
+      "detail": "69 live pairs / 158 probed"
     },
     {
       "id": "arc: MessageTransmitter localDomain",
@@ -99,7 +99,7 @@
     {
       "id": "opstack: ETH deposit targets from Sepolia",
       "ok": true,
-      "detail": "OP Sepolia, Base Sepolia, Unichain, World, Ink, GIWA"
+      "detail": "OP Sepolia, Base Sepolia, Unichain, Codex, World, Ink, GIWA, BOB Sep, Lisk Sep, Metal, Mode Sep, Minato, Zora Sep"
     },
     {
       "id": "opstack: portal has code (OP Sepolia)",
@@ -119,12 +119,17 @@
     {
       "id": "cctp: message decoder (real message)",
       "ok": true,
-      "detail": "amount=90000000 → domain 26"
+      "detail": "amount=1000000 → domain 26"
+    },
+    {
+      "id": "cctp: Arc mint simulation",
+      "ok": true,
+      "detail": "message already minted (usedNonces != 0) — decoder + nonce offset correct"
     },
     {
       "id": "swap: quote USDC→EURC on Arc",
       "ok": true,
-      "detail": "out=927591 fee=100 impact=235bps"
+      "detail": "out=825477 fee=500 impact=5bps"
     },
     {
       "id": "swap: Arc router accepts calldata",
@@ -134,11 +139,126 @@
     {
       "id": "swap: Arc empty tier rejected",
       "ok": true,
-      "detail": "Execution reverted with reason: SPL."
+      "detail": "Execution reverted for an unknown reason."
+    },
+    {
+      "id": "swap: quote WETH→USDC on Abstract",
+      "ok": true,
+      "detail": "out=1736602 fee=3000"
+    },
+    {
+      "id": "swap: Abstract ETH→USDC executes",
+      "ok": true,
+      "detail": "returned 0x000000000000000000000000"
+    },
+    {
+      "id": "swap: quote WBNB→BUSD on BNB Testnet",
+      "ok": true,
+      "detail": "out=120995837535758013216 via PancakeSwap V2"
+    },
+    {
+      "id": "swap: BNB tBNB→BUSD executes",
+      "ok": true,
+      "detail": "returned 0x000000000000000000000000"
+    },
+    {
+      "id": "swap: quote WHBAR→USDC on Hedera",
+      "ok": true,
+      "detail": "out=2406465 fee=3000"
+    },
+    {
+      "id": "swap: Hedera router calldata valid",
+      "ok": true,
+      "detail": "[Request ID: 3b942797-a9f0-40e4-b29b-4d2f824ae0d7] execution reverted: CONTRACT_REVERT_EXECUTED, INSUFFICIENT_"
+    },
+    {
+      "id": "swap: Solana Dev live quote (SOL→USDC)",
+      "ok": true,
+      "detail": "out=0.591702 via Raydium Devnet (direct)"
+    },
+    {
+      "id": "swap: Stellar live quote (XLM→USDC)",
+      "ok": true,
+      "detail": "out=6.483961 via Stellar SDEX direct orderbook"
+    },
+    {
+      "id": "cctp: HyperEVM (d19) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: PLUME (d22) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: EDGE (d28) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Morph Hoodi (d30) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Pharos (d31) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Cronos (d32) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Apothem (d18) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "opstack: Sepolia→Lisk Sep depositTransaction",
+      "ok": true,
+      "detail": "portal 0xe3d90F21490686Ec7eF37BE788E02dfC12787264"
+    },
+    {
+      "id": "opstack: Sepolia→Metal depositTransaction",
+      "ok": true,
+      "detail": "portal 0x01D4dfC994878682811b2980653D03E589f093cB"
+    },
+    {
+      "id": "opstack: Sepolia→Codex depositTransaction",
+      "ok": true,
+      "detail": "portal 0x037F161D12c829A9ca4742eEd9371830CA54fcB2"
+    },
+    {
+      "id": "opstack: BNB Test→opBNB depositTransaction",
+      "ok": true,
+      "detail": "portal 0x4386C8ABf2009aC0c263462Da568DD9d46e52a31"
+    },
+    {
+      "id": "cctp non-evm: Solana Dev (d5)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=1bps"
+    },
+    {
+      "id": "cctp non-evm: Starknet (d25)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=14bps"
+    },
+    {
+      "id": "cctp non-evm: Aptos Test (d9)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=0bps"
+    },
+    {
+      "id": "cctp non-evm: Stellar (d27)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=0bps"
     }
   ],
   "pairs": {
-    "tried": 46,
-    "live": 36
+    "tried": 158,
+    "live": 69
   }
 }

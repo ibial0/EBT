@@ -17,6 +17,7 @@ import { wagmiConfig } from './lib/wallet'
 import { resumeTracking } from './lib/tracker'
 import { resumeDepositTracking } from './lib/depositTrack'
 import { resumeOrbitTracking } from './lib/orbitTrack'
+import { resumeAcrossTracking } from './lib/acrossTrack'
 import { getPublicClient } from 'wagmi/actions'
 import { Toaster } from './components/ui'
 
@@ -27,6 +28,7 @@ const queryClient = new QueryClient({
 function Root() {
   useEffect(() => {
     resumeTracking()
+    resumeAcrossTracking()
     resumeDepositTracking((chainId) => getPublicClient(wagmiConfig, { chainId: chainId as never }))
     resumeOrbitTracking((chainId) => getPublicClient(wagmiConfig, { chainId: chainId as never }))
   }, [])

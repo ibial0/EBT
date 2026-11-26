@@ -8,14 +8,16 @@
 import { CHAINS, getChain, type ChainCfg } from '../config/chains'
 import { ORBIT_BRIDGES, ORBIT_ETH_NATIVE } from '../config/orbit'
 import { getPortalAddress } from './opstack'
+import { ACROSS_SPOKE_POOLS } from './across'
 
 export interface ProviderTag {
-  key: 'cctp' | 'portal' | 'orbit' | 'swap'
+  key: 'cctp' | 'across' | 'portal' | 'orbit' | 'swap'
   label: string
 }
 
 const TAG: Record<ProviderTag['key'], string> = {
   cctp: 'CCTP',
+  across: 'Across',
   portal: 'OP portal',
   orbit: 'Orbit',
   swap: 'Swap',
@@ -52,8 +54,14 @@ export function buildCoverage(): ChainCoverage[] {
       send.push({ key: 'orbit', label: TAG.orbit })
     }
 
-    // anything that can move must land somewhere that can swap it, if it is to be a destination
-    if (c.uniswap) send.push({ key: 'swap', label: TAG.swap })
+    // Across Protocol v3 fast relayer intents
+    if (ACROSS_SPOKE_POOLS[c.id]) {
+      send.push({ key: 'across', label: TAG.across })
+      receive.push({ key: 'across', label: TAG.across })
+    }
+
+    // Verified same-chain DEX (Uniswap V3 / Synthra V3 / V2 AMM)
+    if (c.uniswap || c.dexV2?.length) send.push({ key: 'swap', label: TAG.swap })
 
     return { chain: c, send, receive }
   })

@@ -331,17 +331,56 @@
   /* portfolio: summary card + tabbed breakdown card */
   .dash-2 {
     display: grid;
-    flex: 1 1 auto;
+    /* flex-basis:0 means height is set by flex-grow from parent, NOT by content */
+    flex: 1 1 0;
     min-height: 0;
     gap: 28px;
+    overflow: hidden;
   }
   @media (min-width: 1024px) {
     .dash-2 {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      /* minmax(0, 1fr) prevents intrinsic child content from growing the grid track */
+      grid-template-rows: minmax(0, 1fr);
       align-items: stretch;
-      /* both cards take whatever height the shell has left, so nothing floats with a gap under it */
-      flex: 1 1 auto;
-      min-height: 0;
+    }
+  }
+
+  .accordion-grid {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 280ms var(--ease);
+  }
+  .accordion-grid[data-open='true'] {
+    grid-template-rows: 1fr;
+  }
+  .accordion-track {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .accordion-content {
+    contain: layout;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+      opacity 200ms var(--ease),
+      transform 240ms var(--ease);
+  }
+  .accordion-grid[data-open='true'] .accordion-content {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .accordion-chevron {
+    transition: transform 240ms var(--ease);
+  }
+  .accordion-chevron[data-open='true'] {
+    transform: rotate(180deg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .accordion-grid,
+    .accordion-content,
+    .accordion-chevron {
+      transition: none;
     }
   }
   @keyframes flow {
@@ -448,4 +487,57 @@
     background: rgba(171, 184, 255, 0.07);
     border-radius: 6px;
   }
+
+  /* ── popup entrance ── */
+  @keyframes popupBgIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes popupCardIn {
+    from { opacity: 0; transform: scale(0.92) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* ── global smooth button transitions ── */
+  button, a, [role="button"] {
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform, filter;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease);
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Swap-flow enhanced animations
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Card border glow shimmer – plays when liquid enters / exits the card */
+@keyframes cardGlowShimmer {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  72%  { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+.card-glow-shimmer {
+  animation: cardGlowShimmer 900ms ease-out forwards;
+}
+
+/* Token anticipation glow – soft breathing ring while liquid is at/heading to it */
+@keyframes tokenAnticipate {
+  0%   { opacity: 0.25; transform: scale(0.98); }
+  50%  { opacity: 0.7; transform: scale(1.03); }
+  100% { opacity: 0.25; transform: scale(0.98); }
+}
+.token-anticipate {
+  animation: tokenAnticipate 1.4s ease-in-out infinite;
+}
+
+/* Token reflection flash – bright ring burst when liquid arrives */
+@keyframes tokenReflect {
+  0%   { opacity: 0; transform: scale(1); }
+  22%  { opacity: 0.85; transform: scale(1.06); }
+  100% { opacity: 0; transform: scale(1.14); }
+}
+.token-reflect {
+  animation: tokenReflect 750ms ease-out forwards;
 }

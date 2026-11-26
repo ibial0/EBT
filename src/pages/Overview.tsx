@@ -13,12 +13,13 @@ import {
   Zap,
 } from 'lucide-react'
 import { CCTP_CHAINS, CHAINS, SWAP_CHAINS, getChain } from '../config/chains'
+import { ACTIVE_NETWORKS, NON_EVM_NETWORKS } from '../config/networks'
 import { POOLS, pairsForChain } from '../config/pools'
 import { PROVIDERS, NOT_INTEGRATED } from '../config/providers'
 import { TOKENS, findToken } from '../config/tokens'
 import { Card, Badge, Button, ChainLogo, StatusDot, Spinner, TokenIcon } from '../components/ui'
 import { PageHeader } from '../components/Layout'
-import { useNetworkHealth } from '../lib/health'
+import { useNetworkHealth, useNonEvmHealth } from '../lib/health'
 import { listActivity } from '../lib/activity'
 import { feeLabel, liquidityLabel, loadLiquidity, type PoolSnapshot } from '../lib/liquidity'
 import { buildCoverage, coverageCounts } from '../lib/coverage'
@@ -46,6 +47,7 @@ export default function Overview() {
   const coverage = useMemo(() => buildCoverage(), [])
   const counts = useMemo(() => coverageCounts(coverage), [coverage])
   const health = useNetworkHealth()
+  const nonEvmHealth = useNonEvmHealth()
   const [level, setLevel] = useState<Level>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [chainFilter, setChainFilter] = useState<number | 'all'>('all')
@@ -70,7 +72,8 @@ export default function Overview() {
       alive = false
     }
   }, [])
-  const okCount = health.data?.filter((h) => h.ok).length ?? 0
+  const okCount = (health.data?.filter((h) => h.ok).length ?? 0) + (nonEvmHealth.data?.filter((h) => h.ok).length ?? 0)
+  const totalRpcs = CHAINS.length + NON_EVM_NETWORKS.length
   /** median probe latency, so the strip reports a real number instead of a decoration */
   const medianMs = useMemo(() => {
     const xs = (health.data ?? [])
@@ -82,9 +85,9 @@ export default function Overview() {
   const activity = listActivity()
 
   const stats = [
-    { label: 'Testnets allowlisted', value: CHAINS.length, icon: Layers, hint: 'every chain here was probed live' },
+    { label: 'Active testnets', value: ACTIVE_NETWORKS.length, icon: Layers, hint: 'every chain here was probed live' },
     { label: 'CCTP USDC routes', value: `${CCTP_CHAINS.length} ⇄ ${CCTP_CHAINS.length - 1}`, icon: Zap, hint: 'any pair, any direction' },
-    { label: 'Swap-ready chains', value: SWAP_CHAINS.length, icon: Sparkles, hint: 'real Uniswap v3 liquidity' },
+    { label: 'Swap-ready chains', value: SWAP_CHAINS.length, icon: Sparkles, hint: 'verified V3 + V2 DEX pools' },
     { label: 'Verified tokens', value: TOKENS.length, icon: CheckCircle2, hint: 'symbols + decimals read on-chain' },
   ]
 
@@ -93,7 +96,7 @@ export default function Overview() {
       <PageHeader
         eyebrow="Operations console"
         title="Testnet bridge overview"
-        subtitle="Circle CCTP, same-chain swaps, and OP Stack deposits across approved testnet infrastructure."
+        subtitle="Circle CCTP, Across Protocol v3, same-chain DEX swaps, OP Stack & Arbitrum Orbit deposits across approved testnets."
         right={
           <div className="flex gap-2">
             <Link to="/portfolio">
@@ -114,12 +117,14 @@ export default function Overview() {
           <div className="flex items-center gap-3">
             <span className="grid size-7 place-items-center">
               <span
-                className={`size-2.5 rotate-45 border ${okCount === CHAINS.length ? 'border-pos' : 'border-warn'}`}
+                className={`size-2.5 rotate-45 border ${okCount === totalRpcs ? 'border-pos' : 'border-warn'}`}
               />
             </span>
             <div>
               <div className="flex items-center gap-2 text-[14px] font-semibold text-t1">
-                {health.isLoading ? 'Probing public RPCs…' : `${okCount}/${CHAINS.length} testnet RPCs responding`}
+                {health.isLoading
+                  ? 'Probing public RPCs…'
+                  : `${okCount}/${totalRpcs} testnet RPCs responding`}
                 {health.isLoading && <Spinner size={13} />}
               </div>
               <div className="text-[12px] leading-4 text-t2">
@@ -129,8 +134,9 @@ export default function Overview() {
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="chip chip-accent">CCTP v2 · live</span>
-            <span className="chip chip-accent">Uniswap v3 · live</span>
-            <span className="chip">OP deposit · limited</span>
+            <span className="chip chip-accent">Across v3 · live</span>
+            <span className="chip chip-accent">V3 + V2 DEXs · live</span>
+            <span className="chip">OP &amp; Orbit · limited</span>
             <span className="chip">Mainnet · blocked</span>
           </div>
         </div>
@@ -148,9 +154,10 @@ export default function Overview() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-        {/* bridge coverage: which chains can move value, and through what */}
-        <Card className="overflow-hidden">
-          <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
+        {/* bridge coverage: fills exact height of the right-hand providers stack without inflating the grid */}
+        <div className="lg:relative">
+          <Card className="flex max-h-[520px] flex-col overflow-hidden lg:absolute lg:inset-0 lg:max-h-none">
+          <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 px-5 py-4">
             <div>
               <h2 className="display text-[18px] leading-7 text-t1">Bridge coverage</h2>
               <p className="mt-0.5 text-[14px] leading-5 text-t2">Supported routes from the registry.</p>
@@ -159,7 +166,7 @@ export default function Overview() {
               {counts.canSend} send · {counts.canReceive} receive
             </span>
           </div>
-          <div className="max-h-[430px] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <table className="w-full">
               <thead className="sticky top-0 bg-ink-800">
                 <tr className="border-y border-line-strong text-left">
@@ -189,11 +196,12 @@ export default function Overview() {
               </tbody>
             </table>
           </div>
-          <div className="border-t border-line-strong px-5 py-3 text-[12px] leading-5 text-t2">
+          <div className="shrink-0 border-t border-line-strong px-5 py-3 text-[12px] leading-5 text-t2">
             {counts.isolated} chain{counts.isolated === 1 ? '' : 's'} can move nothing in either direction yet: no
             verified provider covers them, and nothing is faked to fill the gap.
           </div>
         </Card>
+        </div>
 
         {/* providers */}
         <div className="space-y-3">
@@ -255,7 +263,7 @@ export default function Overview() {
             label="Network"
             options={[
               { value: 'all', label: 'All networks' },
-              ...CHAINS.filter((c) => c.uniswap).map((c) => ({ value: String(c.id), label: c.name })),
+              ...CHAINS.filter((c) => c.uniswap || c.dexV2?.length).map((c) => ({ value: String(c.id), label: c.name })),
             ]}
           />
           <Select
@@ -407,7 +415,7 @@ function LiquidityTable({
       if (needle && !`${p.symbol0} ${p.symbol1}`.toUpperCase().includes(needle)) return false
       if (level !== 'all' && p.status !== level) return false
       if (status !== 'all' && p.status !== status) return false
-      if (dexOnly && !getChain(p.chainId)?.uniswap) return false
+      if (dexOnly && !getChain(p.chainId)?.uniswap && !getChain(p.chainId)?.dexV2?.length) return false
       return true
     })
     return filtered.sort((a, b) => {

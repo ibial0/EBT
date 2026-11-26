@@ -21,6 +21,7 @@ import {
 } from '../lib/activity'
 import { startTracking, pollOnce, isTracking } from '../lib/tracker'
 import { startDepositTracking, pollDepositOnce, isDepositTracking } from '../lib/depositTrack'
+import { startAcrossTracking, pollAcrossOnce, isAcrossTracking } from '../lib/acrossTrack'
 import { submitReceiveMessage, isMessageUsed } from '../lib/bridgeExec'
 import { decodeTxError } from '../lib/errors'
 import { shortAddr, timeAgo } from '../lib/format'
@@ -257,6 +258,35 @@ function Detail({ id }: { id: string }) {
                       const s = await pollDepositOnce(item.id, l1, l2)
                       notify(
                         s === 'complete' ? 'Deposit included on the destination chain.' : s === 'idle' ? 'Nothing to check yet.' : 'Not included yet.',
+                        s === 'complete' ? 'success' : 'info',
+                      )
+                    }}
+                  >
+                    Check now
+                  </Button>
+                </>
+              )}
+              {item.provider === 'across' && item.status !== 'complete' && (
+                <>
+                  {!isAcrossTracking(item.id) && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        startAcrossTracking(item.id)
+                        notify('Resumed Across relayer polling.', 'info')
+                      }}
+                    >
+                      <RefreshCw size={12} /> Resume check
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={async () => {
+                      const s = await pollAcrossOnce(item.id)
+                      notify(
+                        s === 'complete' ? 'Across relayer fill complete.' : s === 'failed' ? 'Across deposit expired.' : 'Still awaiting relayer fill.',
                         s === 'complete' ? 'success' : 'info',
                       )
                     }}

@@ -7,18 +7,51 @@ import { loadPrices, priceOf } from '../lib/prices'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import type { ChainCfg } from '../config/chains'
+import type { NetworkEntry } from '../config/networks'
 import { isNativeToken, type TokenCfg } from '../config/tokens'
 import { getPublicClient } from 'wagmi/actions'
 import { useAccount } from 'wagmi'
 import { wagmiConfig } from '../lib/wallet'
-import { ChainLogo, TokenIcon, AllChainsMark } from './ui'
+import { ChainLogo, NetworkLogo, TokenIcon, AllChainsMark } from './ui'
 
 export interface PickerGroup {
   chain: ChainCfg
+  /** When set, this group represents a non-EVM network displayed seamlessly alongside EVM chains. */
+  network?: NetworkEntry
   tokens: TokenCfg[]
   /** why a token cannot move, shown inline instead of hiding it */
   notes?: Record<string, string>
+  /** optional preloaded non-EVM balances keyed by lowercase token address */
+  nonEvmBalances?: Record<string, bigint | null>
+  /** whether the wallet ecosystem required for this group is connected */
+  walletConnected?: boolean
 }
+
+/** Deterministic synthetic negative chainId for non-EVM networks inside unified pickers. */
+export function syntheticChainForNetwork(net: NetworkEntry, syntheticId: number): ChainCfg {
+  return {
+    id: syntheticId,
+    key: net.key,
+    name: net.name,
+    short: net.short,
+    viem: {
+      id: syntheticId,
+      name: net.name,
+      nativeCurrency: net.nativeCurrency,
+      rpcUrls: { default: { http: [net.rpcUrl] } },
+      blockExplorers: net.explorerUrl ? { default: { name: net.name, url: net.explorerUrl } } : undefined,
+      testnet: true,
+    } as never,
+    bridge: 'none',
+    color: net.color,
+    gradient: net.gradient,
+    faucets: net.faucets,
+    verifiedAt: net.verifiedAt,
+  }
+}
+
+/** In-memory chain filter per picker scope: persists across open/close until full page reload. */
+const rememberedChainFilters = new Map<string, number | 'all'>()
 
 /**
  * The token chooser used by Swap and Bridge.
@@ -35,9 +68,11 @@ export function TokenPicker({
   groups,
   value,
   onSelect,
+  onBeforeSelectChain,
   multiChain = true,
   chains,
   onChainChange,
+  filterKey = 'default',
 }: {
   open: boolean
   onClose: () => void
@@ -45,27 +80,56 @@ export function TokenPicker({
   groups: PickerGroup[]
   value?: { chainId: number; address: string } | null
   onSelect: (chain: ChainCfg, token: TokenCfg) => void
+  /** Return false to intercept selection (e.g. prompt wallet connection for unconnected non-EVM). */
+  onBeforeSelectChain?: (chain: ChainCfg, network?: NetworkEntry, token?: TokenCfg) => boolean
   multiChain?: boolean
   /** every chain the dropdown may offer; defaults to the chains present in `groups` */
   chains?: ChainCfg[]
   /** when set, picking a chain in the dropdown changes the caller's chain instead of filtering */
   onChainChange?: (chainId: number) => void
+  /** scope key for remembering the selected chain filter during this browser session */
+  filterKey?: string
 }) {
   const [q, setQ] = useState('')
-  const [chainFilter, setChainFilter] = useState<number | 'all'>('all')
+  const [chainFilter, setChainFilter] = useState<number | 'all'>(() => rememberedChainFilters.get(filterKey) ?? 'all')
   const [chainQuery, setChainQuery] = useState('')
   const [showChains, setShowChains] = useState(false)
   const { address: account } = useAccount()
   const inputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  const networkById = useMemo(() => {
+    const m = new Map<number, NetworkEntry>()
+    for (const g of groups) {
+      if (g.network) m.set(g.chain.id, g.network)
+    }
+    return m
+  }, [groups])
+
+  const walletConnectedById = useMemo(() => {
+    const m = new Map<number, boolean>()
+    for (const g of groups) {
+      if (g.walletConnected !== undefined) m.set(g.chain.id, g.walletConnected)
+    }
+    return m
+  }, [groups])
+
+  const selectChainFilter = (next: number | 'all') => {
+    rememberedChainFilters.set(filterKey, next)
+    setChainFilter(next)
+  }
 
   useEffect(() => {
     if (!open) return
     setQ('')
-    setChainFilter('all')
+    setShowChains(false)
+    setChainQuery('')
+    setChainFilter(rememberedChainFilters.get(filterKey) ?? 'all')
     const t = setTimeout(() => inputRef.current?.focus(), 60)
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
@@ -75,7 +139,7 @@ export function TokenPicker({
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
     }
-  }, [open, onClose])
+  }, [open, filterKey])
 
   const needle = q.trim().toLowerCase()
   const visible = useMemo(
@@ -96,15 +160,15 @@ export function TokenPicker({
 
   const prices = useQuery({ queryKey: ['prices'], queryFn: loadPrices, staleTime: 10 * 60_000, retry: 1 })
 
-  // one balance read per row, batched by react-query and cached between openings
+  // one balance read per EVM row, batched by react-query and cached between openings
   const rows = useMemo(
-    () => visible.flatMap((g) => g.tokens.map((token) => ({ chain: g.chain, token }))),
+    () => visible.flatMap((g) => g.tokens.map((token) => ({ group: g, chain: g.chain, token }))),
     [visible],
   )
   const balances = useQueries({
-    queries: rows.map(({ chain, token }) => ({
+    queries: rows.map(({ group, chain, token }) => ({
       queryKey: ['picker-balance', chain.id, token.address, account],
-      enabled: open && Boolean(account),
+      enabled: open && !group.network && Boolean(account),
       staleTime: 30_000,
       retry: 0,
       queryFn: async () => {
@@ -121,12 +185,17 @@ export function TokenPicker({
   const chainOptions = chains ?? groups.map((g) => g.chain)
   const totalChains = chainOptions.length
 
+  const renderChainLogo = (c: ChainCfg, size: number) => {
+    const net = networkById.get(c.id)
+    return net ? <NetworkLogo network={net} size={size} /> : <ChainLogo chain={c} size={size} />
+  }
+
   return (
     <div className="fixed inset-0 z-[90] flex items-start justify-center bg-black/60 px-3 py-6 backdrop-blur-[2px] sm:py-10">
       <div className="absolute inset-0" onClick={onClose} />
       <div
         ref={panelRef}
-        className="enter relative z-10 flex max-h-[min(88vh,760px)] w-full max-w-[520px] flex-col overflow-hidden rounded-[16px] border border-line-strong bg-ink-800 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+        className="enter relative z-10 flex min-h-[min(84vh,640px)] max-h-[min(88vh,760px)] w-full max-w-[520px] flex-col overflow-hidden rounded-[16px] border border-line-strong bg-ink-800 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
       >
 
         {/* chain chooser: a full panel, not a dropdown that the card edge cuts off */}
@@ -160,8 +229,9 @@ export function TokenPicker({
               <button
                 onClick={() => {
                   if (onChainChange) onChainChange(value?.chainId ?? chainOptions[0]?.id)
-                  else setChainFilter('all')
+                  else selectChainFilter('all')
                   setShowChains(false)
+                  setChainQuery('')
                 }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-ink-700"
               >
@@ -176,20 +246,33 @@ export function TokenPicker({
                 )
                 .map((c) => {
                   const selected = onChainChange ? value?.chainId === c.id : chainFilter === c.id
+                  const net = networkById.get(c.id)
+                  const needsWallet = net ? walletConnectedById.get(c.id) === false : false
                   return (
                     <button
                       key={c.id}
                       onClick={() => {
+                        if (onBeforeSelectChain && !onBeforeSelectChain(c, net)) {
+                          setShowChains(false)
+                          setChainQuery('')
+                          onClose()
+                          return
+                        }
                         if (onChainChange) onChainChange(c.id)
-                        else setChainFilter(c.id)
+                        else selectChainFilter(c.id)
                         setShowChains(false)
                         setChainQuery('')
                       }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-ink-700"
                     >
-                      <ChainLogo chain={c} size={36} />
+                      {renderChainLogo(c, 36)}
                       <span className="flex-1 truncate text-[14px] text-t1">{c.name}</span>
-                      {selected && <Check size={16} className="text-accent" />}
+                      {needsWallet && (
+                        <span className="rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-warn">
+                          Connect
+                        </span>
+                      )}
+                      {selected && !needsWallet && <Check size={16} className="text-accent" />}
                     </button>
                   )
                 })}
@@ -208,23 +291,23 @@ export function TokenPicker({
               >
                 {onChainChange ? (
                   (() => {
-                    const c = chains?.find((x) => x.id === value?.chainId)
-                    return c ? <ChainLogo chain={c} size={18} /> : <AllChainsMark size={18} />
+                    const c = chainOptions.find((x) => x.id === value?.chainId)
+                    return c ? renderChainLogo(c, 18) : <AllChainsMark size={18} />
                   })()
                 ) : chainFilter === 'all' ? (
                   <AllChainsMark size={18} />
                 ) : (
                   (() => {
-                    const c = chains?.find((x) => x.id === chainFilter)
-                    return c ? <ChainLogo chain={c} size={18} /> : <AllChainsMark size={18} />
+                    const c = chainOptions.find((x) => x.id === chainFilter)
+                    return c ? renderChainLogo(c, 18) : <AllChainsMark size={18} />
                   })()
                 )}
                 <span className="max-w-[110px] truncate">
                   {onChainChange
-                    ? (chains?.find((x) => x.id === value?.chainId)?.short ?? 'Network')
+                    ? (chainOptions.find((x) => x.id === value?.chainId)?.short ?? 'Network')
                     : chainFilter === 'all'
                       ? 'All chains'
-                      : (chains?.find((x) => x.id === chainFilter)?.short ?? 'Network')}
+                      : (chainOptions.find((x) => x.id === chainFilter)?.short ?? 'Network')}
                 </span>
                 <ChevronDown size={13} className="text-t2" />
               </button>
@@ -259,16 +342,27 @@ export function TokenPicker({
             <div className="px-4 py-10 text-center text-[13px] text-t2">No asset matches “{q}”.</div>
           )}
           {visible.map((g) => (
-            <div key={g.chain.id} className="mb-1">
+            <div key={g.network ? g.network.id : g.chain.id} className="mb-1">
               <div className="sticky top-0 z-10 flex items-center gap-2 bg-ink-800/95 px-3 py-2 backdrop-blur">
-                <ChainLogo chain={g.chain} size={16} />
+                {g.network ? <NetworkLogo network={g.network} size={16} /> : <ChainLogo chain={g.chain} size={16} />}
                 <span className="col-head">{g.chain.name}</span>
-                <span className="mono text-[11px] text-t3">{g.chain.id}</span>
+                <span className="mono text-[11px] text-t3">
+                  {g.network ? g.network.nativeCurrency.symbol : g.chain.id}
+                </span>
+                {g.network && g.walletConnected === false && (
+                  <span className="ml-auto rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-[10px] text-warn">
+                    Connect wallet
+                  </span>
+                )}
               </div>
               {g.tokens.map((t) => {
                 const note = g.notes?.[t.address.toLowerCase()]
                 const idx = rows.findIndex((r) => r.chain.id === g.chain.id && r.token.address === t.address)
-                const raw = idx >= 0 ? (balances[idx]?.data as bigint | null | undefined) : null
+                const raw = g.network
+                  ? (g.nonEvmBalances?.[t.address.toLowerCase()] ?? null)
+                  : idx >= 0
+                    ? (balances[idx]?.data as bigint | null | undefined)
+                    : null
                 const amount = raw != null ? Number(formatUnits(raw, t.decimals)) : null
                 const price = priceOf(prices.data?.prices ?? {}, t.symbol)
                 const usd = amount != null && price != null ? amount * price : null
@@ -276,8 +370,12 @@ export function TokenPicker({
                   value?.chainId === g.chain.id && value?.address.toLowerCase() === t.address.toLowerCase()
                 return (
                   <button
-                    key={t.address}
+                    key={`${g.chain.id}-${t.address}-${t.symbol}`}
                     onClick={() => {
+                      if (onBeforeSelectChain && !onBeforeSelectChain(g.chain, g.network, t)) {
+                        onClose()
+                        return
+                      }
                       onSelect(g.chain, t)
                       onClose()
                     }}
@@ -290,8 +388,8 @@ export function TokenPicker({
                       <TokenIcon
                         symbol={t.symbol}
                         size={34}
-                        chainId={g.chain.id}
-                        address={isNativeToken(t) ? undefined : t.address}
+                        chainId={g.network ? undefined : g.chain.id}
+                        address={g.network || isNativeToken(t) ? undefined : t.address}
                         verified={t.verified}
                       />
                     </span>

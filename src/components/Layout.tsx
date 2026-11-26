@@ -4,24 +4,29 @@ import clsx from 'clsx'
 import {
   Activity,
   ArrowLeftRight,
-  ChevronDown,
   Droplets,
   LayoutGrid,
   LogOut,
   Menu,
   PieChart,
+  Plus,
   Repeat,
   Settings as SettingsIcon,
-  ShieldCheck,
   Wallet,
   X,
 } from 'lucide-react'
-import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from 'wagmi'
-import { getChain } from '../config/chains'
-import { Button, Badge, notify, CopyButton, ChainLogo, StatusDot, EbtMark } from './ui'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { Button, Badge, notify, CopyButton, EbtMark } from './ui'
 import { shortAddr } from '../lib/format'
-import { WALLETCONNECT_NOTE } from '../lib/wallet'
+import {
+  WALLET_FAMILIES,
+  disconnectNonEvmAccountById,
+  openWalletModal,
+  useAllNonEvmAccounts,
+  type NonEvmFamily,
+} from '../lib/walletsMulti'
 import { NotificationBell } from './NotificationBell'
+import { GlobalWalletModal, nonEvmLogoSrc } from './MultiWalletModal'
 import pkg from '../../package.json'
 
 const APP_VERSION = pkg.version
@@ -96,12 +101,12 @@ export function Layout() {
         <div className={clsx('mt-auto pb-1', collapsed ? 'px-0' : 'px-0')}>
           {collapsed ? (
             <div className="flex justify-center" title="Testnet only">
-              <StatusDot tone="mint" />
+              <EbtMark size={22} className="shrink-0" />
             </div>
           ) : (
             <div className="rounded-[10px] border border-line bg-ink-800 p-3">
-              <div className="flex items-center gap-2">
-                <EbtMark size={15} className="text-accent" />
+              <div className="flex items-center gap-2.5">
+                <EbtMark size={24} className="shrink-0" />
                 <span className="text-[12px] font-semibold text-t1">Testnet only</span>
               </div>
               <p className="mt-2 text-[12px] leading-5 text-t2">
@@ -174,6 +179,7 @@ export function Layout() {
           </NavLink>
         ))}
       </nav>
+      <GlobalWalletModal />
     </div>
   )
 }
@@ -182,7 +188,7 @@ export function Layout() {
 function Brand({ compact, onToggle }: { compact?: boolean; onToggle?: () => void }) {
   const inner = (
     <>
-      <EbtMark size={compact ? 38 : 44} className="text-accent shrink-0" />
+      <EbtMark size={compact ? 38 : 44} className="shrink-0" />
       <div
         className={clsx(
           'min-w-0 overflow-hidden leading-tight transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
@@ -212,130 +218,201 @@ function Brand({ compact, onToggle }: { compact?: boolean; onToggle?: () => void
   )
 }
 
-/* ───────────── wallet ───────────── */
+/* ───────────── unified multi-wallet connect ───────────── */
+
+interface ConnectedEntry {
+  key: string
+  label: string
+  sublabel: string
+  address: string
+  iconSrc?: string
+  onDisconnect: () => void
+}
+
+function WalletAvatar({ iconSrc, label, size = 26 }: { iconSrc?: string; label: string; size?: number }) {
+  const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [iconSrc])
+
+  if (!iconSrc || broken) {
+    const abbr = label
+      .replace(/[^A-Za-z0-9 ]/g, '')
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0])
+      .join('')
+      .toUpperCase() || 'W'
+    return (
+      <span
+        className="grid place-items-center rounded-full bg-ink-700 font-semibold text-t1"
+        style={{ width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.36)) }}
+      >
+        {abbr}
+      </span>
+    )
+  }
+  return (
+    <img
+      src={iconSrc}
+      alt={label}
+      onError={() => setBroken(true)}
+      className="rounded-full object-cover"
+      style={{ width: size, height: size }}
+    />
+  )
+}
 
 export function ConnectButton({ compact, full }: { compact?: boolean; full?: boolean }) {
-  const { address, isConnected } = useAccount()
-  const chainId = useChainId()
-  const { connectors, connect, isPending } = useConnect()
+  const { address, isConnected, connector } = useAccount()
+  const { connectors, isPending } = useConnect()
   const { disconnect } = useDisconnect()
-  const { switchChain } = useSwitchChain()
-  const [open, setOpen] = useState(false)
-  const chain = getChain(chainId)
+  const nonEvmList = useAllNonEvmAccounts()
 
-  const injected = useMemo(() => connectors.filter((c) => c.id === 'injected' || c.type === 'injected'), [connectors])
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  if (!isConnected) {
+  const connectedWallets = useMemo<ConnectedEntry[]>(() => {
+    const list: ConnectedEntry[] = []
+    if (isConnected && address) {
+      const name = connector?.name && connector.name !== 'Injected' ? connector.name : 'EVM Wallet'
+      const fallbackIcon = nonEvmLogoSrc('solana') ? '/logos/chains/tw_ethereum.png' : undefined
+      list.push({
+        key: 'evm',
+        label: name,
+        sublabel: 'EVM',
+        address,
+        iconSrc: connector?.icon ?? fallbackIcon,
+        onDisconnect: () => {
+          disconnect()
+          notify(`Disconnected ${name}`, 'info')
+        },
+      })
+    }
+    for (const acct of nonEvmList) {
+      const desc = WALLET_FAMILIES[acct.family as NonEvmFamily]
+      const brandMatch = connectors.find(
+        (c) => c.icon && acct.providerName.toLowerCase().includes(c.name.toLowerCase().split(' ')[0]),
+      )
+      list.push({
+        key: acct.id,
+        label: acct.providerName,
+        sublabel: desc?.label ?? acct.family,
+        address: acct.address,
+        iconSrc: acct.iconSrc ?? brandMatch?.icon ?? nonEvmLogoSrc(acct.family),
+        onDisconnect: () => {
+          disconnectNonEvmAccountById(acct.id)
+          notify(`Disconnected ${acct.providerName}`, 'info')
+        },
+      })
+    }
+    return list
+  }, [isConnected, address, connector, nonEvmList, connectors, disconnect])
+
+  if (full) {
     return (
-      <>
-        <Button
-          size={full ? 'lg' : compact ? 'sm' : 'md'}
-          variant={full || compact ? (full ? 'primary' : 'secondary') : 'secondary'}
-          full={full}
-          onClick={() => setOpen(true)}
-          loading={isPending}
-        >
-          <Wallet size={15} /> Connect
-        </Button>
-        {open && (
-          <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 sm:items-center sm:p-6">
-            <div className="absolute inset-0" onClick={() => setOpen(false)} />
-            <div className="enter relative z-10 w-full max-w-sm rounded-b-none border border-line bg-ink-800 p-5 sm:rounded-[14px]">
-              <div className="mb-1 text-[14px] font-medium text-t1">Connect a wallet</div>
-              <p className="mb-4 text-[12px] leading-5 text-t2">{WALLETCONNECT_NOTE}</p>
-              <div className="space-y-2">
-                {injected.length === 0 && (
-                  <div className="rounded-lg border border-[#e6c17a]/30 bg-[#1a1710] p-3 text-[12px] leading-5 text-[#e6c17a]">
-                    No browser wallet detected. Install MetaMask, Rabby or Coinbase Wallet, then reload.
-                  </div>
-                )}
-                {injected.map((c) => (
-                  <button
-                    key={c.uid}
-                    onClick={() =>
-                      connect(
-                        { connector: c },
-                        {
-                          onSuccess: () => {
-                            setOpen(false)
-                            notify('Wallet connected', 'success')
-                          },
-                          onError: (e) => notify(e.message, 'error'),
-                        },
-                      )
-                    }
-                    className="flex w-full items-center gap-3 rounded-lg border border-line bg-ink-850 px-3 py-3 text-left transition-colors hover:border-line-strong hover:bg-ink-700"
-                  >
-                    {c.icon ? <img src={c.icon} alt="" className="h-7 w-7 rounded-md" /> : <Wallet size={22} />}
-                    <span className="text-[14px] text-t1">{c.name === 'Injected' ? 'Browser wallet' : c.name}</span>
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => setOpen(false)} className="mt-4 w-full py-2 text-[13px] text-t3 transition-colors hover:text-t1">
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </>
+      <Button
+        size="lg"
+        variant="primary"
+        full
+        onClick={() => openWalletModal()}
+        loading={isPending}
+      >
+        <Wallet size={15} /> Connect
+      </Button>
+    )
+  }
+
+  if (connectedWallets.length === 0) {
+    return (
+      <Button
+        size={compact ? 'sm' : 'md'}
+        variant="secondary"
+        onClick={() => openWalletModal()}
+        loading={isPending}
+      >
+        <Wallet size={15} /> Connect
+      </Button>
     )
   }
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex h-9 items-center gap-2 rounded-lg border border-line bg-ink-800 px-2.5 transition-colors hover:border-line-strong hover:bg-ink-700"
+        onClick={() => setMenuOpen((v) => !v)}
+        aria-label="Connected wallets"
+        title={connectedWallets.map((w) => `${w.label}: ${shortAddr(w.address, 4)}`).join(' · ')}
+        className="flex h-9 items-center rounded-full border border-line bg-ink-800 px-1.5 transition-colors hover:border-line-strong hover:bg-ink-700"
       >
-        {chain ? <ChainLogo chain={chain} size={18} /> : <StatusDot tone="red" />}
-        <span className="hidden text-[13px] text-t2 sm:inline">{chain?.short ?? `Chain ${chainId}`}</span>
-        <span className="mono text-[12px] text-t1">{shortAddr(address, 3)}</span>
-        <ChevronDown size={13} className="text-t3" />
+        <span className="flex items-center">
+          <span className="relative z-10 grid size-7 place-items-center overflow-hidden rounded-full border border-line-strong bg-ink-900 ring-2 ring-ink-800">
+            <EbtMark size={20} />
+          </span>
+          {connectedWallets.slice(0, 5).map((w, idx) => (
+            <span
+              key={w.key}
+              style={{ zIndex: 11 + idx }}
+              className="-ml-2 grid size-7 place-items-center overflow-hidden rounded-full border border-line-strong bg-ink-900 ring-2 ring-ink-800"
+            >
+              <WalletAvatar iconSrc={w.iconSrc} label={w.label} size={26} />
+            </span>
+          ))}
+          {connectedWallets.length > 5 && (
+            <span
+              style={{ zIndex: 20 }}
+              className="-ml-2 grid size-7 place-items-center rounded-full border border-line-strong bg-ink-700 text-[10px] font-semibold text-t1 ring-2 ring-ink-800"
+            >
+              +{connectedWallets.length - 5}
+            </span>
+          )}
+        </span>
       </button>
-      {open && (
+
+      {menuOpen && (
         <>
-          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
-          <div className="enter absolute right-0 top-[calc(100%+6px)] z-[70] w-64 overflow-hidden rounded-[10px] border border-line bg-ink-800 p-1.5">
-            <div className="px-2.5 py-2">
-              <div className="label">Connected</div>
-              <div className="mono mt-0.5 flex items-center gap-1 text-t1">
-                {shortAddr(address, 6)} <CopyButton value={address ?? ''} />
-              </div>
+          <div className="fixed inset-0 z-[60]" onClick={() => setMenuOpen(false)} />
+          <div className="enter absolute right-0 top-[calc(100%+8px)] z-[70] w-72 overflow-hidden rounded-[12px] border border-line-strong bg-ink-800 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.55)]">
+            <div className="flex items-center justify-between px-2.5 py-2">
+              <span className="label">Connected wallets</span>
+              <span className="mono text-[11px] text-t3">{connectedWallets.length}</span>
             </div>
             <div className="hairline my-1" />
-            <div className="label px-2.5 py-1.5">Switch network</div>
-            <div className="max-h-56 overflow-y-auto">
-              {['11155111', '84532', '1301', '421614', '11155420', '80002', '43113', '5042002', '91342'].map((id) => {
-                const c = getChain(Number(id))
-                if (!c) return null
-                return (
+
+            <div className="max-h-64 space-y-1 overflow-y-auto py-0.5">
+              {connectedWallets.map((w) => (
+                <div
+                  key={w.key}
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-ink-700/60"
+                >
+                  <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full border border-line-strong bg-ink-900">
+                    <WalletAvatar iconSrc={w.iconSrc} label={w.label} size={26} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-medium text-t1">{w.label}</div>
+                    <div className="mono flex items-center gap-1 text-[11px] text-t2">
+                      <span>{shortAddr(w.address, 5)}</span>
+                      <CopyButton value={w.address} />
+                    </div>
+                  </div>
                   <button
-                    key={id}
-                    onClick={() =>
-                      switchChain(
-                        { chainId: c.id },
-                        { onError: (e) => notify(e.message, 'error'), onSuccess: () => setOpen(false) },
-                      )
-                    }
-                    className={clsx(
-                      'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-ink-700',
-                      chainId === c.id ? 'text-accent' : 'text-t2',
-                    )}
+                    onClick={w.onDisconnect}
+                    title={`Disconnect ${w.label}`}
+                    aria-label={`Disconnect ${w.label}`}
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-t3 transition-colors hover:bg-[#ff8f8f]/15 hover:text-[#ffb4b4]"
                   >
-                    <ChainLogo chain={c} size={16} /> {c.name}
+                    <LogOut size={13} />
                   </button>
-                )
-              })}
+                </div>
+              ))}
             </div>
+
             <div className="hairline my-1" />
             <button
               onClick={() => {
-                disconnect()
-                setOpen(false)
+                setMenuOpen(false)
+                openWalletModal()
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#ffb4b4] transition-colors hover:bg-[#ff8f8f]/10"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-accent transition-colors hover:bg-accent/10"
             >
-              <LogOut size={14} /> Disconnect
+              <Plus size={14} /> Connect another wallet
             </button>
           </div>
         </>

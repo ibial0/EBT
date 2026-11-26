@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Copy, Plus, RefreshCw, Search, Wallet } from 'lucide-react'
+import { ChevronDown, Copy, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
 import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
-import { CHAINS, explorerAddress, getChain } from '../config/chains'
-import { Badge, Button, ChainLogo, CopyButton, Empty, Modal, Spinner, TokenIcon, notify, AllChainsMark } from '../components/ui'
-import { ConnectButton, PageHeader } from '../components/Layout'
+import { CHAINS, getChain } from '../config/chains'
+import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/networks'
+import { Badge, Button, ChainLogo, NetworkLogo, Empty, Modal, Spinner, TokenIcon, notify, AllChainsMark } from '../components/ui'
+import { ConnectButton } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { shortAddr, fmt } from '../lib/format'
 import { loadPortfolio, nativeHoldingLabel } from '../lib/portfolio'
+import { loadNonEvmPortfolio, type NonEvmChainHolding } from '../lib/nonEvmPortfolio'
+import { WALLET_FAMILIES, openWalletModal, useNonEvmWallets, type NonEvmFamily } from '../lib/walletsMulti'
 import { allTokensForChain, saveCustomToken, type TokenCfg } from '../config/tokens'
 import { readTokenMeta } from '../lib/tokenImport'
 import { loadPrices, priceOf, usd } from '../lib/prices'
@@ -19,7 +22,11 @@ type View = 'overview' | 'tokens' | 'recovery'
 type Range = '1D' | '1W' | '1M'
 
 interface Row {
-  chainId: number
+  networkKey: string
+  chainId: number | null
+  chainName: string
+  chainShort: string
+  network?: NetworkEntry
   symbol: string
   name: string
   amount: bigint | null
@@ -38,9 +45,22 @@ interface Group {
   rows: Row[]
 }
 
+function RowChainLogo({ row, size }: { row: Row; size: number }) {
+  if (row.chainId != null) {
+    const c = getChain(row.chainId)
+    return c ? <ChainLogo chain={c} size={size} /> : null
+  }
+  return row.network ? <NetworkLogo network={row.network} size={size} /> : null
+}
+
 export default function Portfolio() {
   const { address, isConnected } = useAccount()
-  const [network, setNetwork] = useState<number | 'all'>('all')
+  const nonEvmAccounts = useNonEvmWallets()
+  const nonEvmFamilies = (Object.keys(nonEvmAccounts) as NonEvmFamily[]).sort()
+  const hasNonEvm = nonEvmFamilies.length > 0
+  const anyConnected = Boolean((isConnected && address) || hasNonEvm)
+
+  const [network, setNetwork] = useState<string>('all')
   const [tab, setTab] = useState<View>('overview')
   const [range, setRange] = useState<Range>('1D')
   const [q, setQ] = useState('')
@@ -49,6 +69,7 @@ export default function Portfolio() {
   const [pickNetwork, setPickNetwork] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
   const [history, setHistory] = useState(loadHistory)
+  const [popupGroup, setPopupGroup] = useState<Group | null>(null)
 
   const portfolio = useQuery({
     queryKey: ['portfolio', address],
@@ -57,17 +78,30 @@ export default function Portfolio() {
     staleTime: 20_000,
     retry: 0,
   })
+  const nonEvmQuery = useQuery({
+    queryKey: ['non-evm-portfolio', nonEvmFamilies.map((f) => `${f}:${nonEvmAccounts[f]?.address ?? ''}`).join(',')],
+    queryFn: () => loadNonEvmPortfolio(nonEvmAccounts),
+    enabled: hasNonEvm,
+    staleTime: 20_000,
+    retry: 0,
+  })
   const prices = useQuery({ queryKey: ['prices'], queryFn: loadPrices, staleTime: 10 * 60_000, retry: 1 })
 
   const priceMap = prices.data?.prices ?? {}
   const holdings = portfolio.data ?? []
+  const nonEvmHoldings: NonEvmChainHolding[] = nonEvmQuery.data ?? []
 
   const rows: Row[] = useMemo(() => {
     const out: Row[] = []
     for (const chain of holdings) {
+      const c = getChain(chain.chainId)
       const nat = nativeHoldingLabel(chain.chainId)
+      const netKey = `eip155:${chain.chainId}`
       out.push({
+        networkKey: netKey,
         chainId: chain.chainId,
+        chainName: c?.name ?? String(chain.chainId),
+        chainShort: c?.short ?? String(chain.chainId),
         symbol: nat.symbol,
         name: nat.name,
         amount: chain.native,
@@ -79,7 +113,10 @@ export default function Portfolio() {
       })
       for (const t of chain.tokens) {
         out.push({
+          networkKey: netKey,
           chainId: chain.chainId,
+          chainName: c?.name ?? String(chain.chainId),
+          chainShort: c?.short ?? String(chain.chainId),
           symbol: t.token.symbol,
           name: t.token.name,
           amount: t.balance,
@@ -91,35 +128,86 @@ export default function Portfolio() {
         })
       }
     }
+
+    for (const h of nonEvmHoldings) {
+      const net = h.network
+      const natSym = net.nativeCurrency.symbol
+      const natDec = net.nativeCurrency.decimals
+      out.push({
+        networkKey: h.networkId,
+        chainId: null,
+        chainName: net.name,
+        chainShort: net.short,
+        network: net,
+        symbol: natSym,
+        name: net.nativeCurrency.name,
+        amount: h.native,
+        decimals: natDec,
+        address: null,
+        verified: true,
+        usdValue: valueOf(h.native, natDec, natSym, priceMap),
+        error: h.nativeError,
+      })
+      for (const t of h.tokens) {
+        out.push({
+          networkKey: h.networkId,
+          chainId: null,
+          chainName: net.name,
+          chainShort: net.short,
+          network: net,
+          symbol: t.symbol,
+          name: t.name,
+          amount: t.balance,
+          decimals: t.decimals,
+          address: t.address,
+          verified: t.verified,
+          usdValue: valueOf(t.balance, t.decimals, t.symbol, priceMap),
+          error: t.error,
+        })
+      }
+    }
     return out
-  }, [holdings, priceMap])
+  }, [holdings, nonEvmHoldings, priceMap])
 
   const networkTotals = useMemo(() => {
-    const m = new Map<number, { usd: number; count: number }>()
+    const m = new Map<string, { usd: number; count: number }>()
     for (const r of rows) {
-      const cur = m.get(r.chainId) ?? { usd: 0, count: 0 }
+      const cur = m.get(r.networkKey) ?? { usd: 0, count: 0 }
       cur.usd += r.usdValue ?? 0
       if ((r.amount ?? 0n) > 0n) cur.count += 1
-      m.set(r.chainId, cur)
+      m.set(r.networkKey, cur)
     }
     return m
   }, [rows])
 
   const nonZero = useMemo(() => rows.filter((r) => (r.amount ?? 0n) > 0n), [rows])
   /** only chains that actually hold something, so the header does not claim 31 funded networks */
-  const fundedNetworks = useMemo(() => new Set(nonZero.map((r) => r.chainId)).size, [nonZero])
-  const scoped = network === 'all' ? nonZero : nonZero.filter((r) => r.chainId === network)
+  const fundedNetworks = useMemo(() => new Set(nonZero.map((r) => r.networkKey)).size, [nonZero])
+  const scoped = network === 'all' ? nonZero : nonZero.filter((r) => r.networkKey === network)
   const scopedUsd = scoped.reduce((s, r) => s + (r.usdValue ?? 0), 0)
   const totalUsd = nonZero.reduce((s, r) => s + (r.usdValue ?? 0), 0)
   const unpriced = nonZero.filter((r) => r.usdValue == null).length
-  const selected = network === 'all' ? null : getChain(network)
+
+  const selectedChain = useMemo(
+    () => (network.startsWith('eip155:') ? getChain(Number(network.slice(7))) ?? null : null),
+    [network],
+  )
+  const selectedNonEvm = useMemo(
+    () => (!network.startsWith('eip155:') && network !== 'all' ? getNetwork(network) ?? null : null),
+    [network],
+  )
+
+  const initialLoading =
+    rows.length === 0 &&
+    ((Boolean(address) && portfolio.isLoading) || (hasNonEvm && nonEvmQuery.isLoading))
+  const isFetchingAny = portfolio.isFetching || nonEvmQuery.isFetching
 
   // one point per hour, written only when the value is actually known
   useEffect(() => {
-    if (!isConnected || portfolio.isLoading || portfolio.isError) return
+    if (!anyConnected || initialLoading) return
     if (totalUsd <= 0) return
     setHistory(recordSnapshot(totalUsd))
-  }, [isConnected, portfolio.isLoading, portfolio.isError, totalUsd])
+  }, [anyConnected, initialLoading, totalUsd])
 
   const groups: Group[] = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -141,24 +229,53 @@ export default function Portfolio() {
         (g) =>
           g.symbol.toLowerCase().includes(needle) ||
           g.name.toLowerCase().includes(needle) ||
-          g.rows.some((r) => getChain(r.chainId)?.name.toLowerCase().includes(needle)),
+          g.rows.some((r) => r.chainName.toLowerCase().includes(needle)),
       )
     }
-    for (const g of list) g.rows.sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0))
-    return list.sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0))
+    for (const g of list) g.rows.sort((a, b) => (b.usdValue ?? -1) - (a.usdValue ?? -1))
+    return list.sort((a, b) => (b.usd ?? -1) - (a.usd ?? -1) || b.amount - a.amount)
   }, [scoped, q])
 
-  const chartPoints = useMemo(() => sliceRange(history, range), [history, range])
-  const top = groups.slice(0, 6)
+  /** Source rows for the Tokens tab — includes zero-balance rows when showEmpty is on. */
+  const tokenRows = useMemo(
+    () => (showEmpty ? (network === 'all' ? rows : rows.filter((r) => r.networkKey === network)) : scoped),
+    [showEmpty, network, rows, scoped],
+  )
 
-  if (!isConnected) {
+  /** Groups for the Tokens tab (respects showEmpty; Overview always uses `groups`). */
+  const tokenGroups: Group[] = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    const bySymbol = new Map<string, Group>()
+    for (const r of tokenRows) {
+      const key = r.symbol.toUpperCase()
+      const g: Group =
+        bySymbol.get(key) ??
+        ({ symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)
+      g.rows.push(r)
+      if (r.usdValue != null) g.usd = (g.usd ?? 0) + r.usdValue
+      g.amount += r.amount == null ? 0 : Number(formatUnits(r.amount, r.decimals))
+      bySymbol.set(key, g)
+    }
+    let list = [...bySymbol.values()]
+    if (needle) {
+      list = list.filter(
+        (g) =>
+          g.symbol.toLowerCase().includes(needle) ||
+          g.name.toLowerCase().includes(needle) ||
+          g.rows.some((r) => r.chainName.toLowerCase().includes(needle)),
+      )
+    }
+    for (const g of list) g.rows.sort((a, b) => (b.usdValue ?? -1) - (a.usdValue ?? -1))
+    return list.sort((a, b) => (b.usd ?? -1) - (a.usd ?? -1) || b.amount - a.amount)
+  }, [tokenRows, q])
+
+  const chartPoints = useMemo(() => sliceRange(history, range), [history, range])
+  const top = groups.slice(0, 12)
+  const displayAddr = address ?? (nonEvmFamilies[0] ? nonEvmAccounts[nonEvmFamilies[0]]?.address : '') ?? ''
+
+  if (!anyConnected) {
     return (
-      <div className="space-y-5">
-        <PageHeader
-          eyebrow="Wallet view"
-          title="Portfolio"
-          subtitle="Every testnet balance for one wallet. Values are estimated from mainnet spot prices."
-        />
+      <div className="flex flex-1 flex-col justify-center">
         <div className="card">
           <Empty
             icon={<Wallet size={32} strokeWidth={1.25} />}
@@ -174,25 +291,28 @@ export default function Portfolio() {
   }
 
   return (
-    <div className="dash-2 flex-1">
+    <div className="dash-2 flex-1 lg:h-[calc(100dvh-7rem)] lg:flex-none">
       {/* ── left: value + chart ───────────────────────────── */}
-      <div className="card flex h-full flex-col p-6">
+      <div className="card flex h-full min-h-0 flex-col overflow-hidden p-6">
         <div className="flex items-center justify-between">
           <div className="col-head">Portfolio</div>
           <button
-            onClick={() => portfolio.refetch()}
+            onClick={() => {
+              if (address) portfolio.refetch()
+              if (hasNonEvm) nonEvmQuery.refetch()
+            }}
             title="Refresh balances"
             className="grid size-9 place-items-center rounded-full border border-line-strong bg-ink-850 text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
           >
-            <RefreshCw size={14} className={portfolio.isFetching ? 'spin' : undefined} />
+            <RefreshCw size={14} className={isFetchingAny ? 'spin' : undefined} />
           </button>
         </div>
 
-        <div className="figure mt-4 text-[48px] leading-[56px] font-bold tracking-[-0.035em] text-t1">
-          {portfolio.isLoading ? (
+        <div className="figure mt-4 text-[52px] leading-[60px] font-bold tracking-[-0.035em] text-t1">
+          {initialLoading ? (
             <span className="skeleton inline-block h-12 w-52 align-middle" />
           ) : (
-            usd(selected ? scopedUsd : totalUsd)
+            usd(network !== 'all' ? scopedUsd : totalUsd)
           )}
         </div>
 
@@ -225,85 +345,156 @@ export default function Portfolio() {
             onClick={() => setPickNetwork(true)}
             className="ml-auto flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-2.5 text-[12px] text-t1 transition-colors hover:border-[#3f4a66]"
           >
-            {selected ? <ChainLogo chain={selected} size={14} /> : <span className="size-1.5 rotate-45 border border-t3" />}
-            {selected ? selected.short : 'All networks'}
+            {selectedChain ? (
+              <ChainLogo chain={selectedChain} size={14} />
+            ) : selectedNonEvm ? (
+              <NetworkLogo network={selectedNonEvm} size={14} />
+            ) : (
+              <span className="size-1.5 rotate-45 border border-t3" />
+            )}
+            {selectedChain ? selectedChain.short : selectedNonEvm ? selectedNonEvm.short : 'All networks'}
             <ChevronDown size={12} className="text-t2" />
           </button>
         </div>
 
-        <div className="mt-4 flex min-h-[240px] flex-1 flex-col">
+        <div className="mt-4 flex min-h-[180px] flex-1 flex-col">
           <ValueChart points={chartPoints} />
         </div>
       </div>
 
-      {/* ── right: Overview | Tokens ──────────────────────── */}
+      {/* ── right: Overview | Tokens | Recovery ───────────────── */}
       <div className="card flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="flex items-center gap-1 border-b border-line-strong px-4">
+        {/* Full-width tab bar */}
+        <div className="grid grid-cols-3 border-b border-line-strong">
           {(['overview', 'tokens', 'recovery'] as View[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`relative -mb-px px-3 py-3 text-[14px] capitalize transition-colors ${
-                tab === t ? 'text-t1' : 'text-t2 hover:text-t1'
+              className={`relative flex items-center justify-center gap-2 px-3 py-3.5 text-[15px] font-semibold capitalize tracking-wide transition-all ${
+                tab === t
+                  ? 'bg-ink-700/40 text-t1'
+                  : 'text-t2 hover:bg-ink-700/20 hover:text-t1'
               }`}
             >
               {t}
-              {tab === t && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-accent" />}
+              {tab === t && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-accent" />}
             </button>
           ))}
-          {tab === 'tokens' && (
-            <span className="mono ml-auto text-[11px] uppercase tracking-[0.6px] text-t2">
-              {scoped.length} assets
-            </span>
-          )}
         </div>
 
-        {portfolio.isLoading && (
+        {initialLoading && (
           <div className="flex items-center gap-2 px-5 py-8 text-[13px] text-t2">
-            <Spinner /> Reading {CHAINS.length} chains
+            <Spinner /> Reading {CHAINS.length + nonEvmFamilies.length} chains
           </div>
         )}
-        {portfolio.isError && (
+        {portfolio.isError && !hasNonEvm && (
           <div className="px-5 py-6 text-[13px] text-neg">Portfolio failed: {(portfolio.error as Error).message}</div>
         )}
 
         {tab === 'recovery' ? (
-          <div className="p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
             <RecoveryPanel compact />
           </div>
         ) : tab === 'overview' ? (
           /* the ring strip: icon wrapped in its share of the portfolio */
-          <div className="grid grid-cols-2 gap-x-2 gap-y-5 p-5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-            {top.length === 0 && !portfolio.isLoading && (
+          <div className="grid flex-1 grid-cols-3 grid-rows-4 place-items-center px-4 py-3">
+            {top.length === 0 && !initialLoading && (
               <div className="col-span-full py-6 text-[13px] text-t2">No funded asset yet.</div>
             )}
-            {top.map((g) => {
-              const share = scopedUsd > 0 ? ((g.usd ?? 0) / scopedUsd) * 100 : 0
+            {Array.from({ length: 12 }).map((_, i) => {
+              const g = top[i]
+              if (!g) {
+                return (
+                  <div
+                    key={`empty-${i}`}
+                    aria-hidden="true"
+                    className="flex flex-col items-center gap-1.5 px-2 py-2 opacity-20"
+                  >
+                    <span className="grid size-[88px] place-items-center">
+                      <svg width="88" height="88" viewBox="0 0 88 88">
+                        <circle cx="44" cy="44" r="36" fill="none" stroke="rgba(171,184,255,0.22)" strokeWidth="2.5" strokeDasharray="4 6" />
+                      </svg>
+                    </span>
+                    <span className="display text-[13px] leading-5 text-t3">—</span>
+                  </div>
+                )
+              }
+              const basis = selectedChain || selectedNonEvm ? scopedUsd : totalUsd
+              const share = basis > 0 && g.usd != null ? (g.usd / basis) * 100 : 0
+              const first = g.rows[0]
               return (
                 <button
                   key={g.symbol}
-                  onClick={() => {
-                    setTab('tokens')
-                    setOpenGroups((prev) => new Set(prev).add(g.symbol.toUpperCase()))
+                  type="button"
+                  onClick={() => setPopupGroup(g)}
+                  className="group relative flex cursor-pointer flex-col items-center gap-1.5 rounded-xl px-2 py-2 transition-colors duration-200 hover:bg-ink-700/40 focus:outline-none"
+                  title={`${g.symbol} across ${g.rows.length} chain${g.rows.length > 1 ? 's' : ''}`}
+                  style={{
+                    animationDelay: `${i * 55}ms`,
                   }}
-                  className="group flex flex-col items-center gap-2 rounded-[10px] py-2 transition-colors hover:bg-ink-700/50"
                 >
-                  <RingIcon pct={share} symbol={g.symbol} chainId={g.rows[0].chainId} address={g.rows[0].address} verified={g.rows[0].verified} />
-                  <span className="display text-[15px] leading-5 text-t1">{g.usd == null ? '—' : usd(g.usd)}</span>
+                  {/* Token ring icon: float + gentle spin on hover via CSS animation */}
+                  <span className="relative block">
+                    <span
+                      className="block"
+                      style={{
+                        transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.transform =
+                          'scale(1.13) translateY(-3px) rotate(-3deg)'
+                      }}
+                      onMouseLeave={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.transform =
+                          'scale(1) translateY(0) rotate(0deg)'
+                      }}
+                    >
+                      <RingIcon
+                        pct={share}
+                        symbol={g.symbol}
+                        chainId={first.chainId ?? undefined}
+                        address={first.chainId != null ? first.address : null}
+                        verified={first.verified}
+                      />
+                    </span>
+                  </span>
+                  <span className="display text-[15px] leading-5 text-t1 transition-colors duration-200 group-hover:text-accent">
+                    {g.usd == null ? `${fmtAmount(g.amount)} ${g.symbol}` : usd(g.usd)}
+                  </span>
                   {g.rows.length > 1 ? (
                     <span className="flex items-center gap-0.5">
-                      {g.rows.slice(0, 3).map((r) => {
-                        const c = getChain(r.chainId)
-                        return c ? <ChainLogo key={r.chainId} chain={c} size={12} /> : null
-                      })}
+                      {g.rows.slice(0, 3).map((r, ri) => (
+                        <span
+                          key={r.networkKey}
+                          style={{
+                            transition: `transform 0.3s cubic-bezier(0.34,1.56,0.64,1) ${ri * 55}ms`,
+                          }}
+                          onMouseEnter={(e) => {
+                            ;(e.currentTarget as HTMLElement).style.transform = 'scale(1.25) translateY(-2px)'
+                          }}
+                          onMouseLeave={(e) => {
+                            ;(e.currentTarget as HTMLElement).style.transform = 'scale(1) translateY(0)'
+                          }}
+                        >
+                          <RowChainLogo row={r} size={13} />
+                        </span>
+                      ))}
                       {g.rows.length > 3 && <span className="mono text-[9px] text-t3">+{g.rows.length - 3}</span>}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1">
-                      {getChain(g.rows[0].chainId) && (
-                        <ChainLogo chain={getChain(g.rows[0].chainId)!} size={12} />
-                      )}
-                      <span className="mono text-[10px] text-t3">{g.symbol}</span>
+                      <span
+                        style={{ transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
+                        onMouseEnter={(e) => {
+                          ;(e.currentTarget as HTMLElement).style.transform = 'scale(1.25) translateY(-2px)'
+                        }}
+                        onMouseLeave={(e) => {
+                          ;(e.currentTarget as HTMLElement).style.transform = 'scale(1) translateY(0)'
+                        }}
+                      >
+                        <RowChainLogo row={first} size={13} />
+                      </span>
+                      <span className="mono text-[11px] text-t3">{g.symbol}</span>
                     </span>
                   )}
                 </button>
@@ -311,7 +502,7 @@ export default function Portfolio() {
             })}
           </div>
         ) : (
-          <div className="flex min-h-0 flex-col">
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
               <div className="field flex h-9 w-full max-w-[240px] items-center gap-2 px-2.5">
                 <Search size={14} className="text-t2" />
@@ -323,43 +514,49 @@ export default function Portfolio() {
                 />
               </div>
               <label className="flex cursor-pointer items-center gap-2 text-[12px] text-t2">
-                <input
-                  type="checkbox"
-                  checked={showEmpty}
-                  onChange={(e) => setShowEmpty(e.target.checked)}
-                  className="size-3.5 accent-[#abb8ff]"
-                />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showEmpty}
+                  onClick={() => setShowEmpty(!showEmpty)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${showEmpty ? 'bg-accent' : 'bg-ink-600'}`}
+                >
+                  <span className={`inline-block size-3.5 rounded-full bg-white shadow transition-transform duration-200 ${showEmpty ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                </button>
                 Empty
               </label>
-              <span className="mono ml-auto flex items-center gap-1 text-[11px] text-t3">
-                {shortAddr(address, 4)}
-                <button
-                  onClick={() => {
-                    navigator.clipboard?.writeText(address ?? '')
-                    notify('Address copied', 'success')
-                  }}
-                  className="hover:text-t1"
-                >
-                  <Copy size={11} />
-                </button>
-              </span>
+              {displayAddr && (
+                <span className="mono ml-auto flex items-center gap-1 text-[11px] text-t3">
+                  {shortAddr(displayAddr, 4)}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(displayAddr)
+                      notify('Address copied', 'success')
+                    }}
+                    className="hover:text-t1"
+                  >
+                    <Copy size={11} />
+                  </button>
+                </span>
+              )}
             </div>
 
-            <div className="flex max-h-[560px] overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <div className="min-w-0 flex-1">
-                {groups.length === 0 && (
+                {tokenGroups.length === 0 && (
                   <div className="px-5 py-8 text-[13px] text-t2">
                     {showEmpty ? 'Nothing matches this filter.' : 'No funded asset. Turn on empty to see every chain.'}
                   </div>
                 )}
-                {groups.map((g) => {
+                {tokenGroups.map((g) => {
                   const open = openGroups.has(g.symbol.toUpperCase())
                   const multi = g.rows.length > 1
                   const first = g.rows[0]
-                  const firstChain = getChain(first.chainId)
                   return (
                     <div key={g.symbol} className="border-b border-line last:border-0">
                       <button
+                        type="button"
+                        aria-expanded={multi ? open : undefined}
                         onClick={() =>
                           multi &&
                           setOpenGroups((prev) => {
@@ -370,82 +567,104 @@ export default function Portfolio() {
                             return next
                           })
                         }
-                        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        className={`flex w-full items-center gap-3 px-4 py-4 text-left transition-colors ${
                           multi ? 'hover:bg-ink-700/60' : 'cursor-default'
                         }`}
                       >
                         <span className="relative shrink-0">
                           <TokenIcon
                             symbol={g.symbol}
-                            size={34}
-                            chainId={first.chainId}
-                            address={first.address ?? undefined}
+                            size={42}
+                            chainId={first.chainId ?? undefined}
+                            address={first.chainId != null ? (first.address ?? undefined) : undefined}
                             verified={first.verified}
                           />
-                          {!multi && firstChain && (
+                          {!multi && (
                             <span className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-ink-800">
-                              <ChainLogo chain={firstChain} size={14} />
+                              <RowChainLogo row={first} size={16} />
                             </span>
                           )}
                         </span>
                         {multi && (
                           <span className="flex shrink-0 items-center gap-0.5">
-                            {g.rows.slice(0, 3).map((r) => {
-                              const c = getChain(r.chainId)
-                              return c ? <ChainLogo key={r.chainId} chain={c} size={13} /> : null
-                            })}
-                            {g.rows.length > 3 && <span className="mono text-[10px] text-t3">+{g.rows.length - 3}</span>}
+                            {g.rows.slice(0, 3).map((r) => (
+                              <RowChainLogo key={r.networkKey} row={r} size={14} />
+                            ))}
+                            {g.rows.length > 3 && <span className="mono text-[11px] text-t3">+{g.rows.length - 3}</span>}
                           </span>
                         )}
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[14px] font-semibold text-t1">{g.symbol}</span>
+                          <span className="block truncate text-[15px] font-semibold text-t1">{g.symbol}</span>
                           {!multi && (
-                            <span className="block truncate text-[12px] leading-4 text-t2">
-                              {firstChain?.name ?? g.name}
+                            <span className="block truncate text-[13px] leading-5 text-t2">
+                              {first.chainName}
                             </span>
                           )}
                         </span>
-                        <span className="shrink-0 text-right">
-                          <span className="display block text-[15px] leading-5 text-t1">
-                            {g.usd == null ? '—' : usd(g.usd)}
+                        <span className="flex shrink-0 items-center gap-2.5">
+                          <span className="text-right">
+                            <span className="display block text-[16px] leading-5 text-t1">
+                              {g.usd == null ? '—' : usd(g.usd)}
+                            </span>
+                            <span className="mono block text-[13px] leading-5 text-t2">
+                              {g.amount > 0 ? `${fmtAmount(g.amount)} ${g.symbol}` : '—'}
+                            </span>
                           </span>
-                          <span className="mono block text-[12px] leading-4 text-t2">
-                            {g.amount > 0 ? `${fmtAmount(g.amount)} ${g.symbol}` : '—'}
-                          </span>
+                          {multi ? (
+                            <ChevronDown
+                              size={15}
+                              className="accordion-chevron shrink-0 text-t3"
+                              data-open={open ? 'true' : 'false'}
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <span className="w-[15px] shrink-0" aria-hidden="true" />
+                          )}
                         </span>
-                        {multi && (
-                          <ChevronDown size={14} className={`shrink-0 text-t2 transition-transform ${open ? 'rotate-180' : ''}`} />
-                        )}
                       </button>
 
-                      {multi && open && (
-                        <div className="pb-2 pl-[3.7rem] pr-4">
-                          {g.rows.map((r) => {
-                            const c = getChain(r.chainId)
-                            const amt = r.amount == null ? null : Number(formatUnits(r.amount, r.decimals))
-                            return (
-                              <div key={`${r.chainId}-${r.address ?? 'native'}`} className="flex items-center gap-2.5 py-1.5">
-                                <span className="relative shrink-0">
-                                  <TokenIcon symbol={r.symbol} size={22} chainId={r.chainId} address={r.address ?? undefined} verified={r.verified} />
-                                  {c && (
-                                    <span className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-ink-800">
-                                      <ChainLogo chain={c} size={11} />
+                      {multi && (
+                        <div
+                          className="accordion-grid"
+                          data-open={open ? 'true' : 'false'}
+                          aria-hidden={!open}
+                          ref={(el) => {
+                            if (el) el.inert = !open
+                          }}
+                        >
+                          <div className="accordion-track">
+                            <div className="accordion-content pb-2 pl-[4.5rem] pr-4">
+                              {g.rows.map((r) => {
+                                const amt = r.amount == null ? null : Number(formatUnits(r.amount, r.decimals))
+                                return (
+                                  <div key={`${r.networkKey}-${r.address ?? 'native'}`} className="flex items-center gap-3 py-2">
+                                    <span className="relative shrink-0">
+                                      <TokenIcon
+                                        symbol={r.symbol}
+                                        size={28}
+                                        chainId={r.chainId ?? undefined}
+                                        address={r.chainId != null ? (r.address ?? undefined) : undefined}
+                                        verified={r.verified}
+                                      />
+                                      <span className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-ink-800">
+                                        <RowChainLogo row={r} size={12} />
+                                      </span>
                                     </span>
-                                  )}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-[12px] text-t1">{r.symbol}</span>
-                                  <span className="block truncate text-[11px] leading-3 text-t3">{c?.name ?? r.chainId}</span>
-                                </span>
-                                <span className="mono shrink-0 text-right text-[12px] text-t1">
-                                  {r.usdValue == null ? '—' : usd(r.usdValue)}
-                                </span>
-                                <span className="mono w-24 shrink-0 text-right text-[11px] text-t2">
-                                  {amt == null ? '—' : fmtAmount(amt)}
-                                </span>
-                              </div>
-                            )
-                          })}
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate text-[13px] text-t1">{r.symbol}</span>
+                                      <span className="block truncate text-[12px] leading-4 text-t3">{r.chainName}</span>
+                                    </span>
+                                    <span className="mono shrink-0 text-right text-[13px] text-t1">
+                                      {r.usdValue == null ? '—' : usd(r.usdValue)}
+                                    </span>
+                                    <span className="mono w-28 shrink-0 text-right text-[12px] text-t2">
+                                      {amt == null ? '—' : fmtAmount(amt)}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -455,19 +674,16 @@ export default function Portfolio() {
 
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-2.5">
-              <button
-                onClick={() => setImportFor(network === 'all' ? 11155111 : network)}
-                className="inline-flex items-center gap-1.5 text-[12px] text-t2 transition-colors hover:text-t1"
-              >
-                <Plus size={12} /> Import an ERC-20
-              </button>
-              <span className="mono ml-auto text-[11px] text-t3">
-                {prices.data?.at
-                  ? `prices ${new Date(prices.data.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · DefiLlama`
-                  : ''}
-              </span>
-            </div>
+            {isConnected && (
+              <div className="mt-auto flex items-center border-t border-line px-4 py-2.5">
+                <button
+                  onClick={() => setImportFor(selectedChain ? selectedChain.id : 11155111)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-line-strong bg-ink-850 px-3 py-1.5 text-[12px] text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
+                >
+                  <Plus size={14} /> Import ERC-20
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -478,17 +694,108 @@ export default function Portfolio() {
         value={network}
         onSelect={setNetwork}
         totals={networkTotals}
+        connectedFamilies={new Set(nonEvmFamilies)}
+        onRequireWallet={(net) => {
+          setPickNetwork(false)
+          if (net.walletFamily === 'evm') return
+          const fam = net.walletFamily
+          openWalletModal({
+            focusFamily: fam,
+            networkName: net.name,
+            reason: `Connect a ${WALLET_FAMILIES[fam].label} wallet to view your ${net.name} assets.`,
+            onConnected: () => setNetwork(net.id),
+          })
+        }}
       />
 
       {importFor != null && (
         <ImportToken chainId={importFor} onClose={() => setImportFor(null)} onDone={() => portfolio.refetch()} />
       )}
+
+      {/* Overview token detail popup */}
+      {popupGroup != null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+          onClick={() => setPopupGroup(null)}
+          style={{ animation: 'popupBgIn 220ms ease-out both', background: 'rgba(0,0,0,0.6)' }}
+        >
+          <div
+            className="relative mx-4 w-full max-w-sm rounded-2xl border border-line-strong bg-ink-850 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '70vh', display: 'flex', flexDirection: 'column', animation: 'popupCardIn 280ms cubic-bezier(0.34,1.56,0.64,1) both' }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+              <TokenIcon
+                symbol={popupGroup.symbol}
+                size={36}
+                chainId={popupGroup.rows[0].chainId ?? undefined}
+                address={popupGroup.rows[0].chainId != null ? (popupGroup.rows[0].address ?? undefined) : undefined}
+                verified={popupGroup.rows[0].verified}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[17px] font-semibold text-t1">{popupGroup.symbol}</p>
+                <p className="text-[13px] text-t2">{popupGroup.rows.length} chain{popupGroup.rows.length > 1 ? 's' : ''}</p>
+              </div>
+              <button
+                onClick={() => setPopupGroup(null)}
+                className="rounded-lg p-1.5 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {/* Body */}
+            <div className="overflow-y-auto px-2 py-2">
+              {popupGroup.rows
+                .slice()
+                .sort((a, b) => {
+                  const av = a.amount == null ? -1 : Number(formatUnits(a.amount, a.decimals))
+                  const bv = b.amount == null ? -1 : Number(formatUnits(b.amount, b.decimals))
+                  return bv - av
+                })
+                .map((r) => {
+                  const amt = r.amount == null ? null : Number(formatUnits(r.amount, r.decimals))
+                  return (
+                    <div
+                      key={`${r.networkKey}-${r.address ?? 'native'}`}
+                      className="flex items-center gap-4 rounded-xl px-3 py-3 transition-colors hover:bg-ink-700/50"
+                    >
+                      {/* Left: token icon + chain logo below */}
+                      <span className="relative shrink-0">
+                        <TokenIcon
+                          symbol={r.symbol}
+                          size={40}
+                          chainId={r.chainId ?? undefined}
+                          address={r.chainId != null ? (r.address ?? undefined) : undefined}
+                          verified={r.verified}
+                        />
+                        <span className="absolute -bottom-1 -left-1 rounded-full ring-2 ring-ink-850">
+                          <RowChainLogo row={r} size={14} />
+                        </span>
+                      </span>
+                      {/* Chain name */}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium text-t1">{r.chainShort}</span>
+                        <span className="block truncate text-[12px] text-t3">{r.chainName}</span>
+                      </span>
+                      {/* Amount only — no USD */}
+                      <span className="mono shrink-0 text-right">
+                        <span className="block text-[15px] font-semibold text-t1">
+                          {amt == null ? '—' : fmtAmount(amt)}
+                        </span>
+                        <span className="block text-[12px] text-t3">{r.symbol}</span>
+                      </span>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-
-const assets = (n: number) => `${n} asset${n === 1 ? '' : 's'}`
 
 function fmtAmount(n: number): string {
   if (n >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 2 })
@@ -513,31 +820,59 @@ function RingIcon({
 }: {
   pct: number
   symbol: string
-  chainId: number
+  chainId?: number
   address: string | null
   verified: boolean
+  parentHovered?: boolean
 }) {
-  const r = 26
-  const c = 2 * Math.PI * r
+  const r = 36
+  const circumference = 2 * Math.PI * r
   const clamped = Math.max(0, Math.min(100, pct))
+  const [animKey, setAnimKey] = useState(0)
+  const [displayPct, setDisplayPct] = useState(0)
+
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setDisplayPct(clamped))
+    return () => cancelAnimationFrame(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleMouseEnter() {
+    setAnimKey((k) => k + 1)
+    setDisplayPct(0)
+    requestAnimationFrame(() => requestAnimationFrame(() => setDisplayPct(clamped)))
+  }
+
+  const offset = circumference - (circumference * displayPct) / 100
+
   return (
-    <span className="relative grid size-[64px] place-items-center">
-      <svg width="64" height="64" viewBox="0 0 64 64" className="absolute -rotate-90">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(171,184,255,0.13)" strokeWidth="3" />
+    <span
+      className="relative grid size-[88px] place-items-center"
+      onMouseEnter={handleMouseEnter}
+    >
+      <svg width="88" height="88" viewBox="0 0 88 88" className="absolute -rotate-90">
+        <circle cx="44" cy="44" r={r} fill="none" stroke="rgba(171,184,255,0.13)" strokeWidth="3" />
         <circle
-          cx="32"
-          cy="32"
+          key={animKey}
+          cx="44"
+          cy="44"
           r={r}
           fill="none"
           stroke="var(--color-accent)"
           strokeWidth="3"
           strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c - (c * clamped) / 100}
-          style={{ transition: 'stroke-dashoffset 700ms cubic-bezier(0.22,1,0.36,1)' }}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: animKey === 0 ? 'stroke-dashoffset 900ms cubic-bezier(0.22,1,0.36,1)' : 'stroke-dashoffset 800ms cubic-bezier(0.22,1,0.36,1)' }}
         />
       </svg>
-      <TokenIcon symbol={symbol} size={38} chainId={chainId} address={address ?? undefined} verified={verified} />
+      <span
+        className="inline-flex shrink-0 items-center justify-center rounded-full"
+        style={{
+          transition: 'box-shadow 300ms ease-out',
+        }}
+      >
+        <TokenIcon symbol={symbol} size={52} chainId={chainId} address={address ?? undefined} verified={verified} />
+      </span>
     </span>
   )
 }
@@ -545,14 +880,13 @@ function RingIcon({
 /** Value over time. Every point is a real snapshot this browser recorded — nothing is invented. */
 function ValueChart({ points }: { points: { t: number; v: number }[] }) {
   const W = 900
-  const H = 300
+  const H = 220
   const padX = 2
   const padY = 10
 
-  // nothing recorded yet: there is no honest series to draw, so say so instead of drawing
   if (points.length === 0) {
     return (
-      <div className="grid h-full w-full min-h-[240px] place-items-center rounded-[12px] border border-dashed border-line">
+      <div className="grid h-full w-full min-h-[180px] place-items-center rounded-[12px] border border-dashed border-line">
         <p className="max-w-[46ch] px-6 text-center text-[12px] leading-5 text-t2">
           No reading yet. One value is recorded per hour while the app is open, and the chart is drawn only from
           those readings.
@@ -577,21 +911,61 @@ function ValueChart({ points }: { points: { t: number; v: number }[] }) {
   const t1 = series[series.length - 1].t
   const tSpan = t1 - t0 || 1
 
-  const xy = series.map((p, i) => ({
-    x: padX + (series.length === 1 ? 0 : ((p.t - t0) / tSpan) * (W - padX * 2)),
+  const xy = series.map((p) => ({
+    x: padX + ((p.t - t0) / tSpan) * (W - padX * 2),
     y: H - padY - ((p.v - min) / span) * (H - padY * 2),
-    i,
   }))
 
-  // smooth path through the points (midpoint quadratics — no overshoot below the data)
-  let line = `M${xy[0].x.toFixed(1)},${xy[0].y.toFixed(1)}`
-  for (let i = 1; i < xy.length; i++) {
-    const prev = xy[i - 1]
-    const cur = xy[i]
-    const mx = (prev.x + cur.x) / 2
-    line += ` Q${prev.x.toFixed(1)},${prev.y.toFixed(1)} ${mx.toFixed(1)},${((prev.y + cur.y) / 2).toFixed(1)}`
-    line += ` Q${cur.x.toFixed(1)},${cur.y.toFixed(1)} ${cur.x.toFixed(1)},${cur.y.toFixed(1)}`
+  let line: string
+  if (xy.length <= 2) {
+    line = `M${xy[0].x.toFixed(1)},${xy[0].y.toFixed(1)} L${xy[xy.length - 1].x.toFixed(1)},${xy[xy.length - 1].y.toFixed(1)}`
+  } else {
+    const n = xy.length
+    const dx: number[] = []
+    const dy: number[] = []
+    const m: number[] = []
+    for (let i = 0; i < n - 1; i++) {
+      dx.push(xy[i + 1].x - xy[i].x)
+      dy.push(xy[i + 1].y - xy[i].y)
+      m.push(dy[i] / (dx[i] || 1))
+    }
+    const tans = new Array(n).fill(0)
+    tans[0] = m[0]
+    tans[n - 1] = m[n - 2]
+    for (let i = 1; i < n - 1; i++) {
+      if (m[i - 1] * m[i] <= 0) {
+        tans[i] = 0
+      } else {
+        tans[i] = (m[i - 1] + m[i]) / 2
+      }
+    }
+    for (let i = 0; i < n - 1; i++) {
+      if (Math.abs(m[i]) < 1e-10) {
+        tans[i] = 0
+        tans[i + 1] = 0
+      } else {
+        const a = tans[i] / m[i]
+        const b = tans[i + 1] / m[i]
+        const s = a * a + b * b
+        if (s > 9) {
+          const t = 3 / Math.sqrt(s)
+          tans[i] = t * a * m[i]
+          tans[i + 1] = t * b * m[i]
+        }
+      }
+    }
+
+    line = `M${xy[0].x.toFixed(1)},${xy[0].y.toFixed(1)}`
+    for (let i = 0; i < n - 1; i++) {
+      const d = dx[i] / 3
+      const cp1x = xy[i].x + d
+      const cp1y = xy[i].y + tans[i] * d
+      const cp2x = xy[i + 1].x - d
+      const cp2y = xy[i + 1].y - tans[i + 1] * d
+      line += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${xy[i + 1].x.toFixed(1)},${xy[i + 1].y.toFixed(1)}`
+    }
   }
+
   const last = xy[xy.length - 1]
   const area = `${line} L${last.x.toFixed(1)},${H} L${xy[0].x.toFixed(1)},${H} Z`
 
@@ -637,18 +1011,24 @@ function ValueChart({ points }: { points: { t: number; v: number }[] }) {
   )
 }
 
+const PORTFOLIO_CORE_EVM_IDS = new Set([11155111, 84532, 421614, 11155420, 1301, 43113, 80002])
+
 function NetworkPicker({
   open,
   onClose,
   value,
   onSelect,
   totals,
+  connectedFamilies,
+  onRequireWallet,
 }: {
   open: boolean
   onClose: () => void
-  value: number | 'all'
-  onSelect: (v: number | 'all') => void
-  totals: Map<number, { usd: number; count: number }>
+  value: string
+  onSelect: (v: string) => void
+  totals: Map<string, { usd: number; count: number }>
+  connectedFamilies: Set<NonEvmFamily>
+  onRequireWallet: (net: NetworkEntry) => void
 }) {
   const [q, setQ] = useState('')
   useEffect(() => {
@@ -656,11 +1036,83 @@ function NetworkPicker({
   }, [open])
   if (!open) return null
   const needle = q.trim().toLowerCase()
-  const list = needle ? CHAINS.filter((c) => `${c.name} ${c.short} ${c.id}`.toLowerCase().includes(needle)) : CHAINS
-  const pick = (v: number | 'all') => {
+  const evmMatch = (c: (typeof CHAINS)[number]) =>
+    !needle || `${c.name} ${c.short} ${c.id}`.toLowerCase().includes(needle)
+  const extraMatch = (n: NetworkEntry) =>
+    !needle || `${n.name} ${n.short} ${n.family} ${n.nativeCurrency.symbol}`.toLowerCase().includes(needle)
+
+  const coreEvm = CHAINS.filter((c) => PORTFOLIO_CORE_EVM_IDS.has(c.id) && evmMatch(c))
+  const restEvm = CHAINS.filter((c) => !PORTFOLIO_CORE_EVM_IDS.has(c.id) && evmMatch(c))
+  const matchingNonEvm = NON_EVM_NETWORKS.filter(extraMatch)
+  const connectedExtras = matchingNonEvm.filter(
+    (n) => n.walletFamily !== 'evm' && connectedFamilies.has(n.walletFamily),
+  )
+  const unconnectedExtras = matchingNonEvm.filter(
+    (n) => n.walletFamily !== 'evm' && !connectedFamilies.has(n.walletFamily),
+  )
+
+  const pick = (v: string) => {
     onSelect(v)
     onClose()
   }
+
+  const renderNonEvmRow = (n: NetworkEntry) => {
+    const connected = n.walletFamily === 'evm' || connectedFamilies.has(n.walletFamily)
+    const t = totals.get(n.id)
+    return (
+      <button
+        key={n.id}
+        onClick={() => {
+          if (!connected) {
+            onRequireWallet(n)
+            return
+          }
+          pick(n.id)
+        }}
+        className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors ${
+          value === n.id ? 'bg-ink-600' : 'hover:bg-ink-700'
+        }`}
+      >
+        <NetworkLogo network={n} size={30} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px] font-medium text-t1">{n.name}</span>
+          <span className="mono block text-[11px] text-t3">{n.nativeCurrency.symbol}</span>
+        </span>
+        {connected ? (
+          <span className="mono shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
+        ) : (
+          <span className="rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-warn">
+            Connect
+          </span>
+        )}
+      </button>
+    )
+  }
+
+  const renderEvmRow = (c: (typeof CHAINS)[number]) => {
+    const k = `eip155:${c.id}`
+    const t = totals.get(k)
+    return (
+      <button
+        key={c.id}
+        onClick={() => pick(k)}
+        className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors ${
+          value === k ? 'bg-ink-600' : 'hover:bg-ink-700'
+        }`}
+      >
+        <ChainLogo chain={c} size={30} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px] font-medium text-t1">{c.name}</span>
+          <span className="mono block text-[11px] text-t3">{c.id}</span>
+        </span>
+        <span className="mono shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
+      </button>
+    )
+  }
+
+  const hasAny =
+    coreEvm.length > 0 || connectedExtras.length > 0 || unconnectedExtras.length > 0 || restEvm.length > 0
+
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 px-3 backdrop-blur-[2px]">
       <div className="absolute inset-0" onClick={onClose} />
@@ -682,7 +1134,7 @@ function NetworkPicker({
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search chains"
+              placeholder="Search chains (Sepolia, Solana, Sui, Aptos…)"
               className="input text-[14px]"
             />
           </div>
@@ -698,26 +1150,13 @@ function NetworkPicker({
             <span className="flex-1 text-[14px] text-t1">All chains</span>
             <span className="mono text-[12px] text-t2">{totals.size}</span>
           </button>
-          {list.map((c) => {
-            const t = totals.get(c.id)
-            return (
-              <button
-                key={c.id}
-                onClick={() => pick(c.id)}
-                className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors ${
-                  value === c.id ? 'bg-ink-600' : 'hover:bg-ink-700'
-                }`}
-              >
-                <ChainLogo chain={c} size={30} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-medium text-t1">{c.name}</span>
-                  <span className="mono block text-[11px] text-t3">{c.id}</span>
-                </span>
-                <span className="mono shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
-              </button>
-            )
-          })}
-          {list.length === 0 && <div className="px-4 py-10 text-center text-[13px] text-t2">No chain matches “{q}”.</div>}
+          {coreEvm.map(renderEvmRow)}
+          {connectedExtras.map(renderNonEvmRow)}
+          {unconnectedExtras.map(renderNonEvmRow)}
+          {restEvm.map(renderEvmRow)}
+          {!hasAny && (
+            <div className="px-4 py-10 text-center text-[13px] text-t2">No chain matches “{q}”.</div>
+          )}
         </div>
       </div>
     </div>

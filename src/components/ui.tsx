@@ -4,6 +4,7 @@ import { Check, Copy, Loader2, X } from 'lucide-react'
 import { copy as doCopy } from '../lib/format'
 import { getChain, type ChainCfg } from '../config/chains'
 import { chainLogoById, chainLogoFile, tokenLogoFile } from '../config/logos'
+import type { NetworkEntry } from '../config/networks'
 
 /* ───────────────────────── toast ───────────────────────── */
 
@@ -78,22 +79,14 @@ export function Toaster() {
  */
 export function EbtMark({ size = 40, className }: { size?: number; className?: string }) {
   return (
-    <svg
+    <img
+      src="/ebt-logo.png"
       width={size}
       height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      aria-hidden="true"
-      className={clsx('shrink-0', className)}
-    >
-      <path
-        d="M32 13.62 L50.38 32 L32 50.38 L13.62 32 Z"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinejoin="round"
-      />
-      <path d="M24 25h16M27 32h10M24 39h16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
+      alt="EBT"
+      className={clsx('shrink-0 select-none object-contain', className)}
+      style={{ width: size, height: size }}
+    />
   )
 }
 
@@ -197,7 +190,8 @@ function initials(name: string) {
 }
 
 function LogoShell({ src, size, label }: { src?: string; size: number; label: string }) {
-  const [broken, setBroken] = useState(false)
+  const [brokenFor, setBrokenFor] = useState<string | null>(null)
+  const broken = brokenFor != null && brokenFor === src
   if (!src || broken) {
     return (
       <span
@@ -217,8 +211,8 @@ function LogoShell({ src, size, label }: { src?: string; size: number; label: st
       height={size}
       loading="lazy"
       decoding="async"
-      onError={() => setBroken(true)}
-      className="shrink-0 rounded-full object-contain ring-1 ring-white/10"
+      onError={() => setBrokenFor(src)}
+      className="shrink-0 rounded-full object-cover ring-1 ring-white/10"
       style={{ width: size, height: size }}
       aria-hidden
     />
@@ -261,6 +255,17 @@ export function AllChainsMark({ size = 18 }: { size?: number }) {
 export function ChainLogo({ chain, size = 24 }: { chain: ChainCfg; size?: number }) {
   const file = chainLogoFile(chain.key, chain.id)
   return <LogoShell src={file ? `/logos/chains/${file}` : undefined} size={size} label={chain.short} />
+}
+
+export function NetworkLogo({
+  network,
+  size = 24,
+}: {
+  network: Pick<NetworkEntry, 'logoFile' | 'key' | 'evmChainId' | 'short'>
+  size?: number
+}) {
+  const file = network.logoFile ?? chainLogoFile(network.key, network.evmChainId)
+  return <LogoShell src={file ? `/logos/chains/${file}` : undefined} size={size} label={network.short} />
 }
 
 /**
