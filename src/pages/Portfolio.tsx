@@ -1019,8 +1019,10 @@ function ValueChart({
 }) {
   const W = 900
   const H = 220
-  const padX = 2
-  const padY = 14
+  // Breathing room on all four sides: a spike must never touch the frame, and the newest
+  // point keeps a clear gap from the right border instead of sitting in the corner.
+  const padX = 24
+  const padY = 32
 
   const span = range === '1D' ? 24 * 3600_000 : range === '1W' ? 7 * 24 * 3600_000 : 30 * 24 * 3600_000
   const now = Date.now()
@@ -1051,9 +1053,32 @@ function ValueChart({
   const rawMin = Math.min(...vs)
   const rawMax = Math.max(...vs)
   const flat = rawMax - rawMin < Math.max(rawMax * 0.0005, 0.01)
-  const pad = flat ? Math.max(rawMax * 0.02, 0.5) : (rawMax - rawMin) * 0.18
-  const min = rawMin - pad
-  const max = rawMax + pad
+
+  /**
+   * A generous, rounded domain. Exact min/max makes a single spike glue the line to the
+   * frame, so the window is widened by ~25% and snapped to a 1/2/2.5/5 step: the spike
+   * keeps its true height, but sits comfortably inside the plot instead of in the corner.
+   */
+  const niceStep = (raw: number) => {
+    if (!Number.isFinite(raw) || raw <= 0) return 1
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)))
+    const n = raw / mag
+    const mult = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10
+    return mult * mag
+  }
+
+  const span0 = rawMax - rawMin
+  const margin = flat
+    ? Math.max(rawMax * 0.04, 0.5)
+    : Math.max(span0 * 0.28, rawMax * 0.05, 0.5)
+  let lo = rawMin - margin
+  let hi = rawMax + margin
+  const step = niceStep((hi - lo) / 4)
+  lo = Math.floor(lo / step) * step
+  hi = Math.ceil(hi / step) * step
+  if (lo < 0 && rawMin >= 0) lo = 0
+  const min = lo
+  const max = hi
   const ySpan = max - min || 1
 
   const xy = series.map((p) => ({
@@ -1167,7 +1192,17 @@ function ValueChart({
           d={line}
           fill="none"
           stroke="var(--color-accent)"
-          strokeWidth="2"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.16"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={line}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
