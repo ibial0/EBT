@@ -13,7 +13,10 @@
  *   ERC-20 L1GatewayRouter.outboundTransfer{value: submission + gas*fee}(token, ...)
  *          one approval plus one deposit.
  *
- * Withdrawals take the 7-day challenge period and are not offered.
+ * Withdrawals are offered for every entry that has an `outbox`: the rollup's outbox on the parent
+ * chain releases the value once the assertion carrying the message is confirmed (minutes on these
+ * testnets, 7 days on mainnet Arbitrum). Outbox addresses are read from `rollup.outbox()` and
+ * checked for code, so the panel can build a real proof for each chain.
  */
 import type { Address } from './chains'
 
@@ -122,6 +125,7 @@ export const ORBIT_BRIDGES: Record<number, OrbitBridgeCfg> = {
     rollup: '0x2A419230ACA266F4BCddE349936871C6e622529d',
     inbox: '0xb0579056c22aD1fF85a1288f82089B1205447613',
     bridge: '0xD522DC770E2452375AfceD3c3ec96eb784c75570',
+    outbox: '0xDE290348c15283a812E393DE59EC178Bb7D65de9',
     l1GatewayRouter: '0x6E5d41f9a8aA672938f719cC6562676808f9bf60',
     l1Erc20Gateway: '0xe557F0db287eD44f11630dCA4aDf850660f0B38E',
     source: 'https://portal-data.arbitrum.io/__auto-generated-orbitChains.json',
@@ -134,6 +138,7 @@ export const ORBIT_BRIDGES: Record<number, OrbitBridgeCfg> = {
     rollup: '0x537F6A3606cb000aE568005bebAF8bd1Ea2DE3b6',
     inbox: '0xAAD45a7bF65b43E56767CdE3Ab84A5433c714Afc',
     bridge: '0x1DDe0F57E7889B6866505634E58E3057b01dfed0',
+    outbox: '0x781Fc2C8EAeA5DFBa4E40A2487187C70703BD92C',
     l1GatewayRouter: '0x8deBBE23AAE151C49609A46ad2b14590e3692F21',
     l1Erc20Gateway: '0x15C7018696e1bDc392C252a28E0accD429D85b3E',
     l1WethGateway: '0xbB0c4391ACBA1e218feE5aD156fA661eBff5545B',
@@ -148,6 +153,7 @@ export const ORBIT_BRIDGES: Record<number, OrbitBridgeCfg> = {
     rollup: '0xb4d897FFc6b163414C36A470E5c3B9AE8a4e784E',
     inbox: '0x574DB42697C40492ED620441AA5Ca633E06d1B47',
     bridge: '0x53A868f525D27F1c5De0fd983a7672A501C54853',
+    outbox: '0x9988C5F8e1d59759Cd147F71292C10e64701a87C',
     l1GatewayRouter: '0x779922999bFD660e1A4997E2774b472Fbeb6a9D4',
     l1Erc20Gateway: '0xD0e209e57709C34Bba9AF68F515bb0d17fdD6E5E',
     source: 'https://portal-data.arbitrum.io/__auto-generated-orbitChains.json',
@@ -160,6 +166,7 @@ export const ORBIT_BRIDGES: Record<number, OrbitBridgeCfg> = {
     rollup: '0xdc57101751220C05f401b9C7982B183A11B7D173',
     inbox: '0xb78614a722431f15F47bCd873e48A5B1cf9983b1',
     bridge: '0xAA8bb4E9851735E07Fe6ccb29d61def136Cce3E9',
+    outbox: '0xB711935AB91E8d3c3cD3bf913d8D54896397AA5a',
     l1GatewayRouter: '0xDA4BA4BE6e32241B45Af53182e9E5606ba62A7e6',
     l1Erc20Gateway: '0xa43ff360E93fA20551C2Ef49d8cf8ea6E40586Ab',
     source: 'https://portal-data.arbitrum.io/__auto-generated-orbitChains.json',
@@ -172,6 +179,7 @@ export const ORBIT_BRIDGES: Record<number, OrbitBridgeCfg> = {
     rollup: '0x96cb416A3defB4Ec596e23806581Eb02f6def71a',
     inbox: '0x0f76cf640B349bA9D66DB844CF420c138C43d49A',
     bridge: '0x4F408768E4eC8Fffb55E84c9ac21801c088C183c',
+    outbox: '0x2e61FF852ECF20c5b4964C283eA20b07d7ea27Ff',
     l1GatewayRouter: '0x68F084B09c9b34CeD4894313689e1Fb55d114f34',
     l1Erc20Gateway: '0xD28787A5f3fDC85cB3e706978C63583a53C856E7',
     l2GatewayRouter: '0x707DbF4d53390238C96A15C9406881Aec98f9289',
@@ -215,6 +223,7 @@ export const ORBIT_BRIDGES: Record<number, OrbitBridgeCfg> = {
     rollup: '0x244935dedb20c68df097abd384b4eff531457867',
     inbox: '0x784702Ec0D8E1CA4B3a062230F2cf748841560F7',
     bridge: '0x399FEA0125A0B8A9782cB0Cdb6DC11669305E68d',
+    outbox: '0x13cbb1C920e8fb8E43F90FadB8B2E23ad03ba956',
     l1GatewayRouter: '0x3ef0E50bE1063A1FA76319b457F46411Add06d89',
     l1Erc20Gateway: '0x68A6e8A0C10954C2A3D6349d4c1B746f4dCFA8Ab',
     l1WethGateway: '0xdCA777FFCa62E791CC83fc46b8880A7E192050Ee',

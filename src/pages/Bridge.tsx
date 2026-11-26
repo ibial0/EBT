@@ -1011,7 +1011,7 @@ export default function Bridge() {
 
   const hasRoute = Boolean(route) && Boolean(dest)
   /** Robinhood-like Orbit chains settle on their parent: value leaves by withdrawal, not a bridge. */
-  const isCanonicalWithdraw = orbitBridgeFor(fromId)?.parentChainId === toId
+  const isCanonicalWithdraw = orbitBridgeFor(fromId)?.parentChainId === toId && Boolean(orbitBridgeFor(fromId)?.outbox)
   const nonEvmOutAmt = nonEvmCctpEligible && nonEvmCctpQuote.data
     ? (fast ? nonEvmCctpQuote.data.fastOut : nonEvmCctpQuote.data.standardOut)
     : null
@@ -1528,8 +1528,8 @@ export default function Bridge() {
             ) : isCanonicalWithdraw ? (
               <div className="space-y-2">
                 <p className="text-[12px] leading-5 text-t2">
-                  {fromShort} settles on {toShort}, so the withdrawal below is the route — there is no
-                  separate bridge to configure.
+                  {fromShort} settles on {toShort}, so the Bridge button starts a withdrawal instead of a
+                  deposit — there is no separate bridge to configure.
                 </p>
                 <ol className="space-y-1 text-[11.5px] leading-5 text-t3">
                   <li>1 · Withdraw on {fromShort} — you sign</li>
