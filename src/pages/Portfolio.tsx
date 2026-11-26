@@ -10,7 +10,13 @@ import { Badge, Button, ChainLogo, NetworkLogo, Empty, Modal, Spinner, TokenIcon
 import { ConnectButton } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { shortAddr, fmt } from '../lib/format'
-import { loadPortfolio, nativeHoldingLabel } from '../lib/portfolio'
+import {
+  loadPortfolio,
+  loadPortfolioCache,
+  nativeHoldingLabel,
+  savePortfolioCache,
+  type ChainHolding,
+} from '../lib/portfolio'
 import { loadNonEvmPortfolio, type NonEvmChainHolding } from '../lib/nonEvmPortfolio'
 import { WALLET_FAMILIES, openWalletModal, useNonEvmWallets, type NonEvmFamily } from '../lib/walletsMulti'
 import { allTokensForChain, saveCustomToken, type TokenCfg } from '../config/tokens'
@@ -71,13 +77,40 @@ export default function Portfolio() {
   const [history, setHistory] = useState(loadHistory)
   const [popupGroup, setPopupGroup] = useState<Group | null>(null)
 
+  // Last snapshot for this wallet, so the page paints balances immediately on reload
+  // instead of showing an empty table for the length of a 90-chain scan.
+  const cachedSnapshot = useMemo(() => (address ? loadPortfolioCache(address) : undefined), [address])
+
+  // Chains stream in as each RPC answers; these partial rows are merged over the base data.
+  const [streamed, setStreamed] = useState<Map<number, ChainHolding>>(new Map())
+
   const portfolio = useQuery({
     queryKey: ['portfolio', address],
-    queryFn: () => loadPortfolio(address as Address),
+    queryFn: () =>
+      loadPortfolio(address as Address, {
+        onChain: (holding) =>
+          setStreamed((prev) => {
+            const next = new Map(prev)
+            next.set(holding.chainId, holding)
+            return next
+          }),
+      }),
     enabled: Boolean(address),
     staleTime: 20_000,
     retry: 0,
+    initialData: cachedSnapshot?.holdings,
+    initialDataUpdatedAt: cachedSnapshot?.at,
   })
+
+  // Streamed rows only exist during a scan; once it settles the full result takes over.
+  useEffect(() => {
+    if (portfolio.isFetching) return
+    setStreamed((prev) => (prev.size === 0 ? prev : new Map()))
+  }, [portfolio.isFetching, portfolio.dataUpdatedAt])
+
+  useEffect(() => {
+    if (portfolio.data && address) savePortfolioCache(address, portfolio.data)
+  }, [portfolio.data, address])
   const nonEvmQuery = useQuery({
     queryKey: ['non-evm-portfolio', nonEvmFamilies.map((f) => `${f}:${nonEvmAccounts[f]?.address ?? ''}`).join(',')],
     queryFn: () => loadNonEvmPortfolio(nonEvmAccounts),
@@ -88,7 +121,20 @@ export default function Portfolio() {
   const prices = useQuery({ queryKey: ['prices'], queryFn: loadPrices, staleTime: 10 * 60_000, retry: 1 })
 
   const priceMap = prices.data?.prices ?? {}
-  const holdings = portfolio.data ?? []
+  const holdings: ChainHolding[] = useMemo(() => {
+    const base = portfolio.data ?? []
+    if (streamed.size === 0) return base
+    const order = new Map<number, number>()
+    base.forEach((h, i) => order.set(h.chainId, i))
+    const merged = new Map<number, ChainHolding>()
+    for (const h of base) merged.set(h.chainId, h)
+    for (const [id, h] of streamed) merged.set(id, h)
+    return [...merged.values()].sort((a, b) => {
+      const ai = order.get(a.chainId) ?? Number.MAX_SAFE_INTEGER
+      const bi = order.get(b.chainId) ?? Number.MAX_SAFE_INTEGER
+      return ai - bi || a.chainId - b.chainId
+    })
+  }, [portfolio.data, streamed])
   const nonEvmHoldings: NonEvmChainHolding[] = nonEvmQuery.data ?? []
 
   const rows: Row[] = useMemo(() => {
@@ -201,6 +247,8 @@ export default function Portfolio() {
     rows.length === 0 &&
     ((Boolean(address) && portfolio.isLoading) || (hasNonEvm && nonEvmQuery.isLoading))
   const isFetchingAny = portfolio.isFetching || nonEvmQuery.isFetching
+  /** How many EVM chains have answered in the current scan, so the refresh can say so. */
+  const scanned = streamed.size
 
   // one point per hour, written only when the value is actually known
   useEffect(() => {
@@ -307,6 +355,12 @@ export default function Portfolio() {
             <RefreshCw size={14} className={isFetchingAny ? 'spin' : undefined} />
           </button>
         </div>
+
+        {portfolio.isFetching && scanned > 0 && (
+          <div className="mt-3 text-[11px] text-t3">
+            Scanning chains… {scanned}/{CHAINS.length} answered
+          </div>
+        )}
 
         <div className="figure mt-4 text-[52px] leading-[60px] font-bold tracking-[-0.035em] text-t1">
           {initialLoading ? (

@@ -76,7 +76,9 @@ export const RPC: Record<number, string> = {
  * "WalletConnect — QR Code" row appears in the picker; without it that row is simply
  * not shown, because a QR button that cannot pair would be a lie.
  */
-export const WC_PROJECT_ID = ((import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string | undefined) ?? '').trim()
+export const WC_PROJECT_ID = String(
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_WALLETCONNECT_PROJECT_ID ?? '',
+).trim()
 
 export const wagmiConfig = createConfig({
   chains: VIEM_CHAINS as unknown as readonly [Chain, ...Chain[]],

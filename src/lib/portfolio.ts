@@ -5,6 +5,9 @@
  * Blockscout v2 ERC-20 discovery runs in parallel for chains with CORS-enabled explorers,
  * appending any non-zero holdings not already in the verified TOKENS list.
  */
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAccount } from 'wagmi'
 import { getPublicClient } from 'wagmi/actions'
 import type { Address } from 'viem'
 import { CHAINS, getChain, nativeDecimals, nativeSymbol } from '../config/chains'
@@ -55,7 +58,7 @@ async function blockscoutTokens(chainId: number, owner: string): Promise<TokenCf
   try {
     const url = `${base}/api/v2/addresses/${owner}/tokens?type=ERC-20`
     const ctrl = new AbortController()
-    const tid = setTimeout(() => ctrl.abort(), 4500)
+    const tid = setTimeout(() => ctrl.abort(), 3500)
     const res = await fetch(url, { signal: ctrl.signal })
     clearTimeout(tid)
     if (!res.ok) return []
@@ -118,7 +121,7 @@ async function loadChain(chainId: number, owner: Address): Promise<ChainHolding>
 
   // Run native balance + Blockscout discovery in parallel
   const [nativeResult, discovered] = await Promise.all([
-    withTimeout(client.getBalance({ address: owner }), 12_000, 'balance').then(
+    withTimeout(client.getBalance({ address: owner }), 8_000, 'balance').then(
       (v) => ({ ok: true as const, value: v }),
       (e: Error) => ({ ok: false as const, error: e.message.slice(0, 90) }),
     ),
@@ -151,7 +154,7 @@ async function loadChain(chainId: number, owner: Address): Promise<ChainHolding>
       // keep the canonical USDC contract visible as metadata, but do not double count
     }
     try {
-      const res = await withTimeout(client.multicall({ contracts, allowFailure: true } as never), 15_000, 'multicall')
+      const res = await withTimeout(client.multicall({ contracts, allowFailure: true } as never), 9_000, 'multicall')
       tokens = list.map((token, i) => {
         const r = (res as Array<{ status: string; result?: bigint; error?: Error }>)[i]
         return r?.status === 'success'
@@ -178,8 +181,17 @@ async function loadChain(chainId: number, owner: Address): Promise<ChainHolding>
   return { chainId, native, nativeError, tokens, ms: Math.round(performance.now() - t0) }
 }
 
-/** Loads every chain with bounded concurrency so public RPCs are not hammered. */
-export async function loadPortfolio(owner: Address, concurrency = 5): Promise<ChainHolding[]> {
+/**
+ * Loads every chain. Each chain talks to its own RPC host, so cross-chain concurrency
+ * does not hammer a single endpoint; 12 in flight turns ~90 chains into a handful of
+ * rounds. `onChain` fires the moment a chain answers, so the UI can paint rows as they
+ * land instead of waiting for the slowest RPC in the set.
+ */
+export async function loadPortfolio(
+  owner: Address,
+  opts: { concurrency?: number; onChain?: (holding: ChainHolding) => void } = {},
+): Promise<ChainHolding[]> {
+  const { concurrency = 12, onChain } = opts
   const ids = CHAINS.map((c) => c.id)
   const out: ChainHolding[] = []
   let cursor = 0
@@ -187,11 +199,80 @@ export async function loadPortfolio(owner: Address, concurrency = 5): Promise<Ch
   async function worker() {
     while (cursor < ids.length) {
       const id = ids[cursor++]
-      out.push(await loadChain(id, owner))
+      const holding = await loadChain(id, owner)
+      out.push(holding)
+      onChain?.(holding)
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, ids.length) }, worker))
   return out.sort((a, b) => ids.indexOf(a.chainId) - ids.indexOf(b.chainId))
+}
+
+/* ─────────────────── snapshot cache (instant paint on reload) ─────────────────── */
+
+const CACHE_VERSION = 1
+const cacheKey = (owner: string) => `ebt.portfolio.v${CACHE_VERSION}.${owner.toLowerCase()}`
+
+type JsonHolding = {
+  chainId: number
+  native: string | null
+  nativeError?: string
+  tokens: Array<{ token: TokenCfg; balance: string | null; error?: string }>
+  ms: number
+}
+
+export function savePortfolioCache(owner: string, holdings: ChainHolding[]) {
+  if (typeof localStorage === 'undefined') return
+  // Only funded chains are worth remembering: zero-balance chains render nothing, and
+  // storing all ~90 of them would bloat localStorage for no visible gain.
+  const funded = holdings.filter(
+    (h) => (h.native ?? 0n) > 0n || h.tokens.some((t) => (t.balance ?? 0n) > 0n),
+  )
+  if (funded.length === 0) return
+  try {
+    const json: JsonHolding[] = funded.map((h) => ({
+      chainId: h.chainId,
+      native: h.native == null ? null : h.native.toString(),
+      nativeError: h.nativeError,
+      ms: h.ms,
+      tokens: h.tokens.map((t) => ({
+        token: t.token,
+        balance: t.balance == null ? null : t.balance.toString(),
+        error: t.error,
+      })),
+    }))
+    localStorage.setItem(cacheKey(owner), JSON.stringify({ at: Date.now(), holdings: json }))
+  } catch {
+    /* quota or private mode — the cache is an optimisation, never a requirement */
+  }
+}
+
+export function loadPortfolioCache(owner: string): { at: number; holdings: ChainHolding[] } | undefined {
+  if (typeof localStorage === 'undefined') return undefined
+  try {
+    const raw = localStorage.getItem(cacheKey(owner))
+    if (!raw) return undefined
+    const parsed = JSON.parse(raw) as { at?: number; holdings?: JsonHolding[] }
+    if (!parsed?.holdings?.length) return undefined
+    // snapshots older than a day are not worth painting
+    if (!parsed.at || Date.now() - parsed.at > 24 * 60 * 60 * 1000) return undefined
+    return {
+      at: parsed.at,
+      holdings: parsed.holdings.map((h) => ({
+        chainId: h.chainId,
+        native: h.native == null ? null : BigInt(h.native),
+        nativeError: h.nativeError,
+        ms: h.ms ?? 0,
+        tokens: h.tokens.map((t) => ({
+          token: t.token,
+          balance: t.balance == null ? null : BigInt(t.balance),
+          error: t.error,
+        })),
+      })),
+    }
+  } catch {
+    return undefined
+  }
 }
 
 export function nativeHoldingLabel(chainId: number) {
@@ -201,4 +282,25 @@ export function nativeHoldingLabel(chainId: number) {
     decimals: nativeDecimals(chainId),
     name: chain?.nativeIsUsdc ? 'USDC (native gas token on Arc)' : `${nativeSymbol(chainId)} (native)`,
   }
+}
+
+
+/**
+ * Warms the portfolio query a couple of seconds after a wallet connects, so opening the
+ * Portfolio tab paints balances instead of starting a 90-chain scan from zero.
+ */
+export function usePortfolioPrefetch() {
+  const qc = useQueryClient()
+  const { address } = useAccount()
+  useEffect(() => {
+    if (!address) return
+    const t = window.setTimeout(() => {
+      void qc.prefetchQuery({
+        queryKey: ['portfolio', address],
+        queryFn: () => loadPortfolio(address as Address),
+        staleTime: 20_000,
+      })
+    }, 2500)
+    return () => window.clearTimeout(t)
+  }, [address, qc])
 }

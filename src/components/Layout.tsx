@@ -25,6 +25,7 @@ import {
   useAllNonEvmAccounts,
   type NonEvmFamily,
 } from '../lib/walletsMulti'
+import { usePortfolioPrefetch } from '../lib/portfolio'
 import { NotificationBell } from './NotificationBell'
 import { GlobalWalletModal, nonEvmLogoSrc } from './MultiWalletModal'
 import pkg from '../../package.json'
@@ -42,6 +43,7 @@ const NAV = [
 ]
 
 export function Layout() {
+  usePortfolioPrefetch()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => {
     try {
