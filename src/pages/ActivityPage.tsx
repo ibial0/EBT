@@ -100,8 +100,15 @@ export default function ActivityPage() {
                       <span className="font-semibold text-t1">
                         {a.amountIn} {a.tokenIn.symbol}
                       </span>
-                      <span className="text-t3">→</span>
-                      <span className="text-t1">{a.amountOut ? `${a.amountOut} ` : ''}{a.tokenOut?.symbol ?? 'USDC'}</span>
+                      {a.tokenOut && (
+                        <>
+                          <span className="text-t3">→</span>
+                          <span className="text-t1">
+                            {a.amountOut ? `${a.amountOut} ` : ''}
+                            {a.tokenOut.symbol}
+                          </span>
+                        </>
+                      )}
                       <span className="chip !py-0 !text-[9px]">{a.provider}</span>
                     </div>
                     <div className="mt-0.5 truncate text-[10px] text-t3">
@@ -197,7 +204,9 @@ function Detail({ id }: { id: string }) {
       </Link>
 
       <PageHeader
-        title={`${item.amountIn} ${item.tokenIn.symbol} → ${item.amountOut ? item.amountOut + ' ' : ''}${item.tokenOut?.symbol ?? 'USDC'}`}
+        title={`${item.amountIn} ${item.tokenIn.symbol}${
+          item.tokenOut ? ` → ${item.amountOut ? item.amountOut + ' ' : ''}${item.tokenOut.symbol}` : ''
+        }`}
         subtitle={`${from?.name ?? item.fromChainId} → ${to?.name ?? item.toChainId} · ${new Date(item.createdAt).toLocaleString()} · ${item.provider}`}
         right={<Badge tone={item.status === 'complete' ? 'mint' : item.status === 'failed' ? 'red' : 'amber'}>{item.status}</Badge>}
       />

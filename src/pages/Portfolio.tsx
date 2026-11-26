@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, Copy, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
+import { ChevronDown, Copy, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
 import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
@@ -9,8 +9,9 @@ import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/netwo
 import { Badge, Button, ChainLogo, NetworkLogo, Empty, Modal, Spinner, TokenIcon, notify, AllChainsMark } from '../components/ui'
 import { ConnectButton } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
-import { shortAddr, fmt, safeParseUnits } from '../lib/format'
-import { isEvmAddress, sendToken } from '../lib/sendToken'
+import { shortAddr, fmt } from '../lib/format'
+import { TokenActions, tokenRowKey } from '../components/TokenActions'
+import { addActivity } from '../lib/activity'
 import {
   loadPortfolio,
   loadPortfolioCache,
@@ -96,7 +97,7 @@ export default function Portfolio() {
   const prevRowsRef = useRef<FlatHolding[] | null>(null)
   const [popupGroup, setPopupGroup] = useState<Group | null>(null)
   const [popupMode, setPopupMode] = useState<'view' | 'send' | 'receive'>('view')
-  const [sendRowKey, setSendRowKey] = useState<string | null>(null)
+  const [popupRowKey, setPopupRowKey] = useState<string | null>(null)
   const [sendTo, setSendTo] = useState('')
   const [sendAmount, setSendAmount] = useState('')
   const [sending, setSending] = useState(false)
@@ -299,6 +300,30 @@ export default function Portfolio() {
       chainId: r.chainId,
     }))
     const events = diffInflows(prevRowsRef.current, flat, Date.now(), totalUsd)
+    // A balance that rose is an observed receive — record it in the local ledger once.
+    for (const e of events) {
+      addActivity({
+        id: `recv-${e.networkKey}-${e.t}`,
+        kind: 'receive',
+        provider: 'wallet',
+        fromChainId: e.chainId ?? 0,
+        toChainId: e.chainId ?? 0,
+        owner: address ?? '',
+        tokenIn: { symbol: e.symbol, address: e.address ?? undefined, decimals: e.decimals },
+        amountIn: formatUnits(BigInt(e.delta), e.decimals),
+        status: 'complete',
+        steps: [
+          {
+            key: 'transfer',
+            label: `Received ${e.symbol}`,
+            status: 'done',
+            chainId: e.chainId ?? undefined,
+            updatedAt: e.t,
+          },
+        ],
+        meta: { observed: true },
+      })
+    }
     if (events.length > 0) {
       setInflows((prev) => {
         const next = mergeInflows(prev, events)
@@ -689,19 +714,21 @@ export default function Portfolio() {
                       <button
                         type="button"
                         aria-expanded={multi ? open : undefined}
-                        onClick={() =>
-                          multi &&
-                          setOpenGroups((prev) => {
-                            const next = new Set(prev)
-                            const k = g.symbol.toUpperCase()
-                            if (next.has(k)) next.delete(k)
-                            else next.add(k)
-                            return next
-                          })
-                        }
-                        className={`flex w-full items-center gap-3 px-4 py-4 text-left transition-colors ${
-                          multi ? 'hover:bg-ink-700/60' : 'cursor-default'
-                        }`}
+                        onClick={() => {
+                          if (multi) {
+                            setOpenGroups((prev) => {
+                              const next = new Set(prev)
+                              const k = g.symbol.toUpperCase()
+                              if (next.has(k)) next.delete(k)
+                              else next.add(k)
+                              return next
+                            })
+                            return
+                          }
+                          setPopupGroup(g)
+                          setPopupRowKey(null)
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-ink-700/60"
                       >
                         <span className="relative shrink-0">
                           <TokenIcon
@@ -769,7 +796,15 @@ export default function Portfolio() {
                               {g.rows.map((r) => {
                                 const amt = r.amount == null ? null : Number(formatUnits(r.amount, r.decimals))
                                 return (
-                                  <div key={`${r.networkKey}-${r.address ?? 'native'}`} className="flex items-center gap-3 py-2">
+                                  <button
+                                    key={`${r.networkKey}-${r.address ?? 'native'}`}
+                                    type="button"
+                                    onClick={() => {
+                                      setPopupGroup(g)
+                                      setPopupRowKey(tokenRowKey(r))
+                                    }}
+                                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-ink-700/60"
+                                  >
                                     <span className="relative shrink-0">
                                       <TokenIcon
                                         symbol={r.symbol}
@@ -792,7 +827,7 @@ export default function Portfolio() {
                                     <span className="mono w-28 shrink-0 text-right text-[12px] text-t2">
                                       {amt == null ? '—' : fmtAmount(amt)}
                                     </span>
-                                  </div>
+                                  </button>
                                 )
                               })}
                             </div>
@@ -844,250 +879,25 @@ export default function Portfolio() {
         <ImportToken chainId={importFor} onClose={() => setImportFor(null)} onDone={() => portfolio.refetch()} />
       )}
 
-      {/* Token detail popup: balances per chain + send / receive */}
-      {popupGroup != null && (() => {
-        const rows = popupGroup.rows.slice().sort((a, b) => {
-          const av = a.amount == null ? -1 : Number(formatUnits(a.amount, a.decimals))
-          const bv = b.amount == null ? -1 : Number(formatUnits(b.amount, b.decimals))
-          return bv - av
-        })
-        const rowKey = (r: Row) => `${r.networkKey}-${r.address ?? 'native'}`
-        const sendable = rows.filter((r) => r.chainId != null && (r.amount ?? 0n) > 0n)
-        const activeRow = sendable.find((r) => rowKey(r) === sendRowKey) ?? sendable[0] ?? rows[0]
-        const amountOut = safeParseUnits(sendAmount, activeRow?.decimals ?? 18)
-        const overBalance = amountOut != null && activeRow?.amount != null && amountOut > activeRow.amount
-        const canSend =
-          Boolean(activeRow && activeRow.chainId != null && isEvmAddress(sendTo) && amountOut != null && amountOut > 0n && !overBalance)
-
-        const closePopup = () => {
-          setPopupGroup(null)
-          setPopupMode('view')
-          setSendTo('')
-          setSendAmount('')
-        }
-
-        const doSend = async () => {
-          if (!activeRow || activeRow.chainId == null || !canSend || amountOut == null) return
-          setSending(true)
-          try {
-            const hash = await sendToken({
-              chainId: activeRow.chainId,
-              token: { address: activeRow.address, decimals: activeRow.decimals, symbol: activeRow.symbol },
-              to: sendTo.trim() as `0x${string}`,
-              amount: amountOut,
-            })
-            notify(`Sent ${sendAmount} ${activeRow.symbol} · ${shortAddr(hash, 6)}`, 'success')
-            closePopup()
-            portfolio.refetch()
-          } catch (e) {
-            notify((e as Error).message.slice(0, 140), 'error')
-          } finally {
-            setSending(false)
+      {popupGroup != null && (
+        <TokenActions
+          group={popupGroup}
+          initialRowKey={popupRowKey}
+          onClose={() => {
+            setPopupGroup(null)
+            setPopupRowKey(null)
+          }}
+          onSent={() => portfolio.refetch()}
+          receiveAddressFor={(r) =>
+            r.chainId != null
+              ? address ?? ''
+              : (r.network?.walletFamily
+                  ? nonEvmAccounts[r.network.walletFamily as NonEvmFamily]?.address ?? ''
+                  : '')
           }
-        }
+        />
+      )}
 
-        const receiveAddress =
-          activeRow?.chainId != null
-            ? address ?? ''
-            : (activeRow?.network?.walletFamily && nonEvmAccounts[activeRow.network.walletFamily as NonEvmFamily]?.address) || ''
-
-        return (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
-            onClick={closePopup}
-            style={{ animation: 'popupBgIn 220ms ease-out both', background: 'rgba(0,0,0,0.6)' }}
-          >
-            <div
-              className="relative mx-4 w-full max-w-sm rounded-2xl border border-line-strong bg-ink-850 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-              style={{ maxHeight: '76vh', display: 'flex', flexDirection: 'column', animation: 'popupCardIn 280ms cubic-bezier(0.34,1.56,0.64,1) both' }}
-            >
-              {/* Header */}
-              <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-                {popupMode !== 'view' && (
-                  <button
-                    onClick={() => setPopupMode('view')}
-                    aria-label="Back"
-                    className="rounded-lg p-1.5 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
-                  >
-                    <ChevronDown size={16} className="rotate-90" />
-                  </button>
-                )}
-                <TokenIcon
-                  symbol={popupGroup.symbol}
-                  size={36}
-                  chainId={popupGroup.rows[0].chainId ?? undefined}
-                  address={popupGroup.rows[0].chainId != null ? (popupGroup.rows[0].address ?? undefined) : undefined}
-                  verified={popupGroup.rows[0].verified}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[17px] font-semibold text-t1">{popupGroup.symbol}</p>
-                  <p className="text-[13px] text-t2">
-                    {popupMode === 'send' ? 'Send' : popupMode === 'receive' ? 'Receive' : `${popupGroup.rows.length} chain${popupGroup.rows.length > 1 ? 's' : ''}`}
-                  </p>
-                </div>
-                <button
-                  onClick={closePopup}
-                  aria-label="Close"
-                  className="rounded-lg p-1.5 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Actions */}
-              {popupMode === 'view' && (
-                <div className="grid grid-cols-2 gap-2 px-5 pt-4">
-                  <button
-                    onClick={() => {
-                      setPopupMode('send')
-                      setSendRowKey(rowKey(sendable[0] ?? rows[0]))
-                    }}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent/12 py-2.5 text-[13px] font-semibold text-accent transition-colors hover:bg-accent/20"
-                  >
-                    <ArrowUpRight size={15} /> Send
-                  </button>
-                  <button
-                    onClick={() => setPopupMode('receive')}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-ink-800 py-2.5 text-[13px] font-semibold text-t1 transition-colors hover:bg-ink-700"
-                  >
-                    <ArrowDownLeft size={15} /> Receive
-                  </button>
-                </div>
-              )}
-
-              {/* Body */}
-              <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-                {popupMode === 'send' ? (
-                  <div className="space-y-3 px-3 py-2">
-                    {sendable.length === 0 ? (
-                      <p className="rounded-lg border border-line bg-ink-900/60 px-3 py-3 text-[12px] leading-5 text-t2">
-                        Nothing to send from this balance. Sending is only possible from a connected EVM wallet, and
-                        only when this token actually has a balance.
-                      </p>
-                    ) : (
-                      <>
-                        <label className="block text-[11px] uppercase tracking-wide text-t3">From</label>
-                        <select
-                          value={rowKey(activeRow)}
-                          onChange={(e) => setSendRowKey(e.target.value)}
-                          className="input w-full text-[13px]"
-                        >
-                          {sendable.map((r) => (
-                            <option key={rowKey(r)} value={rowKey(r)}>
-                              {r.chainShort} · {fmtAmount(Number(formatUnits(r.amount ?? 0n, r.decimals)))} {r.symbol}
-                            </option>
-                          ))}
-                        </select>
-
-                        <label className="block text-[11px] uppercase tracking-wide text-t3">To</label>
-                        <input
-                          value={sendTo}
-                          onChange={(e) => setSendTo(e.target.value)}
-                          placeholder="0x…"
-                          spellCheck={false}
-                          className="input mono w-full text-[12px]"
-                        />
-                        {sendTo.trim().length > 0 && !isEvmAddress(sendTo) && (
-                          <p className="text-[11px] text-[#ffb4b6]">That is not a valid EVM address.</p>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <label className="text-[11px] uppercase tracking-wide text-t3">Amount</label>
-                          <button
-                            onClick={() =>
-                              activeRow?.amount != null &&
-                              setSendAmount(formatUnits(activeRow.amount, activeRow.decimals))
-                            }
-                            className="text-[11px] font-semibold text-accent"
-                          >
-                            MAX
-                          </button>
-                        </div>
-                        <input
-                          value={sendAmount}
-                          onChange={(e) => setSendAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                          placeholder="0.0"
-                          inputMode="decimal"
-                          className="input mono w-full text-[14px]"
-                        />
-                        {overBalance && <p className="text-[11px] text-[#ffb4b6]">More than the balance on this chain.</p>}
-
-                        <button
-                          disabled={!canSend || sending}
-                          onClick={() => void doSend()}
-                          className="mt-1 w-full rounded-xl bg-accent py-2.5 text-[13px] font-semibold text-[#111628] transition-opacity disabled:opacity-40"
-                        >
-                          {sending ? 'Waiting for wallet…' : `Send ${popupGroup.symbol}`}
-                        </button>
-                        <p className="text-center text-[10.5px] leading-4 text-t3">
-                          You sign in your own wallet. The app never holds a key.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                ) : popupMode === 'receive' ? (
-                  <div className="space-y-3 px-3 py-4 text-center">
-                    <p className="text-[12px] text-t2">
-                      Send {popupGroup.symbol} on {activeRow?.chainName ?? 'this network'} to:
-                    </p>
-                    <p className="mono break-all rounded-xl border border-line bg-ink-900/70 px-3 py-3 text-[12px] text-t1">
-                      {receiveAddress || 'Connect a wallet to get an address.'}
-                    </p>
-                    {receiveAddress && (
-                      <button
-                        onClick={() => {
-                          void navigator.clipboard?.writeText(receiveAddress)
-                          notify('Address copied', 'info')
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-ink-800 px-3 py-1.5 text-[12px] text-t1"
-                      >
-                        <Copy size={12} /> Copy address
-                      </button>
-                    )}
-                    {activeRow?.network?.walletFamily && !receiveAddress && (
-                      <p className="text-[11px] text-t3">That ecosystem wallet is not connected.</p>
-                    )}
-                  </div>
-                ) : (
-                  rows.map((r) => {
-                    const amt = r.amount == null ? null : Number(formatUnits(r.amount, r.decimals))
-                    return (
-                      <div
-                        key={rowKey(r)}
-                        className="flex items-center gap-4 rounded-xl px-3 py-3 transition-colors hover:bg-ink-700/50"
-                      >
-                        <span className="relative shrink-0">
-                          <TokenIcon
-                            symbol={r.symbol}
-                            size={40}
-                            chainId={r.chainId ?? undefined}
-                            address={r.chainId != null ? (r.address ?? undefined) : undefined}
-                            verified={r.verified}
-                          />
-                          <span className="absolute -bottom-1 -left-1 rounded-full ring-2 ring-ink-850">
-                            <RowChainLogo row={r} size={14} />
-                          </span>
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[14px] font-medium text-t1">{r.chainShort}</span>
-                          <span className="block truncate text-[12px] text-t3">{r.chainName}</span>
-                        </span>
-                        <span className="mono shrink-0 text-right">
-                          <span className="block text-[15px] font-semibold text-t1">
-                            {amt == null ? '—' : fmtAmount(amt)}
-                          </span>
-                          <span className="block text-[12px] text-t3">{r.symbol}</span>
-                        </span>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
     </div>
   )
 }
