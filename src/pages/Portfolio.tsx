@@ -253,9 +253,12 @@ export default function Portfolio() {
   // one point per hour, written only when the value is actually known
   useEffect(() => {
     if (!anyConnected || initialLoading) return
+    // Only a finished scan is a real balance: recording mid-stream partial totals is what
+    // made the chart zig-zag against numbers the wallet never actually held.
+    if (isFetchingAny) return
     if (totalUsd <= 0) return
     setHistory(recordSnapshot(totalUsd))
-  }, [anyConnected, initialLoading, totalUsd])
+  }, [anyConnected, initialLoading, isFetchingAny, totalUsd])
 
   const groups: Group[] = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -412,7 +415,7 @@ export default function Portfolio() {
         </div>
 
         <div className="mt-4 flex min-h-[180px] flex-1 flex-col">
-          <ValueChart points={chartPoints} />
+          <ValueChart points={chartPoints} range={range} current={totalUsd} />
         </div>
       </div>
 
@@ -932,42 +935,57 @@ function RingIcon({
 }
 
 /** Value over time. Every point is a real snapshot this browser recorded — nothing is invented. */
-function ValueChart({ points }: { points: { t: number; v: number }[] }) {
+function ValueChart({
+  points,
+  range,
+  current,
+}: {
+  points: { t: number; v: number }[]
+  range: Range
+  current: number
+}) {
   const W = 900
   const H = 220
   const padX = 2
-  const padY = 10
+  const padY = 14
 
-  if (points.length === 0) {
+  const span = range === '1D' ? 24 * 3600_000 : range === '1W' ? 7 * 24 * 3600_000 : 30 * 24 * 3600_000
+  const now = Date.now()
+  const from = now - span
+
+  // The x axis is the selected window, not the span of whatever was recorded: a single
+  // reading therefore sits at its real timestamp instead of stretching across the box.
+  const inWindow = points.filter((p) => p.t >= from && p.t <= now)
+  const beforeWindow = points.filter((p) => p.t < from).slice(-1)
+  let series = [...beforeWindow, ...inWindow].sort((a, b) => a.t - b.t)
+
+  // No reading yet, but we do know the balance right now: show it as the current point
+  // instead of an empty box that looks broken.
+  if (series.length === 0 && current > 0) series = [{ t: now, v: current }]
+  if (series.length === 1) series = [{ t: Math.max(from, series[0].t - 1), v: series[0].v }, series[0]]
+
+  if (series.length === 0) {
     return (
       <div className="grid h-full w-full min-h-[180px] place-items-center rounded-[12px] border border-dashed border-line">
         <p className="max-w-[46ch] px-6 text-center text-[12px] leading-5 text-t2">
-          No reading yet. One value is recorded per hour while the app is open, and the chart is drawn only from
-          those readings.
+          No balance to plot yet. The line follows this wallet&apos;s total on every refresh.
         </p>
       </div>
     )
   }
 
-  const series =
-    points.length === 1
-      ? [
-          { t: points[0].t - 1, v: points[0].v },
-          { t: points[0].t, v: points[0].v },
-        ]
-      : points
-
   const vs = series.map((p) => p.v)
-  const min = Math.min(...vs)
-  const max = Math.max(...vs)
-  const span = max - min || Math.max(max * 0.02, 1)
-  const t0 = series[0].t
-  const t1 = series[series.length - 1].t
-  const tSpan = t1 - t0 || 1
+  const rawMin = Math.min(...vs)
+  const rawMax = Math.max(...vs)
+  const flat = rawMax - rawMin < Math.max(rawMax * 0.0005, 0.01)
+  const pad = flat ? Math.max(rawMax * 0.02, 0.5) : (rawMax - rawMin) * 0.18
+  const min = rawMin - pad
+  const max = rawMax + pad
+  const ySpan = max - min || 1
 
   const xy = series.map((p) => ({
-    x: padX + ((p.t - t0) / tSpan) * (W - padX * 2),
-    y: H - padY - ((p.v - min) / span) * (H - padY * 2),
+    x: padX + (Math.min(Math.max((p.t - from) / span, 0), 1)) * (W - padX * 2),
+    y: H - padY - ((p.v - min) / ySpan) * (H - padY * 2),
   }))
 
   let line: string
@@ -987,11 +1005,8 @@ function ValueChart({ points }: { points: { t: number; v: number }[] }) {
     tans[0] = m[0]
     tans[n - 1] = m[n - 2]
     for (let i = 1; i < n - 1; i++) {
-      if (m[i - 1] * m[i] <= 0) {
-        tans[i] = 0
-      } else {
-        tans[i] = (m[i - 1] + m[i]) / 2
-      }
+      if (m[i - 1] * m[i] <= 0) tans[i] = 0
+      else tans[i] = (m[i - 1] + m[i]) / 2
     }
     for (let i = 0; i < n - 1; i++) {
       if (Math.abs(m[i]) < 1e-10) {
@@ -1008,7 +1023,6 @@ function ValueChart({ points }: { points: { t: number; v: number }[] }) {
         }
       }
     }
-
     line = `M${xy[0].x.toFixed(1)},${xy[0].y.toFixed(1)}`
     for (let i = 0; i < n - 1; i++) {
       const d = dx[i] / 3
@@ -1023,13 +1037,21 @@ function ValueChart({ points }: { points: { t: number; v: number }[] }) {
   const last = xy[xy.length - 1]
   const area = `${line} L${last.x.toFixed(1)},${H} L${xy[0].x.toFixed(1)},${H} Z`
 
+  // Change across the window, so the number under the header agrees with the line.
+  const windowPoints = series.filter((p) => p.t >= from)
+  const firstVal = (windowPoints[0] ?? series[0]).v
+  const lastVal = series[series.length - 1].v
+  const delta = lastVal - firstVal
+  const deltaPct = firstVal > 0 ? (delta / firstVal) * 100 : 0
+  const up = delta >= 0
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-[12px] border border-line bg-ink-850/40">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full">
         <defs>
           <linearGradient id="ebt-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.26" />
+            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.01" />
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((f) => (
@@ -1054,13 +1076,27 @@ function ValueChart({ points }: { points: { t: number; v: number }[] }) {
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
         />
-        <circle cx={last.x} cy={last.y} r="4" fill="var(--color-accent)" vectorEffect="non-scaling-stroke" />
+        <circle cx={last.x} cy={last.y} r="7" fill="var(--color-accent)" opacity="0.18" />
+        <circle cx={last.x} cy={last.y} r="3.4" fill="var(--color-accent)" vectorEffect="non-scaling-stroke" />
       </svg>
-      {points.length === 1 && (
-        <span className="mono absolute right-3 top-3 text-[10px] uppercase tracking-[0.6px] text-t3">
-          one reading
+
+      <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2">
+        <span
+          className="mono rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+          style={{
+            color: up ? '#6adbb6' : '#ff8f8f',
+            background: up ? 'rgba(106,219,182,0.10)' : 'rgba(255,143,143,0.10)',
+          }}
+        >
+          {up ? '+' : ''}
+          {deltaPct.toFixed(2)}%
         </span>
-      )}
+        <span className="text-[10px] uppercase tracking-[0.6px] text-t3">{range}</span>
+      </div>
+
+      <span className="mono pointer-events-none absolute right-3 top-3 text-[10px] text-t3">
+        {series.length > 2 ? `${series.length} readings` : 'live'}
+      </span>
     </div>
   )
 }

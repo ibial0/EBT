@@ -14,6 +14,9 @@ export interface HistoryPoint {
 const KEY = 'ebt.portfolioHistory'
 const HOUR = 3_600_000
 const KEEP_DAYS = 90
+/** Five minutes: fine enough to look alive, coarse enough to keep storage tiny. */
+const BUCKET = 5 * 60_000
+const MAX_POINTS = 4_000
 
 export function loadHistory(): HistoryPoint[] {
   try {
@@ -30,11 +33,18 @@ export function loadHistory(): HistoryPoint[] {
   }
 }
 
-export function recordSnapshot(value: number): HistoryPoint[] {
+export function recordSnapshot(value: number, at = Date.now()): HistoryPoint[] {
   const points = loadHistory()
   const last = points[points.length - 1]
-  if (last && Date.now() - last.t < HOUR) return points
-  const next = [...points, { t: Date.now(), v: value }]
+  let next: HistoryPoint[]
+  if (last && at - last.t < BUCKET) {
+    // Same five-minute bucket: move the point to the newest value so the right edge of
+    // the chart tracks the wallet instead of freezing the first reading of the window.
+    next = [...points.slice(0, -1), { t: at, v: value }]
+  } else {
+    next = [...points, { t: at, v: value }]
+  }
+  if (next.length > MAX_POINTS) next = next.slice(-MAX_POINTS)
   try {
     localStorage.setItem(KEY, JSON.stringify(next))
   } catch {
