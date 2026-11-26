@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Copy, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
 import { useAccount } from 'wagmi'
@@ -23,6 +23,14 @@ import { allTokensForChain, saveCustomToken, type TokenCfg } from '../config/tok
 import { readTokenMeta } from '../lib/tokenImport'
 import { loadPrices, priceOf, usd } from '../lib/prices'
 import { loadHistory, recordSnapshot, sliceRange } from '../lib/history'
+import {
+  diffInflows,
+  loadInflows,
+  mergeInflows,
+  saveInflows,
+  type FlatHolding,
+  type InflowEvent,
+} from '../lib/inflows'
 
 type View = 'overview' | 'tokens' | 'recovery'
 type Range = '1D' | '1W' | '1M'
@@ -75,6 +83,16 @@ export default function Portfolio() {
   const [pickNetwork, setPickNetwork] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
   const [history, setHistory] = useState(loadHistory)
+  // Token bubbles: on by default, and the choice sticks.
+  const [showBubbles, setShowBubbles] = useState(() => {
+    try {
+      return localStorage.getItem('ebt.chartBubbles') !== 'off'
+    } catch {
+      return true
+    }
+  })
+  const [inflows, setInflows] = useState<InflowEvent[]>(() => loadInflows())
+  const prevRowsRef = useRef<FlatHolding[] | null>(null)
   const [popupGroup, setPopupGroup] = useState<Group | null>(null)
 
   // Last snapshot for this wallet, so the page paints balances immediately on reload
@@ -260,6 +278,31 @@ export default function Portfolio() {
     setHistory(recordSnapshot(totalUsd))
   }, [anyConnected, initialLoading, isFetchingAny, totalUsd])
 
+  /**
+   * Token bubbles. Same rule as the history line: only a settled scan counts, and a token
+   * that we did not see before is not an inflow we can prove — so it produces no bubble.
+   */
+  useEffect(() => {
+    if (!anyConnected || initialLoading || isFetchingAny) return
+    const flat: FlatHolding[] = rows.map((r) => ({
+      networkKey: r.networkKey,
+      address: r.address,
+      symbol: r.symbol,
+      amount: r.amount,
+      decimals: r.decimals,
+      chainId: r.chainId,
+    }))
+    const events = diffInflows(prevRowsRef.current, flat, Date.now(), totalUsd)
+    if (events.length > 0) {
+      setInflows((prev) => {
+        const next = mergeInflows(prev, events)
+        saveInflows(next)
+        return next
+      })
+    }
+    prevRowsRef.current = flat
+  }, [anyConnected, initialLoading, isFetchingAny, rows, totalUsd])
+
   const groups: Group[] = useMemo(() => {
     const needle = q.trim().toLowerCase()
     const bySymbol = new Map<string, Group>()
@@ -399,6 +442,32 @@ export default function Portfolio() {
             </button>
           ))}
           <button
+            onClick={() => {
+              setShowBubbles((v) => {
+                const next = !v
+                try {
+                  localStorage.setItem('ebt.chartBubbles', next ? 'on' : 'off')
+                } catch {
+                  /* storage is optional */
+                }
+                return next
+              })
+            }}
+            title={showBubbles ? 'Hide token bubbles' : 'Show token bubbles'}
+            aria-pressed={showBubbles}
+            className={`ml-1 flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] transition-colors ${
+              showBubbles
+                ? 'border-accent/45 bg-accent/10 text-accent'
+                : 'border-line bg-ink-850 text-t3 hover:text-t2'
+            }`}
+          >
+            <span
+              className={`size-1.5 rounded-full ${showBubbles ? 'bg-accent' : 'bg-t3'}`}
+              aria-hidden
+            />
+            Bubble
+          </button>
+          <button
             onClick={() => setPickNetwork(true)}
             className="ml-auto flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-2.5 text-[12px] text-t1 transition-colors hover:border-[#3f4a66]"
           >
@@ -415,7 +484,7 @@ export default function Portfolio() {
         </div>
 
         <div className="mt-4 flex min-h-[180px] flex-1 flex-col">
-          <ValueChart points={chartPoints} range={range} current={totalUsd} />
+          <ValueChart points={chartPoints} range={range} current={totalUsd} events={inflows} showBubbles={showBubbles} />
         </div>
       </div>
 
@@ -939,10 +1008,14 @@ function ValueChart({
   points,
   range,
   current,
+  events,
+  showBubbles,
 }: {
   points: { t: number; v: number }[]
   range: Range
   current: number
+  events: InflowEvent[]
+  showBubbles: boolean
 }) {
   const W = 900
   const H = 220
@@ -1045,6 +1118,29 @@ function ValueChart({
   const deltaPct = firstVal > 0 ? (delta / firstVal) * 100 : 0
   const up = delta >= 0
 
+  /**
+   * Token bubbles: one per observed inflow, pinned to the time it was seen and the
+   * portfolio value at that moment, so each one sits exactly on the line.
+   */
+  const bubblePoints = showBubbles
+    ? events
+        .filter((e) => e.t >= from && e.t <= now)
+        .map((e) => ({
+          ...e,
+          x: padX + Math.min(Math.max((e.t - from) / span, 0), 1) * (W - padX * 2),
+          y: Math.min(Math.max(H - padY - ((e.v - min) / ySpan) * (H - padY * 2), padY), H - padY),
+        }))
+        .sort((a, b) => a.x - b.x)
+        .map((b, i, arr) => {
+          // nudge stacked bubbles so two tokens arriving at once stay readable
+          const prev = arr[i - 1]
+          if (prev && Math.abs(b.x - prev.x) < 26 && Math.abs(b.y - prev.y) < 24) {
+            b.y = Math.min(Math.max(b.y + 26, padY), H - padY)
+          }
+          return b
+        })
+    : []
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-[12px] border border-line bg-ink-850/40">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full">
@@ -1079,6 +1175,23 @@ function ValueChart({
         <circle cx={last.x} cy={last.y} r="7" fill="var(--color-accent)" opacity="0.18" />
         <circle cx={last.x} cy={last.y} r="3.4" fill="var(--color-accent)" vectorEffect="non-scaling-stroke" />
       </svg>
+
+      {bubblePoints.length > 0 && (
+        <div className="pointer-events-none absolute inset-0">
+          {bubblePoints.map((b, i) => (
+            <div
+              key={`${b.t}-${b.symbol}-${i}`}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${(b.x / W) * 100}%`, top: `${(b.y / H) * 100}%` }}
+              title={`${b.symbol} balance rose · ${new Date(b.t).toLocaleString()}`}
+            >
+              <span className="grid size-[22px] place-items-center rounded-full bg-ink-700 shadow-[0_2px_10px_rgba(0,0,0,0.55)] ring-2 ring-white/25">
+                <TokenIcon symbol={b.symbol} size={15} chainId={b.chainId ?? undefined} address={b.address} />
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2">
         <span
