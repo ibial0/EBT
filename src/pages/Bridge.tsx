@@ -973,6 +973,8 @@ export default function Bridge() {
   }
 
   const hasRoute = Boolean(route) && Boolean(dest)
+  /** Robinhood-like Orbit chains settle on their parent: value leaves by withdrawal, not a bridge. */
+  const isCanonicalWithdraw = orbitBridgeFor(fromId)?.parentChainId === toId
   const nonEvmOutAmt = nonEvmCctpEligible && nonEvmCctpQuote.data
     ? (fast ? nonEvmCctpQuote.data.fastOut : nonEvmCctpQuote.data.standardOut)
     : null
@@ -985,7 +987,7 @@ export default function Bridge() {
   return (
     <div className="flex min-h-0 flex-col gap-4 lg:h-[calc(100dvh-7rem)] lg:flex-none">
       <div className="grid w-full min-h-0 flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
-        <Card className="flex h-full min-h-0 flex-col overflow-hidden p-5">
+        <Card className="flex h-full min-h-0 flex-col p-5">
           <div className="relative flex flex-1 flex-col gap-3">
             <div
               onMouseDown={(e) => {
@@ -1039,7 +1041,7 @@ export default function Bridge() {
                     onMouseDown={(e) => e.preventDefault()}
                     onMouseEnter={openChips}
                     style={{ display: chipsOpen ? 'flex' : 'none' }}
-                    className="absolute right-0 top-full mt-3 items-center gap-1.5"
+                    className="absolute right-0 top-full z-30 mt-3 items-center gap-1.5 rounded-lg border border-line bg-ink-850 px-2 py-1.5 shadow-lg"
                   >
                     {[25, 50, 75].map((pct) => (
                       <button
@@ -1162,6 +1164,34 @@ export default function Bridge() {
                 />
               </div>
             )
+          ) : !route && isCanonicalWithdraw ? (
+            <div className="mt-3 rounded-xl border border-line-strong bg-ink-850 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[12.5px] font-semibold text-t1">
+                  Canonical withdrawal · {fromShort} → {toShort}
+                </p>
+                <span className="mono rounded-md border border-line px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-t3">
+                  settles to {toShort}
+                </span>
+              </div>
+              <p className="mt-1.5 text-[11.5px] leading-relaxed text-t2">
+                {fromShort} is an Orbit chain that settles on {toShort}, so value does not hop over a bridge —
+                it is withdrawn here and released on {toShort}. You sign once to start it; the rollup then
+                confirms your message on {toShort} (this testnet has been taking tens of minutes, the panel
+                shows the live count) and you sign once more to claim. Nothing is lost while it waits.
+              </p>
+              <OrbitWithdrawPanel fromId={fromId} toId={toId} />
+              {orbitWithdrawLink && (
+                <a
+                  href={orbitWithdrawLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-[10.5px] text-t3 underline-offset-2 hover:text-t1 hover:underline"
+                >
+                  Or open the same withdrawal on the Arbitrum portal ↗
+                </a>
+              )}
+            </div>
           ) : !route ? (
             <div className="mt-3 rounded-lg border border-[#ff8f8f]/25 bg-[#ff8f8f]/8 px-3 py-2.5">
               <div className="text-[12px] font-medium text-[#ffb4b6]">
@@ -1175,26 +1205,13 @@ export default function Bridge() {
                       : 'No verified provider covers this pair in this direction.'))
                   : 'Pick an asset to see whether it can move.'}
               </p>
-              {orbitBridgeFor(fromId)?.parentChainId === toId && (
-                <OrbitWithdrawPanel fromId={fromId} toId={toId} />
-              )}
-              {orbitWithdrawLink && (
-                <a
-                  href={orbitWithdrawLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 text-[10.5px] text-t3 underline-offset-2 hover:text-t1 hover:underline"
-                >
-                  Or open the same withdrawal on the Arbitrum portal ↗
-                </a>
-              )}
               {reachableSources.length > 0 && (
                 <p className="mt-1 text-[11px] leading-relaxed text-t3">
                   Assets that can leave {fromShort} for {toShort}:{' '}
                   {reachableSources.map((t) => t.symbol).join(', ')}.
                 </p>
               )}
-              {reachableSources.length === 0 && orbitBridgeFor(fromId)?.parentChainId !== toId && (
+              {reachableSources.length === 0 && !isCanonicalWithdraw && (
                 <p className="mt-1 text-[11px] leading-relaxed text-t3">
                   Nothing can leave {fromShort} for {toShort}. The reverse direction may still work.
                 </p>
@@ -1467,6 +1484,19 @@ export default function Bridge() {
                 />
                 {estimate.data?.failed && <p className="mt-2 text-[11px] text-[#ffb4b6]">{estimate.data.failed}</p>}
               </>
+            ) : isCanonicalWithdraw ? (
+              <div className="space-y-2">
+                <p className="text-[12px] leading-5 text-t2">
+                  {fromShort} settles on {toShort}, so the withdrawal below is the route — there is no
+                  separate bridge to configure.
+                </p>
+                <ol className="space-y-1 text-[11.5px] leading-5 text-t3">
+                  <li>1 · Withdraw on {fromShort} — you sign</li>
+                  <li>2 · The rollup confirms the message on {toShort}</li>
+                  <li>3 · Claim on {toShort} — you sign again</li>
+                </ol>
+                <p className="mono text-[11px] text-t3">≈ tens of minutes on this testnet</p>
+              </div>
             ) : (
               <p className="text-[12px] leading-5 text-t3">
                 {`${source?.symbol ?? 'The selected asset'} has no verified route from ${fromShort} to ${toShort}.`}

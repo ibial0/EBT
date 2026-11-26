@@ -10,7 +10,7 @@ import { Badge, Button, ChainLogo, NetworkLogo, Empty, Modal, Spinner, TokenIcon
 import { ConnectButton } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { shortAddr, fmt } from '../lib/format'
-import { TokenActions, tokenRowKey } from '../components/TokenActions'
+import { TokenActions, TokenSheet, tokenRowKey } from '../components/TokenActions'
 import { addActivity } from '../lib/activity'
 import {
   loadPortfolio,
@@ -96,7 +96,11 @@ export default function Portfolio() {
   const [inflows, setInflows] = useState<InflowEvent[]>(() => loadInflows())
   const prevRowsRef = useRef<FlatHolding[] | null>(null)
   const [popupGroup, setPopupGroup] = useState<Group | null>(null)
-  const [popupMode, setPopupMode] = useState<'view' | 'send' | 'receive'>('view')
+  /** Opened from the Overview for a token that lives on several chains. */
+  const [sheetGroup, setSheetGroup] = useState<Group | null>(null)
+  const [popupMode, setPopupMode] = useState<'send' | 'receive'>('send')
+  /** When set, the popup is pinned to that chain row (Tokens tab drill-down). */
+  const [popupLock, setPopupLock] = useState<string | null>(null)
   const [popupRowKey, setPopupRowKey] = useState<string | null>(null)
   const [sendTo, setSendTo] = useState('')
   const [sendAmount, setSendAmount] = useState('')
@@ -583,7 +587,17 @@ export default function Portfolio() {
                 <button
                   key={g.symbol}
                   type="button"
-                  onClick={() => setPopupGroup(g)}
+                  onClick={() => {
+                    // one token spread over several chains: show the chain summary first
+                    if (g.rows.length > 1) {
+                      setSheetGroup(g)
+                      return
+                    }
+                    setPopupRowKey(null)
+                    setPopupLock(null)
+                    setPopupMode('send')
+                    setPopupGroup(g)
+                  }}
                   className="group relative flex cursor-pointer flex-col items-center gap-1.5 rounded-xl px-2 py-2 transition-colors duration-200 hover:bg-ink-700/40 focus:outline-none"
                   title={`${g.symbol} across ${g.rows.length} chain${g.rows.length > 1 ? 's' : ''}`}
                   style={{
@@ -725,6 +739,8 @@ export default function Portfolio() {
                             })
                             return
                           }
+                          setPopupMode('send')
+                          setPopupLock(null)
                           setPopupGroup(g)
                           setPopupRowKey(null)
                         }}
@@ -800,6 +816,8 @@ export default function Portfolio() {
                                     key={`${r.networkKey}-${r.address ?? 'native'}`}
                                     type="button"
                                     onClick={() => {
+                                      setPopupMode('send')
+                                      setPopupLock(tokenRowKey(r))
                                       setPopupGroup(g)
                                       setPopupRowKey(tokenRowKey(r))
                                     }}
@@ -879,13 +897,46 @@ export default function Portfolio() {
         <ImportToken chainId={importFor} onClose={() => setImportFor(null)} onDone={() => portfolio.refetch()} />
       )}
 
+      {sheetGroup != null && (
+        <TokenSheet
+          group={sheetGroup}
+          onClose={() => setSheetGroup(null)}
+          formatUsd={usd}
+          onSend={(rk) => {
+            setPopupMode('send')
+            setPopupLock(null)
+            setPopupRowKey(rk ?? null)
+            setPopupGroup(sheetGroup)
+            setSheetGroup(null)
+          }}
+          onReceive={(rk) => {
+            setPopupMode('receive')
+            setPopupLock(null)
+            setPopupRowKey(rk ?? null)
+            setPopupGroup(sheetGroup)
+            setSheetGroup(null)
+          }}
+          onPickChain={(rk) => {
+            setPopupMode('send')
+            setPopupLock(rk)
+            setPopupRowKey(rk)
+            setPopupGroup(sheetGroup)
+            setSheetGroup(null)
+          }}
+        />
+      )}
+
       {popupGroup != null && (
         <TokenActions
+          key={`${popupGroup.symbol}-${popupMode}-${popupLock ?? 'any'}`}
           group={popupGroup}
           initialRowKey={popupRowKey}
+          initialMode={popupMode}
+          lockedRowKey={popupLock}
           onClose={() => {
             setPopupGroup(null)
             setPopupRowKey(null)
+            setPopupLock(null)
           }}
           onSent={() => portfolio.refetch()}
           receiveAddressFor={(r) =>
