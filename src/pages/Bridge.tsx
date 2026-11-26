@@ -18,8 +18,6 @@ import {
 } from '../lib/nonEvmBridge'
 import { loadNonEvmPortfolio } from '../lib/nonEvmPortfolio'
 import { WALLET_FAMILIES, openWalletModal, useNonEvmWallets } from '../lib/walletsMulti'
-import { fetchLifiQuote, lifiToolLabel, lifiOutAmount, lifiFeeUsd, LIFI_NATIVE } from '../lib/lifi'
-import { fetchRelayQuote, relayFmtAmount, relayTimeLabel, RELAY_NATIVE } from '../lib/relay'
 import { ChainChip, ChainSelect } from '../components/ChainSelect'
 import { ConnectButton } from '../components/Layout'
 import { Timeline } from '../components/Timeline'
@@ -1547,18 +1545,6 @@ export default function Bridge() {
             )}
           </Card>
 
-          {/* ── Aggregator quotes: LI.FI + Relay (EVM pairs) ─────────────── */}
-          {!isNonEvmBridge && !isCanonicalWithdraw && (
-            <AggregatorQuotes
-              fromId={fromId}
-              toId={toId}
-              source={source}
-              dest={dest}
-              amountIn={amountIn}
-              address={address}
-            />
-          )}
-
           <Card className="p-4">
             <div className="flex items-start gap-2 text-[11px] leading-relaxed text-t2">
               <Info size={14} className="mt-0.5 shrink-0 text-accent" />
@@ -1572,11 +1558,9 @@ export default function Bridge() {
                   bridges. Every signature is real and signed by your wallet.
                 </p>
                 <p>
-                  <span className="font-semibold text-t1">LI.FI + Relay</span> aggregator quotes are shown as reference — they cover
-                  additional token pairs and chains not in our native routing.
-                </p>
-                <p className="text-t3">
-                  Canonical L2→L1 withdrawals (7-day challenge) are omitted; use Across v3 where supported.
+                  <span className="font-semibold text-t1">Canonical withdrawals</span> from an Orbit chain back to
+                  its parent are handled as a withdrawal: one signature to start it, then a claim once the rollup
+                  confirms — quick on this testnet, 7 days on mainnet Arbitrum.
                 </p>
               </div>
             </div>
@@ -1756,151 +1740,6 @@ function TransferCard({ item }: { item: ActivityItem }) {
       </div>
       <div className="border-t border-line px-4 py-2.5">
         <Timeline steps={item.steps} compact />
-      </div>
-    </Card>
-  )
-}
-
-/**
- * AggregatorQuotes — live LI.FI and Relay quotes shown beside the native route.
- */
-function AggregatorQuotes({
-  fromId,
-  toId,
-  source,
-  dest,
-  amountIn,
-  address,
-}: {
-  fromId: number
-  toId: number
-  source: import('../config/tokens').TokenCfg | null | undefined
-  dest: import('../config/tokens').TokenCfg | null | undefined
-  amountIn: bigint
-  address: string | undefined
-}) {
-  const isNativeAddr = (addr: string) => addr.toLowerCase() === NATIVE.toLowerCase()
-
-  const lifiFrom = source ? (isNativeAddr(source.address) ? LIFI_NATIVE : source.address) : null
-  const lifiTo = dest ? (isNativeAddr(dest.address) ? LIFI_NATIVE : dest.address) : null
-  const relayFrom = source ? (isNativeAddr(source.address) ? RELAY_NATIVE : source.address) : null
-  const relayTo = dest ? (isNativeAddr(dest.address) ? RELAY_NATIVE : dest.address) : null
-
-  const enabled = Boolean(source) && Boolean(dest) && amountIn > 0n && Boolean(address) && fromId > 0 && toId > 0 && fromId !== toId
-
-  const lifiQ = useQuery({
-    queryKey: ['lifi-quote', fromId, toId, lifiFrom, lifiTo, amountIn.toString()],
-    queryFn: () =>
-      fetchLifiQuote({
-        fromChainId: fromId,
-        toChainId: toId,
-        fromToken: lifiFrom!,
-        toToken: lifiTo!,
-        fromAmount: amountIn.toString(),
-        fromAddress: address!,
-        skipSimulation: true,
-      }),
-    enabled: enabled && Boolean(lifiFrom) && Boolean(lifiTo),
-    staleTime: 20_000,
-    retry: 0,
-  })
-
-  const relayQ = useQuery({
-    queryKey: ['relay-quote', fromId, toId, relayFrom, relayTo, amountIn.toString()],
-    queryFn: () =>
-      fetchRelayQuote({
-        user: address!,
-        originChainId: fromId,
-        destinationChainId: toId,
-        originCurrency: relayFrom!,
-        destinationCurrency: relayTo!,
-        amount: amountIn.toString(),
-      }),
-    enabled: enabled && Boolean(relayFrom) && Boolean(relayTo),
-    staleTime: 20_000,
-    retry: 0,
-  })
-
-  if (!enabled) return null
-
-  return (
-    <Card className="p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-t1">Aggregator Quotes</h3>
-        <Badge tone="blue">Reference</Badge>
-      </div>
-      <p className="mb-3 text-[11px] text-t3">
-        Live quotes from LI.FI and Relay Protocol for comparison.
-      </p>
-
-      {/* LI.FI quote */}
-      <div className="mb-2 rounded-lg border border-line bg-ink-850 p-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[12px] font-semibold text-t1">LI.FI</span>
-          {lifiQ.isFetching && <Spinner />}
-          {lifiQ.data && <Badge tone="mint">{lifiToolLabel(lifiQ.data)}</Badge>}
-        </div>
-        {lifiQ.data ? (
-          <div className="space-y-1 text-[11px]">
-            <Row label="Receive" value={`${lifiOutAmount(lifiQ.data)} ${lifiQ.data.action.toToken.symbol}`} />
-            <Row label="Fee (est.)" value={lifiFeeUsd(lifiQ.data) > 0 ? `$${lifiFeeUsd(lifiQ.data).toFixed(3)}` : '—'} />
-            <Row label="Time" value={`≈${lifiQ.data.estimate.executionDuration}s`} />
-            <a
-              href={`https://jumper.exchange/?fromChain=${fromId}&toChain=${toId}&fromToken=${lifiFrom ?? ''}&toToken=${lifiTo ?? ''}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-accent hover:underline"
-            >
-              Open in Jumper (LI.FI) ↗
-            </a>
-          </div>
-        ) : lifiQ.isFetching ? (
-          <p className="text-[11px] text-t3">Fetching LI.FI quote…</p>
-        ) : (
-          <p className="text-[11px] text-t3">
-            {lifiQ.isError ? 'Error fetching quote.' : 'No LI.FI route for this pair on testnet.'}
-          </p>
-        )}
-      </div>
-
-      {/* Relay quote */}
-      <div className="rounded-lg border border-line bg-ink-850 p-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[12px] font-semibold text-t1">Relay Protocol</span>
-          {relayQ.isFetching && <Spinner />}
-          {relayQ.data && <Badge tone="mint">{relayTimeLabel(relayQ.data.details?.timeEstimate ?? 10)}</Badge>}
-        </div>
-        {relayQ.data ? (
-          <div className="space-y-1 text-[11px]">
-            <Row
-              label="Receive"
-              value={`${relayFmtAmount(
-                relayQ.data.details?.currencyOut?.amount ?? '0',
-                relayQ.data.details?.currencyOut?.currency?.decimals ?? 18,
-              )} ${relayQ.data.details?.currencyOut?.currency?.symbol ?? dest?.symbol ?? '?'}`}
-            />
-            <Row
-              label="Relayer fee"
-              value={relayQ.data.fees?.relayerService
-                ? `${relayFmtAmount(relayQ.data.fees.relayerService, 18)} ETH`
-                : '—'}
-            />
-            <a
-              href="https://testnets.relay.link/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-accent hover:underline"
-            >
-              Open in Relay ↗
-            </a>
-          </div>
-        ) : relayQ.isFetching ? (
-          <p className="text-[11px] text-t3">Fetching Relay quote…</p>
-        ) : (
-          <p className="text-[11px] text-t3">
-            {relayQ.isError ? 'Error fetching quote.' : 'No Relay route for this pair on testnet.'}
-          </p>
-        )}
       </div>
     </Card>
   )
