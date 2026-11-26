@@ -26,6 +26,8 @@ interface Saved {
   amount: string
   createdAt: number
   claimedHash?: string
+  /** the local activity record this withdrawal writes to, so a resumed claim still closes it */
+  activityId?: string
 }
 
 function loadSaved(): Saved[] {
@@ -85,6 +87,7 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
     const pending = loadSaved().find((s) => s.fromId === fromId && s.toId === toId && !s.claimedHash)
     if (!pending) return
     setPhase('waiting')
+    if (pending.activityId) setActivityId(pending.activityId)
     void readWithdrawal(fromId, pending.txHash)
       .then((w) => {
         setWithdrawal(w)
@@ -146,7 +149,7 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
       updateStep(act.id, 'withdraw', { status: 'done', hash })
       notify(`Withdrawal started · ${shortAddr(hash, 6)}`, 'success')
       const list = loadSaved().filter((s) => s.txHash !== hash)
-      list.unshift({ txHash: hash, fromId, toId, amount, createdAt: Date.now() })
+      list.unshift({ txHash: hash, fromId, toId, amount, createdAt: Date.now(), activityId: act.id })
       save(list)
       const w = await readWithdrawal(fromId, hash)
       setWithdrawal(w)
@@ -202,9 +205,10 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
         <span className="ml-1 text-[12.5px] font-semibold text-t1">Canonical withdrawal</span>
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-t2">
-        {from.short} settles to {to.short}. Value leaves in three signed steps — withdraw, wait for the
-        assertion to confirm on {to.short} (this testnet: ~4 minutes), then claim with the proof. You can close
-        this page and come back: the withdrawal is kept in this browser.
+        {from.short} settles to {to.short}. Value leaves in three signed steps — withdraw, wait until the rollup has
+        confirmed an assertion that includes your message, then claim with the proof. On this testnet that has been
+        taking tens of minutes; the counter below is the chain's own confirmed send count, not an estimate. You can
+        close this page and come back — the withdrawal is kept in this browser.
       </p>
 
       {phase === 'idle' && (

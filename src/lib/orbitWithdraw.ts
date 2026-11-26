@@ -162,16 +162,13 @@ export async function findOutboxProof(
     )
   }
 
-  const [, root, proof] = (await l2.readContract({
+  const [, , proof] = (await l2.readContract({
     address: NODE_INTERFACE,
     abi: nodeAbi,
     functionName: 'constructOutboxProof',
     args: [confirmed.size, w.position],
   })) as unknown as [`0x${string}`, `0x${string}`, `0x${string}`[]]
   if (!proof?.length) throw new Error('The node returned no proof.')
-  if (root.toLowerCase() !== confirmed.sendRoot.toLowerCase()) {
-    throw new Error('The node proof does not match the confirmed send root.')
-  }
 
   // Final say belongs to the outbox itself: a static call that would revert means "not yet".
   try {

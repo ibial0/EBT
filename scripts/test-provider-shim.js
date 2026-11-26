@@ -24,7 +24,7 @@
 
   const provider = {
     isTestWallet: true,
-    isMetaMask: false,
+    isMetaMask: true,
     async request({ method, params }) {
       const result = await forward(method, params)
       if (method === 'wallet_switchEthereumChain') {
@@ -53,5 +53,6 @@
     window.dispatchEvent(new CustomEvent('eip6963:announceProvider', { detail: { info, provider } })),
   )
 
+  provider.providers = [provider]
   window.ethereum = provider
 })()
