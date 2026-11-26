@@ -1144,6 +1144,9 @@ export default function Bridge() {
                     )
                   ) : estimate.data && dest ? (
                     fmt(estimate.data.amountOut, dest.decimals, 6)
+                  ) : isCanonicalWithdraw && amountIn > 0n ? (
+                    // the withdrawal returns the same asset 1:1 (gas is paid on the source chain)
+                    fmt(amountIn, 18, 6)
                   ) : (
                     <span className="text-t3">0.0</span>
                   )}
@@ -1211,15 +1214,14 @@ export default function Bridge() {
             )
           ) : !route && isCanonicalWithdraw ? (
             <div className="mt-3 rounded-xl border border-line-strong bg-ink-850 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[12.5px] font-semibold text-t1">
-                  Canonical withdrawal · {fromShort} → {toShort}
-                </p>
-                <span className="mono rounded-md border border-line px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-t3">
-                  settles to {toShort}
-                </span>
-              </div>
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-t2">
+              <RoutePath
+                fromId={fromId}
+                toId={toId}
+                source={source}
+                dest={dest}
+                overrideLabel="Canonical withdrawal"
+              />
+              <p className="mt-3 border-t border-line pt-3 text-[11.5px] leading-relaxed text-t2">
                 {fromShort} is an Orbit chain that settles on {toShort}, so this is a withdrawal rather than a
                 fast bridge: the rollup confirms your message on {toShort} (≈ tens of minutes on this testnet)
                 and the value is then claimable from Activity. Nothing is lost while it waits.
@@ -1500,7 +1502,7 @@ export default function Bridge() {
                 <Row label="Source asset" value={source?.symbol ?? '-'} />
                 <Row label="Destination asset" value={dest?.symbol ?? '-'} />
                 <Row label="Wallet signatures" value={String(route.txCount)} />
-                <Row label="You receive" value={estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : '—'} />
+                <Row label="You receive" value={estimate.data && dest ? `${fmt(estimate.data.amountOut, dest.decimals, 6)} ${dest.symbol}` : isCanonicalWithdraw && amountIn > 0n ? `${fmt(amountIn, 18, 6)} ${dest?.symbol ?? 'ETH'}` : '—'} />
                 <Row
                   label="ETA"
                   value={
