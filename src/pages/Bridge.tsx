@@ -8,6 +8,8 @@ import { getPublicClient, getWalletClient } from 'wagmi/actions'
 import { CHAINS, getChain, type Address } from '../config/chains'
 import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/networks'
 import { WETH, isNativeToken, nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
+import { useSearchParams } from 'react-router-dom'
+import { OrbitWithdrawPanel } from '../components/OrbitWithdrawPanel'
 import { Card, Button, Badge, Row, notify, ChainLogo, NetworkLogo, TokenIcon, Spinner } from '../components/ui'
 import {
   NON_EVM_BRIDGE_ENDPOINTS,
@@ -267,8 +269,22 @@ export default function Bridge() {
   const { switchChainAsync } = useSwitchChain()
   const nonEvmWallets = useNonEvmWallets()
 
-  const [fromId, setFromId] = useState(11155111)
-  const [toId, setToId] = useState(84532)
+  // Chains can be deep-linked: /bridge?from=46630&to=11155111 opens that pair directly.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const paramId = (key: string, fallback: number) => {
+    const n = Number(searchParams.get(key))
+    return Number.isFinite(n) && n > 0 ? n : fallback
+  }
+  const [fromId, setFromId] = useState(() => paramId('from', 11155111))
+  const [toId, setToId] = useState(() => paramId('to', 84532))
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+    next.set('from', String(fromId))
+    next.set('to', String(toId))
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromId, toId])
   const [sourceId, setSourceId] = useState(keyOf(11155111, NATIVE))
   const [destId, setDestId] = useState(keyOf(84532, NATIVE))
   const [amount, setAmount] = useState('')
@@ -1159,14 +1175,17 @@ export default function Bridge() {
                       : 'No verified provider covers this pair in this direction.'))
                   : 'Pick an asset to see whether it can move.'}
               </p>
+              {orbitBridgeFor(fromId)?.parentChainId === toId && (
+                <OrbitWithdrawPanel fromId={fromId} toId={toId} />
+              )}
               {orbitWithdrawLink && (
                 <a
                   href={orbitWithdrawLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-[11px] font-semibold text-[#111628] hover:bg-accent-2"
+                  className="mt-2 inline-flex items-center gap-1 text-[10.5px] text-t3 underline-offset-2 hover:text-t1 hover:underline"
                 >
-                  Withdraw on Arbitrum Bridge <span aria-hidden>↗</span>
+                  Or open the same withdrawal on the Arbitrum portal ↗
                 </a>
               )}
               {reachableSources.length > 0 && (
@@ -1175,7 +1194,7 @@ export default function Bridge() {
                   {reachableSources.map((t) => t.symbol).join(', ')}.
                 </p>
               )}
-              {reachableSources.length === 0 && (
+              {reachableSources.length === 0 && orbitBridgeFor(fromId)?.parentChainId !== toId && (
                 <p className="mt-1 text-[11px] leading-relaxed text-t3">
                   Nothing can leave {fromShort} for {toShort}. The reverse direction may still work.
                 </p>

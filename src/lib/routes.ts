@@ -554,7 +554,7 @@ export function noRouteReason(fromId: number, toId: number, token: TokenCfg): st
   const orbitCfg = orbitBridgeFor(toId)
   const toIsParentOfFrom = to.opStackParent === fromId || orbitCfg?.chainId === fromId || false
   if (toIsParentOfFrom) {
-    return `Canonical withdrawals from ${from.short} back to ${to.short} need a 7-day challenge period, so this app does not offer them (Across v3 fast exits cover Sepolia/Base/Arb/OP/Unichain/Amoy only).`
+    return `Leaving ${from.short} for ${to.short} is a canonical withdrawal, not a one-shot transfer: it settles only after the challenge period (7 days on mainnet Arbitrum). The withdrawal panel on this page walks the three signed steps.`
   }
 
   /**
@@ -565,7 +565,7 @@ export function noRouteReason(fromId: number, toId: number, token: TokenCfg): st
    */
   const orbitFrom = orbitBridgeFor(fromId)
   if (orbitFrom && orbitFrom.parentChainId === toId) {
-    return `Going from ${from.short} back to ${to.short} is a canonical Arbitrum withdrawal, not a one-shot transfer: initiate it on ${from.short}, wait out the challenge period, then claim it on ${to.short}. This app does not sign the claim step — the Arbitrum bridge handles all three for you.`
+    return `Going from ${from.short} back to ${to.short} is a canonical Arbitrum withdrawal, not a one-shot transfer: withdraw on ${from.short}, wait for that block to be confirmed on ${to.short} (this testnet: about 4 minutes; mainnet Arbitrum: 7 days), then claim it with the proof the chain itself builds. All three steps are below and each one is signed by you.`
   }
 
   if (isNative) {
