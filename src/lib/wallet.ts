@@ -1,5 +1,5 @@
 import { createConfig, http } from 'wagmi'
-import { injected } from 'wagmi/connectors'
+import { injected, walletConnect } from 'wagmi/connectors'
 import type { Chain } from 'viem'
 import { CHAINS, VIEM_CHAINS } from '../config/chains'
 
@@ -70,9 +70,22 @@ export const RPC: Record<number, string> = {
   999999999: 'https://sepolia.rpc.zora.energy',
 }
 
+/**
+ * WalletConnect (QR / mobile pairing) is opt-in: it needs a project id from
+ * cloud.reown.com. Drop it in `.env.local` as VITE_WALLETCONNECT_PROJECT_ID and the
+ * "WalletConnect — QR Code" row appears in the picker; without it that row is simply
+ * not shown, because a QR button that cannot pair would be a lie.
+ */
+export const WC_PROJECT_ID = ((import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string | undefined) ?? '').trim()
+
 export const wagmiConfig = createConfig({
   chains: VIEM_CHAINS as unknown as readonly [Chain, ...Chain[]],
-  connectors: [injected({ shimDisconnect: true })],
+  connectors: [
+    injected({ shimDisconnect: true }),
+    ...(WC_PROJECT_ID
+      ? [walletConnect({ projectId: WC_PROJECT_ID, showQrModal: true })]
+      : []),
+  ],
   transports: Object.fromEntries(
     CHAINS.map((c) => [c.id, http(RPC[c.id] ?? c.viem.rpcUrls.default.http[0], { batch: true, retryCount: 2 })]),
   ),

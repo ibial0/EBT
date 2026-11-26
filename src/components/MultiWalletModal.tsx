@@ -5,6 +5,7 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { Modal, notify } from './ui'
 import { NON_EVM_NETWORKS } from '../config/networks'
 import { walletLogo } from '../config/walletLogos'
+import { WALLET_CATALOG } from '../config/walletCatalog'
 import {
   WALLET_FAMILIES,
   closeWalletModal,
@@ -95,6 +96,7 @@ const BRAND_ALIASES: Array<[RegExp, string]> = [
   [/pera/, 'pera'],
   [/lute/, 'lute'],
   [/algorand/, 'algorand'],
+  [/near/, 'near'],
   [/meteor/, 'meteor'],
   [/talisman/, 'talisman'],
   [/subwallet/, 'subwallet'],
@@ -136,19 +138,18 @@ function initials(name: string): string {
 function BrandAvatar({ iconSrc, name, size = 44 }: { iconSrc?: string; name: string; size?: number }) {
   const [broken, setBroken] = useState(false)
   if (iconSrc && !broken) {
-    // Favicons and extension icons are drawn edge-to-edge, so the mark sits inside the
-    // circle with breathing room instead of being cropped by a circular mask.
+    // Wallet marks ship as square tiles; clipping them to a circle is what every wallet
+    // picker does, so a square logo never shows four corners.
     return (
       <span
-        className="grid shrink-0 place-items-center rounded-full border border-line-strong bg-ink-900"
+        className="shrink-0 overflow-hidden rounded-full border border-line-strong bg-ink-900"
         style={{ width: size, height: size }}
       >
         <img
           src={iconSrc}
           alt=""
           onError={() => setBroken(true)}
-          className="object-contain"
-          style={{ width: Math.round(size * 0.76), height: Math.round(size * 0.76) }}
+          className="h-full w-full rounded-full object-cover"
         />
       </span>
     )
@@ -204,6 +205,8 @@ interface BrandGroup {
   installUrl?: string
   targets: ConnectTarget[]
   missing: NonEvmWalletProvider[]
+  /** WalletConnect pairing (QR / mobile) rather than a browser extension. */
+  qr?: boolean
 }
 
 /** Single global instance rendered in Layout, controlled via openWalletModal(). */
@@ -318,6 +321,46 @@ export function MultiWalletModal({
       } else {
         entry.missing.push(p)
       }
+    }
+
+    // WalletConnect (QR / mobile pairing) only exists when a project id is configured.
+    const wc = connectors.find((c) => c.id === 'walletConnect')
+    if (wc) {
+      const entry = upsert('WalletConnect')
+      entry.name = 'WalletConnect'
+      entry.qr = true
+      entry.iconSrc = walletLogo('walletconnect')
+      if (!entry.families.includes('evm')) entry.families.push('evm')
+      entry.targets.push({
+        family: 'evm',
+        run: () =>
+          new Promise<void>((resolve, reject) => {
+            connect(
+              { connector: wc },
+              {
+                onSuccess: (data) => {
+                  notify('WalletConnect paired', 'success')
+                  onConnected?.('evm', data.accounts[0] ?? '')
+                  onClose()
+                  resolve()
+                },
+                onError: (err) => {
+                  notify(err.message, 'error')
+                  reject(err)
+                },
+              },
+            )
+          }),
+      })
+    }
+
+    // Catalog entries fill the rows for wallets that are not installed on this device.
+    // They add a name, chains and a download link — never a fake "connected" target.
+    for (const c of WALLET_CATALOG) {
+      const entry = upsert(c.name)
+      for (const f of c.families) if (!entry.families.includes(f)) entry.families.push(f)
+      if (!entry.installUrl) entry.installUrl = c.installUrl
+      if (!entry.iconSrc && walletLogo(c.key)) entry.iconSrc = walletLogo(c.key)
     }
 
     return [...map.values()]
@@ -526,6 +569,10 @@ export function MultiWalletModal({
 
                   {busy ? (
                     <span className="shrink-0 text-[11px] text-accent">Connecting…</span>
+                  ) : b.qr ? (
+                    <span className="shrink-0 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[10.5px] font-semibold text-accent">
+                      QR Code
+                    </span>
                   ) : connected ? (
                     <span className="shrink-0 rounded-full bg-pos/15 px-2.5 py-1 text-[10.5px] font-semibold text-pos">
                       Connected

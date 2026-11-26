@@ -38,6 +38,15 @@ export const WALLET_LOGO_FILES: Record<string, string> = {
   coinbase: 'coinbase.png',
   trust: 'trust.png',
   algorand: 'algorand.png',
+  nightly: 'nightly.png',
+  brave: 'brave.png',
+  rainbow: 'rainbow.png',
+  zerion: 'zerion.png',
+  enkrypt: 'enkrypt.png',
+  frame: 'frame.png',
+  coin98: 'coin98.png',
+  glow: 'glow.png',
+  walletconnect: 'walletconnect.png',
 }
 
 export function walletLogo(key: string): string | undefined {
