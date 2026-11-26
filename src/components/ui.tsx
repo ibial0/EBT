@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import clsx from 'clsx'
-import { Check, Copy, Loader2, X } from 'lucide-react'
+import { ArrowLeft, Check, Copy, Loader2, X } from 'lucide-react'
 import { copy as doCopy } from '../lib/format'
 import { getChain, type ChainCfg } from '../config/chains'
 import { chainLogoById, chainLogoFile, tokenLogoFile } from '../config/logos'
@@ -305,12 +305,14 @@ export function Modal({
   title,
   children,
   width = 'max-w-md',
+  onBack,
 }: {
   open: boolean
   onClose: () => void
   title: ReactNode
   children: ReactNode
   width?: string
+  onBack?: () => void
 }) {
   useEffect(() => {
     if (!open) return
@@ -335,9 +337,24 @@ export function Modal({
           width,
         )}
       >
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <div className="text-[14px] font-medium text-t1">{title}</div>
-          <button onClick={onClose} className="rounded-md p-1 text-t3 transition-colors hover:bg-ink-700 hover:text-t1">
+        <div className="grid grid-cols-[28px_1fr_28px] items-center border-b border-line px-4 py-3.5">
+          <div>
+            {onBack && (
+              <button
+                onClick={onBack}
+                aria-label="Back"
+                className="rounded-full p-1 text-t2 transition-colors hover:bg-ink-700 hover:text-t1"
+              >
+                <ArrowLeft size={17} />
+              </button>
+            )}
+          </div>
+          <div className="text-center text-[14px] font-medium text-t1">{title}</div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="justify-self-end rounded-full p-1 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
+          >
             <X size={16} />
           </button>
         </div>

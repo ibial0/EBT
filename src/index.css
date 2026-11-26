@@ -541,3 +541,26 @@
 .token-reflect {
   animation: tokenReflect 750ms ease-out forwards;
 }
+
+/* ── wallet picker ── */
+@keyframes walletPaneIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.992); }
+  to { opacity: 1; transform: none; }
+}
+.wallet-pane { animation: walletPaneIn 240ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+@keyframes walletRowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.wallet-row { animation: walletRowIn 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+@keyframes ecoOrbIn {
+  from { opacity: 0; transform: scale(0.86); }
+  to { opacity: 1; transform: scale(1); }
+}
+.eco-orb { animation: ecoOrbIn 320ms cubic-bezier(0.34, 1.4, 0.64, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-pane, .wallet-row, .eco-orb { animation: none !important; }
+}

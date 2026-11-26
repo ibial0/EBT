@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
-import { Check, ChevronDown, ExternalLink, Link2Off, Search, Wallet } from 'lucide-react'
+import { Check, ExternalLink, Search, Wallet, X } from 'lucide-react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { Modal, Button, CopyButton, notify } from './ui'
+import { Modal, notify } from './ui'
 import { NON_EVM_NETWORKS } from '../config/networks'
 import {
   WALLET_FAMILIES,
@@ -21,13 +21,12 @@ import {
 import { shortAddr } from '../lib/format'
 
 /**
- * One row per wallet brand.
+ * Wallet picker, one row per wallet brand.
  *
- * OKX ships an EVM, Solana, Sui, Aptos and Starknet extension, but a user
- * connects "OKX" — not five separate OKX rows — so every provider of the same
- * brand collapses into a single entry whose subtitle lists the chains it
- * supports. A wallet row never wears a chain logo: the icon is the wallet's
- * own mark, or a neutral monogram tile when the extension exposes none.
+ * A wallet that lives on several ecosystems shows a single "Multichain" row; tapping it
+ * opens the ecosystem picker (Ethereum / Solana / Sui …) and connects the chain you choose.
+ * Single-ecosystem wallets connect straight from the list. A row never wears a chain logo —
+ * the icon is the wallet's own mark, or a neutral monogram tile when no icon is exposed.
  */
 
 const FAMILY_ORDER: WalletFamily[] = [
@@ -43,6 +42,33 @@ const FAMILY_ORDER: WalletFamily[] = [
   'polkadot',
   'xrpl',
 ]
+
+const ECOSYSTEM_LABEL: Record<WalletFamily, string> = {
+  evm: 'Ethereum',
+  solana: 'Solana',
+  sui: 'Sui',
+  aptos: 'Aptos',
+  starknet: 'Starknet',
+  cosmos: 'Cosmos',
+  stellar: 'Stellar',
+  algorand: 'Algorand',
+  near: 'NEAR',
+  polkadot: 'Polkadot',
+  xrpl: 'XRP Ledger',
+}
+
+const ECOSYSTEM_LOGO: Partial<Record<WalletFamily, string>> = {
+  evm: 'tw_ethereum.png',
+  solana: 'solana.svg',
+  sui: 'sui.svg',
+  aptos: 'aptos.svg',
+  starknet: 'starknet.svg',
+  stellar: 'stellar.png',
+  algorand: 'algorand.png',
+  near: 'near.png',
+  polkadot: 'polkadot.png',
+  xrpl: 'xrpl.png',
+}
 
 const BRAND_ALIASES: Array<[RegExp, string]> = [
   [/okx/, 'okx'],
@@ -96,11 +122,6 @@ function cleanBrandName(name: string): string {
   return cleaned
 }
 
-function familyLabel(f: WalletFamily): string {
-  if (f === 'evm') return 'EVM'
-  return WALLET_FAMILIES[f].label.split(' (')[0]
-}
-
 function initials(name: string): string {
   const parts = cleanBrandName(name)
     .replace(/wallet/gi, '')
@@ -111,13 +132,13 @@ function initials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase()
 }
 
-function BrandTile({ iconSrc, name, size = 32 }: { iconSrc?: string; name: string; size?: number }) {
+function BrandAvatar({ iconSrc, name, size = 44 }: { iconSrc?: string; name: string; size?: number }) {
   if (iconSrc) {
     return (
       <img
         src={iconSrc}
         alt=""
-        className="shrink-0 rounded-[9px] object-cover ring-1 ring-white/10"
+        className="shrink-0 rounded-full bg-ink-900 object-cover"
         style={{ width: size, height: size }}
       />
     )
@@ -125,10 +146,32 @@ function BrandTile({ iconSrc, name, size = 32 }: { iconSrc?: string; name: strin
   const generic = /injected/i.test(name)
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-[9px] border border-line-strong bg-ink-700 text-[11px] font-semibold tracking-wide text-t1"
+      className="grid shrink-0 place-items-center rounded-full border border-line-strong bg-ink-700 font-semibold text-t1"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
+    >
+      {generic ? <Wallet size={Math.round(size * 0.45)} className="text-t2" /> : initials(name)}
+    </span>
+  )
+}
+
+function EcoAvatar({ family, size = 28 }: { family: WalletFamily; size?: number }) {
+  const file = ECOSYSTEM_LOGO[family]
+  if (file) {
+    return (
+      <img
+        src={`/logos/chains/${file}`}
+        alt=""
+        className="shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    )
+  }
+  return (
+    <span
+      className="grid shrink-0 place-items-center rounded-full border border-line-strong bg-ink-700 text-[10px] font-semibold text-t2"
       style={{ width: size, height: size }}
     >
-      {generic ? <Wallet size={Math.round(size * 0.5)} className="text-t2" /> : initials(name)}
+      {ECOSYSTEM_LABEL[family].slice(0, 2).toUpperCase()}
     </span>
   )
 }
@@ -140,7 +183,6 @@ export function nonEvmLogoSrc(family: NonEvmFamily): string | undefined {
 
 interface ConnectTarget {
   family: WalletFamily
-  label: string
   run: () => Promise<void>
 }
 
@@ -150,9 +192,7 @@ interface BrandGroup {
   families: WalletFamily[]
   iconSrc?: string
   installUrl?: string
-  /** Every way this brand can be connected right now. Empty = not installed. */
   targets: ConnectTarget[]
-  /** Providers of this brand that are not installed, for the install hint. */
   missing: NonEvmWalletProvider[]
 }
 
@@ -189,20 +229,19 @@ export function MultiWalletModal({
   const evm = useAccount()
   const { connectors, connect } = useConnect()
   const { disconnect } = useDisconnect()
-  const activeMap = useNonEvmWallets()
   const allNonEvm = useAllNonEvmAccounts()
+  const activeMap = useNonEvmWallets()
 
   const [q, setQ] = useState('')
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [showAll, setShowAll] = useState(false)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
+  const [ecoBrand, setEcoBrand] = useState<BrandGroup | null>(null)
   const [installPrompt, setInstallPrompt] = useState<{ name: string; url: string } | null>(null)
 
   useEffect(() => {
     if (!open) return
     setQ('')
-    setExpanded(null)
-    setShowAll(false)
+    setEcoBrand(null)
+    setBusyKey(null)
     setInstallPrompt(null)
   }, [open])
 
@@ -218,7 +257,6 @@ export function MultiWalletModal({
       return entry
     }
 
-    // EVM browser wallets discovered through EIP-6963 / injected connectors.
     const injected = connectors.filter((c) => c.id === 'injected' || c.type === 'injected')
     const named = injected.filter((c) => c.id !== 'injected')
     const evmList = named.length > 0 ? named : injected
@@ -228,7 +266,6 @@ export function MultiWalletModal({
       if (!entry.iconSrc && c.icon) entry.iconSrc = c.icon
       entry.targets.push({
         family: 'evm',
-        label: 'EVM',
         run: () =>
           new Promise<void>((resolve, reject) => {
             const doConnect = () =>
@@ -253,7 +290,6 @@ export function MultiWalletModal({
       })
     }
 
-    // Non-EVM browser wallet extensions.
     for (const p of getNonEvmWalletProviders()) {
       const entry = upsert(p.name)
       if (!entry.families.includes(p.family)) entry.families.push(p.family)
@@ -262,7 +298,6 @@ export function MultiWalletModal({
       if (p.detected) {
         entry.targets.push({
           family: p.family,
-          label: familyLabel(p.family),
           run: async () => {
             const acct = await connectWalletProvider(p)
             notify(`${acct.providerName} connected: ${shortAddr(acct.address, 4)}`, 'success')
@@ -281,11 +316,13 @@ export function MultiWalletModal({
         families: [...entry.families].sort((a, b) => FAMILY_ORDER.indexOf(a) - FAMILY_ORDER.indexOf(b)),
       }))
       .sort((a, b) => {
-        const installed = Number(b.targets.length > 0) - Number(a.targets.length > 0)
-        if (installed) return installed
+        // Multichain wallets lead, then installed-only ones, then everything else.
+        const rank = (x: BrandGroup) => (x.families.length > 1 ? 0 : x.targets.length > 0 ? 1 : 2)
+        const r = rank(a) - rank(b)
+        if (r) return r
         if (focusFamily) {
-          const focus = Number(b.families.includes(focusFamily)) - Number(a.families.includes(focusFamily))
-          if (focus) return focus
+          const f = Number(b.families.includes(focusFamily)) - Number(a.families.includes(focusFamily))
+          if (f) return f
         }
         return a.name.localeCompare(b.name)
       })
@@ -295,12 +332,9 @@ export function MultiWalletModal({
   const filtered = useMemo(() => {
     if (!needle) return brands
     return brands.filter((b) =>
-      `${b.name} ${b.families.map(familyLabel).join(' ')}`.toLowerCase().includes(needle),
+      `${b.name} ${b.families.map((f) => ECOSYSTEM_LABEL[f]).join(' ')}`.toLowerCase().includes(needle),
     )
   }, [brands, needle])
-
-  const installed = filtered.filter((b) => b.targets.length > 0)
-  const available = filtered.filter((b) => b.targets.length === 0)
 
   const connectedBrands = useMemo(() => {
     const set = new Set<string>()
@@ -309,268 +343,226 @@ export function MultiWalletModal({
     return set
   }, [evm.isConnected, evm.connector?.name, allNonEvm])
 
-  const connectBrand = async (b: BrandGroup, family?: WalletFamily) => {
+  const runConnect = async (b: BrandGroup, target: ConnectTarget) => {
+    setBusyKey(b.key)
     setInstallPrompt(null)
-
-    if (!family && b.targets.length > 1) {
-      // The brand is live on several chains — ask which chain, in place.
-      setExpanded((cur) => (cur === b.key ? null : b.key))
-      return
-    }
-
-    const target = family ? b.targets.find((t) => t.family === family) : b.targets[0]
-    if (!target) {
-      // Not installed: send the user straight to the wallet's own install page.
-      const url = b.missing[0]?.installUrl ?? b.installUrl ?? 'https://ethereum.org/en/wallets/'
-      window.open(url, '_blank', 'noopener,noreferrer')
-      return
-    }
-
-    setBusyId(b.key)
     try {
       await target.run()
     } catch (e) {
       const msg = (e as Error).message ?? 'Connection failed'
       if (/not detected/i.test(msg)) {
-        setInstallPrompt({ name: b.name, url: b.installUrl ?? 'https://ethereum.org/en/wallets/' })
+        setInstallPrompt({ name: b.name, url: b.missing[0]?.installUrl ?? b.installUrl ?? 'https://ethereum.org/en/wallets/' })
       }
     } finally {
-      setBusyId(null)
-      setExpanded(null)
+      setBusyKey(null)
+      setEcoBrand(null)
     }
   }
 
-  const renderRow = (b: BrandGroup, compact: boolean) => {
-    const isBusy = busyId === b.key
-    const isConnected = connectedBrands.has(b.key)
-    const isOpen = expanded === b.key
-    const canConnect = b.targets.length > 0
+  const pickBrand = (b: BrandGroup) => {
+    setInstallPrompt(null)
+    if (b.targets.length === 0) {
+      window.open(b.missing[0]?.installUrl ?? b.installUrl ?? 'https://ethereum.org/en/wallets/', '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (b.targets.length > 1) {
+      setEcoBrand(b)
+      return
+    }
+    void runConnect(b, b.targets[0])
+  }
 
-    return (
-      <div key={b.key} className="overflow-hidden rounded-[10px] border border-line bg-ink-850">
-        <button
-          type="button"
-          disabled={isBusy}
-          onClick={() => void connectBrand(b)}
-          className={clsx(
-            'flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors',
-            isConnected ? 'bg-ink-700/50' : 'hover:bg-ink-700',
-          )}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <BrandTile iconSrc={b.iconSrc} name={b.name} size={compact ? 28 : 32} />
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="truncate text-[13px] font-medium text-t1">{b.name}</span>
-                {isConnected && <Check size={12} className="shrink-0 text-pos" />}
-              </div>
-              <div className="truncate text-[11px] text-t3">{b.families.map(familyLabel).join(' · ')}</div>
+  const title = ecoBrand ? 'Select an ecosystem' : (promptTitle ?? 'Select a wallet')
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      width="max-w-[460px]"
+      onBack={ecoBrand ? () => setEcoBrand(null) : undefined}
+    >
+      {ecoBrand ? (
+        <div key={ecoBrand.key} className="wallet-pane px-4 pb-5 pt-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="eco-orb relative grid size-[104px] place-items-center rounded-full border border-line bg-ink-850">
+              <span className="pointer-events-none absolute inset-0 rounded-full bg-accent/10 blur-xl" aria-hidden />
+              <BrandAvatar iconSrc={ecoBrand.iconSrc} name={ecoBrand.name} size={64} />
             </div>
+            <div className="mt-4 text-[15px] font-semibold text-t1">{ecoBrand.name}</div>
+            <p className="mt-1.5 max-w-[300px] text-[12.5px] leading-[1.6] text-t2">
+              {ecoBrand.name} supports multiple chain ecosystems. Select which one to connect to.
+            </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {isConnected ? (
-              <span className="text-[11px] font-medium text-pos">Connected</span>
-            ) : isBusy ? (
-              <span className="text-[11px] text-accent">Connecting…</span>
-            ) : canConnect ? (
-              <span className="rounded-md border border-line-strong bg-ink-800 px-2.5 py-1 text-[11px] text-t1">
-                Connect
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-[11px] text-t3">
-                Install <ExternalLink size={10} />
-              </span>
-            )}
-            {canConnect && b.targets.length > 1 && (
-              <ChevronDown size={13} className={clsx('shrink-0 text-t3 transition-transform', isOpen && 'rotate-180')} />
-            )}
-          </div>
-        </button>
-
-        {isOpen && b.targets.length > 1 && (
-          <div className="flex flex-wrap gap-1.5 border-t border-line px-3 py-2">
-            <span className="mr-1 self-center text-[11px] text-t3">Connect on</span>
-            {b.targets.map((t) => (
+          <div className="mt-5 space-y-2">
+            {ecoBrand.targets.map((t, i) => (
               <button
                 key={t.family}
                 type="button"
-                disabled={isBusy}
-                onClick={() => void connectBrand(b, t.family)}
-                className="rounded-md border border-line-strong bg-ink-800 px-2.5 py-1 text-[11px] text-t1 transition-colors hover:border-accent/50 hover:text-accent"
+                disabled={busyKey === ecoBrand.key}
+                onClick={() => void runConnect(ecoBrand, t)}
+                style={{ animationDelay: `${40 + i * 40}ms` }}
+                className="wallet-row flex w-full items-center gap-3 rounded-[14px] border border-line bg-ink-850 px-3.5 py-3 text-left transition-all duration-200 hover:border-line-strong hover:bg-ink-700 active:scale-[0.985]"
               >
-                {t.label}
+                <EcoAvatar family={t.family} size={30} />
+                <span className="flex-1 text-[13.5px] font-medium text-t1">{ECOSYSTEM_LABEL[t.family]}</span>
+                {busyKey === ecoBrand.key && (
+                  <span className="text-[11px] text-accent">Connecting…</span>
+                )}
               </button>
             ))}
           </div>
-        )}
-      </div>
-    )
-  }
 
-  return (
-    <Modal open={open} onClose={onClose} title={promptTitle ?? 'Connect a wallet'} width="max-w-lg">
-      <div className="space-y-3 p-4">
-        {promptReason && (
-          <div className="rounded-[10px] border border-accent/35 bg-accent/10 px-3.5 py-2.5 text-[12px] leading-5 text-t1">
-            {promptReason}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 rounded-[10px] border border-line bg-ink-850 px-3 py-2">
-          <Search size={14} className="text-t3" />
-          <input
-            autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search wallets"
-            className="input text-xs"
-          />
-        </div>
-
-        {((evm.isConnected && evm.address) || allNonEvm.length > 0) && (
-          <div className="space-y-1.5 rounded-[10px] border border-pos/25 bg-ink-850 p-2.5">
-            <div className="flex items-center justify-between px-1 text-[11px] font-medium text-t2">
-              <span>Connected</span>
-              <span className="mono text-t3">{(evm.isConnected ? 1 : 0) + allNonEvm.length}</span>
-            </div>
-
-            {evm.isConnected && evm.address && (
-              <div className="flex items-center justify-between gap-2 rounded-lg bg-ink-900/70 px-2.5 py-2">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <BrandTile iconSrc={evm.connector?.icon} name={evm.connector?.name ?? 'EVM'} size={24} />
-                  <div className="min-w-0">
-                    <div className="truncate text-[12px] font-medium text-t1">
-                      {cleanBrandName(evm.connector?.name ?? 'EVM wallet')}
-                    </div>
-                    <div className="mono flex items-center gap-1 text-[11px] text-t3">
-                      {shortAddr(evm.address, 5)} <CopyButton value={evm.address} />
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="quiet"
-                  onClick={() => {
-                    disconnect()
-                    notify('Disconnected EVM wallet', 'info')
-                  }}
-                >
-                  <Link2Off size={12} />
-                </Button>
+          {installPrompt && (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-[12px] border border-warn/40 bg-[#1c1810] px-3.5 py-2.5">
+              <div className="text-[11.5px] leading-5 text-[#e6c17a]">
+                <strong>{installPrompt.name}</strong> isn’t installed in this browser.
               </div>
-            )}
+              <a
+                href={installPrompt.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-[#111628] hover:bg-accent-2"
+              >
+                Get it <ExternalLink size={11} />
+              </a>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div key="list" className="wallet-pane px-4 pb-5 pt-4">
+          {promptReason && (
+            <div className="mb-3 rounded-[12px] border border-accent/35 bg-accent/10 px-3.5 py-2.5 text-[12px] leading-5 text-t1">
+              {promptReason}
+            </div>
+          )}
 
-            {allNonEvm.map((acct) => {
-              const isActive = activeMap[acct.family]?.id === acct.id
-              return (
-                <div
-                  key={acct.id}
-                  className="flex items-center justify-between gap-2 rounded-lg bg-ink-900/70 px-2.5 py-2"
-                >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <BrandTile iconSrc={acct.iconSrc} name={acct.providerName} size={24} />
-                    <div className="min-w-0">
-                      <div className="truncate text-[12px] font-medium text-t1">
-                        {cleanBrandName(acct.providerName)}
-                      </div>
-                      <div className="mono flex items-center gap-1 text-[11px] text-t3">
-                        {shortAddr(acct.address, 5)} <CopyButton value={acct.address} />
-                      </div>
+          <div className="flex items-center gap-2 rounded-[12px] border border-line bg-ink-850 px-3 py-2">
+            <Search size={15} className="text-t3" />
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search wallets"
+              className="input text-[12.5px]"
+            />
+          </div>
+
+          {allNonEvm.length > 0 && (
+            <div className="mt-3 space-y-1.5 rounded-[12px] border border-pos/25 bg-ink-850 p-2">
+              {allNonEvm.map((acct) => {
+                const active = activeMap[acct.family]?.id === acct.id
+                return (
+                  <div key={acct.id} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1">
+                    <BrandAvatar iconSrc={acct.iconSrc} name={acct.providerName} size={26} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[12px] font-medium text-t1">{cleanBrandName(acct.providerName)}</div>
+                      <div className="mono text-[10.5px] text-t3">{shortAddr(acct.address, 5)}</div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    {!isActive && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
+                    {!active && (
+                      <button
+                        type="button"
                         onClick={() => {
                           setActiveNonEvmAccount(acct.id)
                           notify(`Switched to ${cleanBrandName(acct.providerName)}`, 'info')
                         }}
+                        className="rounded-md px-2 py-1 text-[10.5px] text-t2 transition-colors hover:bg-ink-700 hover:text-t1"
                       >
                         Use
-                      </Button>
+                      </button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="quiet"
+                    <button
+                      type="button"
+                      aria-label="Disconnect"
                       onClick={() => {
                         disconnectNonEvmAccountById(acct.id)
                         notify(`Disconnected ${cleanBrandName(acct.providerName)}`, 'info')
                       }}
+                      className="rounded-md p-1 text-t3 transition-colors hover:bg-ink-700 hover:text-t1"
                     >
-                      <Link2Off size={12} />
-                    </Button>
+                      <X size={13} />
+                    </button>
                   </div>
-                </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="mt-3 space-y-2">
+            {filtered.map((b, i) => {
+              const connected = connectedBrands.has(b.key)
+              const multichain = b.families.length > 1
+              const installed = b.targets.length > 0
+              const busy = busyKey === b.key
+              return (
+                <button
+                  key={b.key}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => pickBrand(b)}
+                  style={{ animationDelay: `${Math.min(i, 12) * 24}ms` }}
+                  className="wallet-row flex w-full items-center gap-3.5 rounded-[14px] border border-line bg-ink-850 px-3 py-2.5 text-left transition-all duration-200 hover:border-line-strong hover:bg-ink-700 active:scale-[0.985] disabled:opacity-70"
+                >
+                  <BrandAvatar iconSrc={b.iconSrc} name={b.name} size={44} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[14.5px] font-semibold leading-tight text-t1">{b.name}</div>
+                    {multichain && (
+                      <div className="mt-0.5 truncate text-[11px] text-t3">
+                        {b.families.map((f) => ECOSYSTEM_LABEL[f]).join(' · ')}
+                      </div>
+                    )}
+                  </div>
+
+                  {busy ? (
+                    <span className="shrink-0 text-[11px] text-accent">Connecting…</span>
+                  ) : connected ? (
+                    <span className="shrink-0 rounded-full bg-pos/15 px-2.5 py-1 text-[10.5px] font-semibold text-pos">
+                      Connected
+                    </span>
+                  ) : multichain ? (
+                    <span className="shrink-0 rounded-full bg-accent/15 px-2.5 py-1 text-[10.5px] font-semibold text-accent">
+                      Multichain
+                    </span>
+                  ) : installed ? (
+                    <span className="shrink-0 rounded-full bg-ink-700 px-2.5 py-1 text-[10.5px] font-semibold text-t2">
+                      Installed
+                    </span>
+                  ) : (
+                    <span className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[10.5px] font-medium text-t3">
+                      Install
+                    </span>
+                  )}
+                </button>
               )
             })}
           </div>
-        )}
 
-        {installPrompt && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-warn/40 bg-[#1c1810] px-3.5 py-2.5">
-            <div className="min-w-0 flex-1 text-[12px] leading-5 text-[#e6c17a]">
-              <strong>{installPrompt.name}</strong> isn’t installed in this browser. Add the extension, unlock it,
-              then reload to connect.
+          {filtered.length === 0 && (
+            <div className="py-8 text-center text-[12px] text-t3">No wallet matches “{q}”.</div>
+          )}
+
+          {installPrompt && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-[12px] border border-warn/40 bg-[#1c1810] px-3.5 py-2.5">
+              <div className="text-[11.5px] leading-5 text-[#e6c17a]">
+                <strong>{installPrompt.name}</strong> isn’t installed in this browser.
+              </div>
+              <a
+                href={installPrompt.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-[#111628] hover:bg-accent-2"
+              >
+                Get it <ExternalLink size={11} />
+              </a>
             </div>
-            <a
-              href={installPrompt.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-[#111628] hover:bg-accent-2"
-            >
-              Get {installPrompt.name} <ExternalLink size={12} />
-            </a>
+          )}
+
+          <div className="mt-3 flex items-center justify-center gap-1 text-[10.5px] text-t3">
+            <Check size={11} className="text-pos" /> Testnet only — no real funds move
           </div>
-        )}
-
-        <div className="max-h-[46vh] space-y-2 overflow-y-auto pr-0.5">
-          {installed.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="px-1 text-[11px] font-medium uppercase tracking-wide text-t3">Installed</div>
-              {installed.map((b) => renderRow(b, false))}
-            </div>
-          )}
-
-          {available.length > 0 && (
-            <div className="space-y-1.5">
-              {installed.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAll((v) => !v)}
-                  className="flex w-full items-center justify-between px-1 py-1 text-[11px] font-medium uppercase tracking-wide text-t3 transition-colors hover:text-t2"
-                >
-                  <span>More wallets ({available.length})</span>
-                  <ChevronDown size={13} className={clsx('transition-transform', showAll && 'rotate-180')} />
-                </button>
-              ) : (
-                <div className="px-1 text-[11px] font-medium uppercase tracking-wide text-t3">All wallets</div>
-              )}
-              {(showAll || installed.length === 0) && available.map((b) => renderRow(b, true))}
-            </div>
-          )}
-
-          {installed.length === 0 && available.length === 0 && (
-            <div className="py-6 text-center text-[12px] text-t3">
-              {needle ? `No wallet matches “${q}”.` : 'No browser wallet detected. Install one to continue.'}
-            </div>
-          )}
         </div>
-
-        {installed.length === 0 && !needle && (
-          <div className="flex items-start gap-2 rounded-[10px] border border-line bg-ink-850 px-3 py-2.5 text-[11px] leading-5 text-t3">
-            <Wallet size={13} className="mt-0.5 shrink-0 text-t2" />
-            No installed wallet was found. Choose a wallet above to install its extension — this app never asks for a
-            seed phrase or private key.
-          </div>
-        )}
-
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-t3">
-          {focusFamily ? `${familyLabel(focusFamily)} wallets shown first · testnet only` : 'Testnet only — no real funds move'}
-        </div>
-      </div>
+      )}
     </Modal>
   )
 }
