@@ -11,6 +11,7 @@ export type NonEvmFamily =
   | 'near'
   | 'polkadot'
   | 'xrpl'
+  | 'canton'
 
 export type WalletFamily = 'evm' | NonEvmFamily
 
@@ -254,7 +255,15 @@ export const WALLET_FAMILIES: Record<NonEvmFamily, WalletFamilyDescriptor> = {
       { name: 'GemWallet', url: 'https://gemwallet.app/' },
     ],
   },
+  canton: {
+    family: 'canton',
+    label: 'Canton Network',
+    chainsLabel: 'Canton DevNet',
+    // Canton wallets are validator-backed apps (Splice / CIP-103), not browser extensions.
+    recommendedExtensions: [],
+  },
 }
+
 
 /* ─────────────────────────── Individual browser wallets ─────────────────────────── */
 

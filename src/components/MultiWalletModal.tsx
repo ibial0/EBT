@@ -57,6 +57,7 @@ const ECOSYSTEM_LABEL: Record<WalletFamily, string> = {
   near: 'NEAR',
   polkadot: 'Polkadot',
   xrpl: 'XRP Ledger',
+  canton: 'Canton',
 }
 
 const ECOSYSTEM_LOGO: Partial<Record<WalletFamily, string>> = {

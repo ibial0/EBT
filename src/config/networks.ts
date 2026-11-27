@@ -658,6 +658,47 @@ export const NON_EVM_NETWORKS: NetworkEntry[] = [
     capabilities: { rpc: true, wallet: 'yes', portfolio: 'partial', swap: 'no', bridge: 'no', faucet: 'yes' },
     verifiedAt: '2026-11-26',
   },
+  {
+    id: 'canton:devnet',
+    key: 'cantonDevnet',
+    name: 'Canton Network DevNet',
+    short: 'Canton Dev',
+    aliases: ['Canton DevNet', 'Canton Network Devnet', 'Global Synchronizer DevNet'],
+    generation: 'DevNet (Splice, Canton Coin CC)',
+    family: 'canton',
+    walletFamily: 'canton',
+    nativeId: 'CC',
+    status: 'active',
+    statusNote:
+      'Canton is a Daml/LFDT network, not an EVM chain: no injected wallet, no ERC-20, no AMM. EBT lists it and points at its faucet, but cannot read balances, swap or bridge here.',
+    docsUrl: 'https://docs.canton.network',
+    metadataSource: 'docs.canton.network (Canton Coin, DevNet faucet, validator onboarding)',
+    rpcUrl: '',
+    explorerUrl: 'https://cantonscan.com',
+    nativeCurrency: { symbol: 'CC', name: 'Canton Coin', decimals: 10 },
+    color: '#734BE2',
+    gradient: ['#734BE2', '#A985FF'],
+    faucets: [
+      {
+        label: 'DevNet Faucet (inside the Splice wallet)',
+        url: 'https://docs.canton.network/sdks-tools/development-tools/splice-portfolio/devnet-faucet',
+        tokens: ['CC'],
+        access: 'account',
+        amount: 'choose on each tap',
+        sourceType: 'official',
+        verification: 'untested',
+        requirements: [
+          'CIP-103 wallet (Splice portfolio app)',
+          'Wallet Settings, DevNet section',
+          'Tap, pick instrument and amount, then sign in the wallet',
+        ],
+        checked: '2026-11-27',
+        note: 'Canton has no web faucet page: the DevNet faucet is the Tap button inside the wallet itself, and it only works on DevNet, not TestNet or MainNet.',
+      },
+    ],
+    capabilities: { rpc: false, wallet: 'no', portfolio: 'no', swap: 'no', bridge: 'no', faucet: 'partial' },
+    verifiedAt: '2026-11-27',
+  },
 ]
 
 export const DEPRECATED_NETWORKS: NetworkEntry[] = [
