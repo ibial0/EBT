@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, Check, Loader2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { getChain } from '../config/chains'
 import { ChainLogo, notify } from './ui'
 import { finalizeFromSteps, updateStep } from '../lib/activity'
@@ -34,26 +34,38 @@ export function ClaimableWithdrawals() {
   useEffect(() => {
     let alive = true
     const scan = async () => {
-      for (const s of saved) {
-        const w = await readWithdrawal(s.fromId, s.txHash).catch(() => null)
-        if (!alive) return
-        if (!w) continue
-        const p = await confirmedSends(s.fromId, s.toId).catch(() => null)
-        if (!alive) return
-        if (!p || p.size <= w.position) {
-          setRows((v) => ({ ...v, [s.txHash]: { msg: `waiting · confirmed #${p?.size ?? 0n} of #${w.position + 1n}`, ready: false, w } }))
-          continue
-        }
-        try {
-          const built = await findOutboxProof(s.fromId, s.toId, w)
-          if (alive) setRows((v) => ({ ...v, [s.txHash]: { msg: 'ready to claim', ready: true, proof: built.proof, w } }))
-        } catch {
-          if (alive) setRows((v) => ({ ...v, [s.txHash]: { msg: 'rollup confirmed, waiting for the outbox', ready: false, w } }))
-        }
-      }
+      // One confirmation read per pair, in parallel with the withdrawals themselves.
+      const sizes = new Map<string, bigint | null>()
+      await Promise.all(
+        [...new Set(saved.map((s) => `${s.fromId}:${s.toId}`))].map(async (key) => {
+          const [fromId, toId] = key.split(':').map(Number)
+          const p = await confirmedSends(fromId, toId).catch(() => null)
+          sizes.set(key, p ? p.size : null)
+        }),
+      )
+      await Promise.all(
+        saved.map(async (s) => {
+          const size = sizes.get(`${s.fromId}:${s.toId}`) ?? null
+          const w = await readWithdrawal(s.fromId, s.txHash).catch(() => null)
+          if (!alive || !w) return
+          if (size == null || size <= w.position) {
+            setRows((v) => ({
+              ...v,
+              [s.txHash]: { msg: `waiting · confirmed #${size ?? 0n} of #${w.position + 1n}`, ready: false, w },
+            }))
+            return
+          }
+          try {
+            const built = await findOutboxProof(s.fromId, s.toId, w)
+            if (alive) setRows((v) => ({ ...v, [s.txHash]: { msg: 'ready to claim', ready: true, proof: built.proof, w } }))
+          } catch {
+            if (alive) setRows((v) => ({ ...v, [s.txHash]: { msg: 'rollup confirmed, waiting for the outbox', ready: false, w } }))
+          }
+        }),
+      )
     }
     void scan()
-    const t = setInterval(() => void scan(), 30000)
+    const t = setInterval(() => void scan(), 10000)
     return () => {
       alive = false
       clearInterval(t)
@@ -109,9 +121,9 @@ export function ClaimableWithdrawals() {
                 <button
                   onClick={() => void claim(s)}
                   disabled={busy === s.txHash}
-                  className="flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3 text-[12px] font-semibold text-[#111628] disabled:opacity-50"
+                  className="flex h-7 items-center gap-1 rounded-md bg-accent px-2.5 text-[11px] font-semibold text-[#111628] disabled:opacity-50"
                 >
-                  {busy === s.txHash ? <Loader2 size={13} className="animate-spin" /> : <ArrowUpRight size={13} />}
+                  {busy === s.txHash && <Loader2 size={12} className="animate-spin" />}
                   Claim
                 </button>
               ) : (

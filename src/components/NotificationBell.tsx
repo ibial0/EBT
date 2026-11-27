@@ -4,7 +4,8 @@ import { Bell, CheckCircle2, XCircle } from 'lucide-react'
 import { useActivity } from '../lib/activity'
 import { pendingFrom, useFinishFlash, clock, shortAmount, elapsed, labelFor } from '../lib/notifyCenter'
 import { getChain } from '../config/chains'
-import { ChainLogo } from './ui'
+import { ChainLogo, notify } from './ui'
+import { claimOrbitActivity, isOrbitClaimable } from '../lib/claim'
 
 export function NotificationBell() {
   const items = useActivity()
@@ -12,6 +13,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [flash] = useFinishFlash()
   const [, tick] = useState(0)
+  const [claimBusy, setClaimBusy] = useState<string | null>(null)
 
   // the countdown has to move on its own, once a second, while anything is in flight
   useEffect(() => {
@@ -19,6 +21,20 @@ export function NotificationBell() {
     const t = setInterval(() => tick((v) => v + 1), 1000)
     return () => clearInterval(t)
   }, [pending.length])
+
+  const doClaim = async (id: string) => {
+    const item = items.find((i) => i.id === id)
+    if (!item) return
+    setClaimBusy(id)
+    try {
+      const hash = await claimOrbitActivity(item)
+      notify(`Claimed · ${hash.slice(0, 10)}…`, 'success')
+    } catch (e) {
+      notify(e instanceof Error ? e.message.slice(0, 120) : 'Claim failed.', 'error')
+    } finally {
+      setClaimBusy(null)
+    }
+  }
 
   return (
     <div className="relative flex items-center gap-2">
@@ -65,6 +81,7 @@ export function NotificationBell() {
               const done = steps.filter((st) => st.status === 'done' || st.status === 'skipped').length
               const active = steps.some((st) => st.status === 'active')
               const pct = steps.length ? Math.round(((done + (active ? 0.5 : 0)) / steps.length) * 100) : 0
+              const claimable = item ? isOrbitClaimable(item) : false
               const fromC = getChain(p.fromChainId)
               const toC = getChain(p.toChainId)
               return (
@@ -83,7 +100,21 @@ export function NotificationBell() {
                       />
                     </div>
                     {toC && <ChainLogo chain={toC} size={18} />}
-                    <span className="mono w-8 shrink-0 text-right text-[12px] font-semibold text-t1">{pct}%</span>
+                    {claimable ? (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          void doClaim(p.id)
+                        }}
+                        disabled={claimBusy === p.id}
+                        className="h-6 shrink-0 rounded-md bg-accent px-2 text-[10.5px] font-semibold text-[#111628] disabled:opacity-60"
+                      >
+                        {claimBusy === p.id ? '…' : 'Claim'}
+                      </button>
+                    ) : (
+                      <span className="mono w-8 shrink-0 text-right text-[12px] font-semibold text-t1">{pct}%</span>
+                    )}
                   </div>
                   <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr] items-center text-[10px] text-t3">
                     <span />

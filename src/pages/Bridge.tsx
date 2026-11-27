@@ -10,16 +10,12 @@ import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/netwo
 import { WETH, isNativeToken, nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
 import { useSearchParams } from 'react-router-dom'
 import {
-  claimWithdrawal,
-  findOutboxProof,
   initiateWithdrawEth,
-  loadWithdrawals,
-  markWithdrawalClaimed,
-  readWithdrawal,
   rememberWithdrawal,
 } from '../lib/orbitWithdraw'
 import { buildStargateEthSend, quoteStargateEth, stargateEthPool } from '../lib/stargate'
 import { lastSelection } from '../lib/lastSelection'
+import { claimOrbitActivity } from '../lib/claim'
 import { listActivity } from '../lib/activity'
 import {
   WORMHOLE_BRIDGE,
@@ -2017,20 +2013,9 @@ function TransferCard({ item }: { item: ActivityItem }) {
     item.steps.find((s) => s.key === 'claim')?.status !== 'done'
 
   const claim = async () => {
-    const saved = loadWithdrawals().find((w) => w.activityId === item.id)
-    if (!saved) {
-      notify('This withdrawal was started in another browser, so its proof is not saved here.', 'error')
-      return
-    }
     setClaiming(true)
     try {
-      const w = await readWithdrawal(saved.fromId, saved.txHash)
-      const built = await findOutboxProof(saved.fromId, saved.toId, w)
-      const hash = await claimWithdrawal(saved.fromId, saved.toId, w, built.proof)
-      updateStep(item.id, 'claim', { status: 'active', hash })
-      updateStep(item.id, 'claim', { status: 'done', hash })
-      markWithdrawalClaimed(saved.txHash, hash)
-      finalizeFromSteps(item.id)
+      const hash = await claimOrbitActivity(item)
       notify(`Claimed on ${to?.short ?? 'L1'} · ${shortAddr(hash, 6)}`, 'success')
     } catch (e) {
       notify(e instanceof Error ? e.message.slice(0, 120) : 'Claim failed.', 'error')

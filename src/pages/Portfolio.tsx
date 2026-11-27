@@ -9,6 +9,7 @@ import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/netwo
 import { Badge, Button, ChainLogo, NetworkLogo, Empty, Modal, Spinner, TokenIcon, notify, AllChainsMark } from '../components/ui'
 import { ConnectButton } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
+import { ClaimableWithdrawals } from '../components/ClaimableWithdrawals'
 import { shortAddr, fmt } from '../lib/format'
 import { TokenActions, TokenSheet, tokenRowKey } from '../components/TokenActions'
 import { addActivity } from '../lib/activity'
@@ -555,7 +556,8 @@ export default function Portfolio() {
         )}
 
         {tab === 'recovery' ? (
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+            <ClaimableWithdrawals />
             <RecoveryPanel compact />
           </div>
         ) : tab === 'overview' ? (
