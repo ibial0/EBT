@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { syncOrbitConfirmations } from './lib/orbitWatch'
 import { Layout } from './components/Layout'
 import Overview from './pages/Overview'
 import Portfolio from './pages/Portfolio'
@@ -10,6 +12,13 @@ import ActivityPage from './pages/ActivityPage'
 import Settings from './pages/Settings'
 
 export default function App() {
+  // Advance pending Orbit withdrawals as soon as the rollup confirms them, on any page.
+  useEffect(() => {
+    void syncOrbitConfirmations()
+    const t = window.setInterval(() => void syncOrbitConfirmations(), 60000)
+    return () => window.clearInterval(t)
+  }, [])
+
   return (
     <Routes>
       <Route element={<Layout />}>

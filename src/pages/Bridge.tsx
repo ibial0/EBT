@@ -9,7 +9,15 @@ import { CHAINS, getChain, type Address } from '../config/chains'
 import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/networks'
 import { WETH, isNativeToken, nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
 import { useSearchParams } from 'react-router-dom'
-import { initiateWithdrawEth, rememberWithdrawal } from '../lib/orbitWithdraw'
+import {
+  claimWithdrawal,
+  findOutboxProof,
+  initiateWithdrawEth,
+  loadWithdrawals,
+  markWithdrawalClaimed,
+  readWithdrawal,
+  rememberWithdrawal,
+} from '../lib/orbitWithdraw'
 import { buildStargateEthSend, quoteStargateEth, stargateEthPool } from '../lib/stargate'
 import { lastSelection } from '../lib/lastSelection'
 import { listActivity } from '../lib/activity'
@@ -45,7 +53,7 @@ import { startDepositTracking } from '../lib/depositTrack'
 import { startOrbitTracking } from '../lib/orbitTrack'
 import { startAcrossTracking } from '../lib/acrossTrack'
 import { ORBIT_ETH_NATIVE, orbitBridgeFor } from '../config/orbit'
-import { fmt, safeParseUnits } from '../lib/format'
+import { fmt, safeParseUnits, shortAddr } from '../lib/format'
 import { checkGas, prepareTx, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
 import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
@@ -2002,6 +2010,34 @@ function ActiveTransfers() {
 function TransferCard({ item }: { item: ActivityItem }) {
   const from = getChain(item.fromChainId)
   const to = getChain(item.toChainId)
+  const [claiming, setClaiming] = useState(false)
+  const canClaim =
+    item.provider === 'orbit' &&
+    item.steps.find((s) => s.key === 'confirm')?.status === 'done' &&
+    item.steps.find((s) => s.key === 'claim')?.status !== 'done'
+
+  const claim = async () => {
+    const saved = loadWithdrawals().find((w) => w.activityId === item.id)
+    if (!saved) {
+      notify('This withdrawal was started in another browser, so its proof is not saved here.', 'error')
+      return
+    }
+    setClaiming(true)
+    try {
+      const w = await readWithdrawal(saved.fromId, saved.txHash)
+      const built = await findOutboxProof(saved.fromId, saved.toId, w)
+      const hash = await claimWithdrawal(saved.fromId, saved.toId, w, built.proof)
+      updateStep(item.id, 'claim', { status: 'active', hash })
+      updateStep(item.id, 'claim', { status: 'done', hash })
+      markWithdrawalClaimed(saved.txHash, hash)
+      finalizeFromSteps(item.id)
+      notify(`Claimed on ${to?.short ?? 'L1'} · ${shortAddr(hash, 6)}`, 'success')
+    } catch (e) {
+      notify(e instanceof Error ? e.message.slice(0, 120) : 'Claim failed.', 'error')
+    } finally {
+      setClaiming(false)
+    }
+  }
   const done = item.steps.filter((s) => s.status === 'done' || s.status === 'skipped').length
   const total = Math.max(item.steps.length, 1)
   const activeStep = item.steps.some((s) => s.status === 'active')
@@ -2059,6 +2095,17 @@ function TransferCard({ item }: { item: ActivityItem }) {
       <div className="border-t border-line px-4 py-2.5">
         <Timeline steps={item.steps} compact />
       </div>
+      {canClaim && (
+        <div className="border-t border-line px-4 py-2.5">
+          <button
+            onClick={() => void claim()}
+            disabled={claiming}
+            className="w-full rounded-md border border-accent/40 bg-accent/10 py-1.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent/15 disabled:opacity-60"
+          >
+            {claiming ? 'Claiming…' : `Claim ${item.amountIn} ${item.tokenIn.symbol} on ${to?.short ?? 'L1'}`}
+          </button>
+        </div>
+      )}
     </Card>
   )
 }
