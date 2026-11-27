@@ -1,4 +1,4 @@
-# EBT - Easy Bridge Testnet
+  # EBT  Easy Bridge Testnet
 
 **Bridge, swap and track. Every testnet, one console.**
 
