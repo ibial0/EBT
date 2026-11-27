@@ -52,13 +52,15 @@ export function Layout() {
   })
   const location = useLocation()
   useEffect(() => setMobileOpen(false), [location.pathname])
-  // the tab must name the screen you are on: "EBT | Portfolio", never a dash
+  // The top bar names the screen you are on: "EBT | Portfolio". The marketing title never
+  // sits in the chrome, and the tab follows the same rule.
+  const sectionLabel =
+    NAV.find((n) => n.to === location.pathname)?.label ??
+    ({ '/recover': 'Recover' } as Record<string, string>)[location.pathname] ??
+    ''
   useEffect(() => {
-    const label = NAV.find((n) => n.to === location.pathname)?.label
-    const extra: Record<string, string> = { '/recover': 'Recover' }
-    const title = label ?? extra[location.pathname]
-    document.title = title ? `EBT | ${title}` : 'EBT'
-  }, [location.pathname])
+    document.title = sectionLabel ? `EBT | ${sectionLabel}` : 'EBT'
+  }, [sectionLabel])
   useEffect(() => {
     try {
       localStorage.setItem('ebt.sidebar', collapsed ? 'collapsed' : 'expanded')
