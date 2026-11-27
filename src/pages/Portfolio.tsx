@@ -1236,6 +1236,10 @@ function ValueChart({
   const beforeWindow = points.filter((p) => p.t < from).slice(-1)
   let series = [...beforeWindow, ...inWindow].sort((a, b) => a.t - b.t)
 
+  // One real reading cannot make a line. Plot the point where it happened, drop the guide,
+  // and say so in the caption instead of stretching a fake flat line across the window.
+  const singleReading = points.length <= 1
+
   // No reading yet, but we do know the balance right now: show it as the current point
   // instead of an empty box that looks broken.
   if (series.length === 0 && current > 0) series = [{ t: now, v: current }]
@@ -1390,28 +1394,52 @@ function ValueChart({
           />
         ))}
         <path d={area} fill="url(#ebt-area)" />
-        <path
-          d={line}
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity="0.16"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d={line}
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
+        {!singleReading && (
+          <>
+            <path
+              d={line}
+              fill="none"
+              stroke="var(--color-accent)"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.16"
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              d={line}
+              fill="none"
+              stroke="var(--color-accent)"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        )}
+        {singleReading && (
+          <line
+            x1={last.x}
+            y1={padY / 2}
+            x2={last.x}
+            y2={H - padY / 2}
+            stroke="var(--color-line)"
+            strokeWidth="1"
+            strokeDasharray="3 6"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
         <circle cx={last.x} cy={last.y} r="7" fill="var(--color-accent)" opacity="0.18" />
         <circle cx={last.x} cy={last.y} r="3.4" fill="var(--color-accent)" vectorEffect="non-scaling-stroke" />
       </svg>
+
+      {singleReading && (
+        <p className="pointer-events-none absolute inset-x-4 bottom-3 text-[11px] leading-4 text-t3">
+          {points.length === 0
+            ? 'No reading recorded yet. The line starts from your next refresh.'
+            : 'One reading so far. The line starts from your next refresh.'}
+        </p>
+      )}
 
       {bubblePoints.length > 0 && (
         <div className="pointer-events-none absolute inset-0">

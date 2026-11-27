@@ -1,112 +1,188 @@
-# EBT — Testnet Bridge & Swap
+# EBT - Easy Bridge Testnet
 
-A personal, **testnet-only** multi-chain bridge and swap interface. EBT does not implement any new
-protocol: it wires existing, verified infrastructure into one UI.
+**Bridge, swap and track. Every testnet, one console.**
 
-| Layer | Provider | Status |
+EBT is a browser-only console for testnet assets: it reads balances straight from each chain,
+quotes real routes, signs with your own wallet, and keeps a local ledger of what you did. There is
+no account, no backend and no custody. Keys never leave the wallet extension.
+
+[![testnet only](https://img.shields.io/badge/network-testnet%20only-6b7cff)](#what-it-is-not)
+[![no backend](https://img.shields.io/badge/backend-none-2ea043)](#architecture)
+[![license MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![stack](https://img.shields.io/badge/React%2019%20%2B%20Vite%20%2B%20wagmi-0b0f1a)](#quick-start)
+
+![Bridge on a desktop, ETH from Sepolia to Base Sepolia](docs/screenshots/06-bridge-dark.png)
+
+## What it is
+
+| Area | What you can do |
+| --- | --- |
+| Portfolio | One total across 71 EVM testnets and 17 non-EVM testnets, per token and per chain |
+| Bridge | Find a route, read the fee and ETA, sign once, claim when the destination needs it |
+| Swap | Uniswap v3 plus any custom V2 DEX you add, with price impact and a minimum received |
+| Faucets | Jump straight to the faucet of the chain you are short on |
+| Activity | Local ledger of every transfer started from this browser, with a recover path |
+| Settings | Theme, wallets, custom DEX and token imports, all stored on device |
+
+## What it is not
+
+- **Not mainnet.** Every chain, token and RPC in this build is a testnet. Nothing here moves real value.
+- **Not a wallet.** EBT never sees a seed phrase or a private key. Your wallet signs everything.
+- **Not a service.** There is no server to trust and no database to breach. Balances are read from
+  public RPCs and the activity list lives in `localStorage` on your machine.
+- **Not financial advice.** Testnet tokens have no price. Fiat numbers are display-only estimates.
+
+## Portfolio
+
+![Portfolio overview](docs/screenshots/01-portfolio-overview-dark.png)
+
+- The headline is the sum of every supported chain for the connected wallets. Disconnect one and
+  the number drops, because it is the total of what is connected right now.
+- The **rings** show each asset's share of the portfolio. They have no dollar target: whatever the
+  portfolio holds, shares add up to 100%, so the biggest holding fills the most.
+- The **chart** plots only readings this browser has recorded. A first visit shows one dot on a
+  dashed guide instead of an invented flat line, and the line fills in as you come back.
+- Assets that cannot be verified on-chain stay in their own group with no price, so a spam token
+  cannot borrow the price or the logo of a real one.
+- **Tokens** lists everything per chain, with a manual **Import ERC-20** for anything the indexer
+  missed. **Recovery** finds assets that arrived without being listed.
+- The refresh button doubles as the scan indicator: a ring and a percentage fill in place, so the
+  page never jumps while chains are answering.
+
+![Tokens tab](docs/screenshots/02-portfolio-tokens-dark.png)
+
+### Sending and receiving
+
+- Sending is enabled for EVM accounts and validates the destination against the wallet family you
+  picked, so a Solana field says "not a valid Solana address" instead of an EVM error.
+- Non-EVM accounts are **receive-only** in this build. The send picker does not offer them, and the
+  token sheet explains the limitation instead of hiding it behind a dead button.
+- The address sheet has **copy** and **QR** views, and a paste is checked as you type.
+
+## Bridge
+
+![Bridge route and quote](docs/screenshots/06-bridge-dark.png)
+
+1. Pick the source chain and asset (the amount field shows your balance).
+2. Pick the destination chain and asset. EBT scans the routes it knows and picks the cheapest.
+3. Read **You receive**, the route badge, the relayer, the ETA and the slippage you are willing to
+   take. If a quote cannot be filled, the reason is printed instead of a silent `0.0`.
+4. **Bridge** asks the wallet for one signature. Some routes finish in a single transaction, others
+   need a claim on the destination chain, and the UI tells you which one you are on.
+5. The transfer shows up in **Activity**, with the source hash and a claim button when needed.
+
+Routes included: Across v3, Circle CCTP v2, Stargate, Wormhole, OP Stack portal deposits and
+Orbit withdrawals, plus LI.FI and Relay when their testnet endpoints answer. Route discovery is
+deduplicated, so the same path never appears twice under different names.
+
+## Swap
+
+![Swap quote](docs/screenshots/07-swap-dark.png)
+
+- Quotes Uniswap v3 first, then any V2 DEX you added in Settings.
+- Shows rate, price impact, minimum received, route and pool fee before you sign.
+- Approvals are only requested when the input is an ERC-20, and only for the exact amount.
+- The swap is blocked while the quote is refreshing, so a fast click cannot sign a stale size.
+
+## Faucets, Activity, Settings
+
+| Faucets | Activity |
+| --- | --- |
+| ![Faucets](docs/screenshots/04-faucets-dark.png) | ![Activity](docs/screenshots/03-activity-dark.png) |
+
+- **Faucets** groups the official testnet faucets by chain, with what each one drips.
+- **Activity** is a local ledger: every send, bridge and swap started from this browser, stored in
+  `localStorage`, with filters, explorer links and a **Recover** flow for transfers that need a claim.
+- **Settings** holds the theme, the wallet list, custom DEX contracts and imported tokens.
+
+![Settings](docs/screenshots/05-settings-dark.png)
+
+## Light theme and mobile
+
+| Light | Mobile portfolio | Mobile bridge |
 | --- | --- | --- |
-| USDC bridging (17 testnets) | Circle **CCTP v2** (burn-and-mint + Iris attestation) | live |
-| Same-chain swaps (4 testnets) | **Uniswap v3** QuoterV2 + router, called on-chain | Sepolia, Base, Unichain, Arc |
-| ETH bridging | **OP Stack** canonical deposit via OptimismPortal | Sepolia → Base / OP / Unichain / Ink / World / GIWA |
-| Cross-chain swap | composition of CCTP + Uniswap (two hops, user-signs each) | live as a composition |
-| Portfolio | per-chain native + ERC-20 balances with estimated USD totals | 18 testnets |
-| Recovery | burn hash → attestation → mint, no re-burn | live |
+| ![Light theme](docs/screenshots/08-portfolio-light.png) | ![Mobile portfolio](docs/screenshots/09-portfolio-mobile.png) | ![Mobile bridge](docs/screenshots/10-bridge-mobile.png) |
 
-No API keys. No backend. No custody. No mainnet path anywhere in the code.
+Both themes share one accent ramp, and the layout collapses to a bottom bar on small screens.
 
----
+## Chains
+
+- **71 EVM testnets**, including Ethereum Sepolia, Base Sepolia, Arbitrum Sepolia, OP Sepolia,
+  Polygon Amoy, Scroll Sepolia, Linea Sepolia, Unichain Sepolia, Ink Sepolia, World Chain Sepolia,
+  Zora Sepolia, Celo Alfajores and dozens of newer testnets.
+- **17 non-EVM testnets**: Solana Devnet, Sui Testnet, Aptos Testnet, Starknet Sepolia, Stellar
+  Testnet, Algorand Testnet, NEAR Testnet, Noble Testnet, Polkadot Westend, XRP Ledger Testnet,
+  Canton DevNet and TestNet, and more.
+
+The full list, with RPCs and token addresses, is in [`src/config/chains.ts`](src/config/chains.ts).
+
+## Architecture
+
+```
+browser
+  ├─ React 19 + Vite + Tailwind
+  ├─ wagmi / viem  ──reads──▶  public testnet RPCs
+  │                 ──signs──▶  your wallet (injected or WalletConnect)
+  ├─ route APIs    ──quotes─▶  Circle Iris, Across, LI.FI, Relay
+  └─ localStorage  ──state──▶  activity, settings, value history
+```
+
+There is no server component. That is a deliberate choice: nothing to deploy, nothing to breach,
+and no place where a key could be collected.
 
 ## Quick start
 
+Requirements: Node 20 or newer.
+
 ```bash
-cd "C:\EBT"
+git clone https://github.com/<you>/EBT.git
+cd EBT
 npm install
 npm run dev          # http://localhost:5178
 ```
 
-Other commands:
+Production build:
 
 ```bash
-npm run build        # typecheck + production bundle into dist/
-npm run preview      # serve the production build
-npm run test:sim     # live integration simulation against real testnet RPCs
+npm run build        # type-check + bundle into dist/
+npm run preview      # serve dist/ locally
 ```
 
-Requires Node 20+. Built and verified on Node 24.19 / Windows 11.
+No environment variables are required. `.env.example` documents this and lists the two optional
+values (a WalletConnect project id and RPC overrides).
 
-**Local only.** Nothing is deployed anywhere yet — deployment is an explicit, separate step.
+## Tests
 
----
+These run without a wallet and without network writes:
 
-## What you can actually do
-
-1. **Faucets** — get testnet gas + USDC (official links only, each one probed for liveness).
-2. **Bridge** — send native USDC from any of 17 CCTP testnets to any other. Fast or Standard
-   transfer, real fee from Circle's Iris API, live attestation tracking, and the second
-   `receiveMessage` signature on the destination.
-3. **Swap** — swap tokens on Sepolia / Base Sepolia / Unichain Sepolia against real Uniswap v3
-   pools. Quotes are `eth_call`s to QuoterV2 across all fee tiers; if no pool has liquidity the
-   pair is simply not offered.
-4. **Cross-chain** — plan `USDC on A → token on B` as a two-hop composition, executed step by step.
-5. **Activity** — every transfer persists in `localStorage` with a step timeline, hashes, explorer
-   links, and resumed attestation polling after a refresh.
-6. **GIWA deposit** — ETH from Ethereum Sepolia into GIWA Sepolia through GIWA's own OP Stack portal.
-
----
-
-## Project layout
-
-```
-public/logos/  real chain and token logos (Trust Wallet + DefiLlama), served locally
-src/
-  config/     chains.ts (testnet allowlist + CCTP/Uniswap deployments), tokens.ts, providers.ts
-  lib/        cctp.ts, uniswap.ts, opstack.ts, swapExec.ts, bridgeExec.ts, guard.ts,
-              tracker.ts, activity.ts, health.ts, wallet.ts, tokenImport.ts
-  components/ Layout (nav + wallet), ChainSelect, TokenSelect, Timeline, ui kit
-  pages/      Overview, Portfolio, Bridge, Swap, CrossChain, Faucets, ActivityPage, Recover, Settings
-  lib/        + prices.ts (portfolio valuation), portfolio.ts (multicall balances), tx.ts (gas/fee prep)
-scripts/
-  simulate.ts / simulate.mjs   on-chain simulation harness (eth_call + state override)
-  simulation-report.json       latest results
-docs (root): RESEARCH_REPORT.md, PROVIDER_MATRIX.md, PRD.md, ARCHITECTURE.md,
-             IMPLEMENTATION_PLAN.md, SECURITY_PLAN.md, USER_ACTION_REQUIRED.md, WORK_LOG.md
+```bash
+npm run test:routes    # route discovery, dedupe and metadata
+npm run test:sim       # quote simulation for bridge and swap legs
+npm run test:history   # value-chart identity rules
+npm run test:address   # receiver validation per wallet family
 ```
 
----
+## Local development signer (optional)
 
-## Testnet enforcement (how it is actually enforced)
+`scripts/test-wallet-server.mjs` is a loopback-only JSON-RPC signer for UI work: it reads a
+git-ignored `.test-wallet.json` and signs on testnets so you can click through flows. It is a dev
+tool, it is not part of the app bundle, and it refuses to run outside `127.0.0.1`. Never point it
+at a funded key.
 
-* `src/config/chains.ts` is the only place chains exist; `TESTNET_IDS` is derived from it.
-* `src/lib/guard.ts` `assertTestnet()` runs before **every** transaction build. Known mainnet ids
-  get an explicit "Blocked: 1 is a mainnet" error; unknown ids throw.
-* Contract targets are pinned: CCTP must equal `0x8FE6…2DAA` / `0xE737…E275`, Uniswap must equal
-  the registry's quoter/router; a mismatch throws before signing.
-* No mainnet toggle exists in the UI or the config.
+## Security
 
----
+- No private keys, seed phrases or API secrets in the repository or its history.
+- Strict Content Security Policy, no inline scripts, no `eval`.
+- Every external URL is validated, every quote is sanity-checked, every amount is bounded.
+- Token prices apply only to verified contracts, so a copycat token cannot inflate a total.
+- See [SECURITY.md](SECURITY.md) for the threat model, the dependency advisory notes and how to
+  report a problem.
 
-## Known limitations (deliberate, documented, not hidden)
+## Contributing
 
-* **CCTP moves native USDC only.** ETH and arbitrary ERC-20s cannot cross chains through it.
-* **Cross-chain swap is two hops, not atomic.** No verified provider offers an atomic testnet
-  cross-chain swap; EBT shows the real composition with separate signatures.
-* **ETH is deposit-only.** L2→L1 withdrawals need the 7-day OP Stack challenge period.
-* **Arc is stablecoin-native.** USDC is the gas token (18 dp native) with a 6 dp ERC-20 view at
-  `0x3600…0000`; gas on Arc is paid in USDC, and the mempool requires ≥20 gwei.
-* **Four swap chains.** Uniswap v3 with real liquidity was verified on Sepolia, Base Sepolia,
-  Unichain Sepolia and Arc Testnet (USDC/EURC, router `0x6082…7328`). Other testnets have no
-  verified deployment bound to a router, so they are not offered.
-* **Thin testnet liquidity.** A 0.001 ETH swap can move a Sepolia pool's price by a lot. Price
-  impact is shown from real pool state; large orders can revert on slippage.
-* **Excluded chains:** Plume Testnet and Cronos Testnet (public RPCs did not respond during
-  verification), Sonic (chain-id discrepancy between Circle's docs and viem). See
-  `RESEARCH_REPORT.md`.
-* **WalletConnect is not enabled** — it needs a third-party Project ID that this build deliberately
-  does not ask for. Injected wallets (MetaMask/Rabby/Coinbase extension) work.
+Issues and pull requests are welcome. Please keep the testnet-only rule, run the tests above, and
+describe what you verified.
 
-## Verification status
+## License
 
-`npm run test:sim` runs 26 live checks (see `scripts/simulation-report.json`). It proves guards,
-Circle's fee API, CCTP burn calldata acceptance, Uniswap quotes, the native-ETH swap path, the
-ERC-20 swap path, and the GIWA deposit path against the real chains. A funded wallet is still
-required for the final end-to-end confirmation, because EBT never holds keys.
+[MIT](LICENSE)

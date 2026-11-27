@@ -1988,6 +1988,13 @@ export default function Bridge() {
                   }
                 />
                 {estimate.data?.failed && <p className="mt-2 text-[11px] text-neg">{estimate.data.failed}</p>}
+                {estimate.isError && (
+                  <p className="mt-2 text-[11px] text-neg">
+                    {estimate.error instanceof Error
+                      ? estimate.error.message
+                      : 'The route could not be quoted. Try a smaller amount.'}
+                  </p>
+                )}
               </>
             ) : isCanonicalWithdraw ? (
               <div className="space-y-2">
