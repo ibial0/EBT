@@ -197,17 +197,17 @@ function ThemeToggle({ compact = false, label }: { compact?: boolean; label?: st
       aria-label={light ? 'Switch to dark theme' : 'Switch to light theme'}
       title={light ? 'Light theme' : 'Dark theme'}
       className={clsx(
-        'group relative block h-8 rounded-full border border-line-strong bg-ink-900 transition-colors hover:border-accent/45',
+        'group relative block h-9 rounded-full border border-line-strong bg-ink-900 transition-colors hover:border-accent/45',
         compact ? 'w-[54px]' : 'w-full',
       )}
     >
       {label && (
-        <span className="flex h-full w-full items-center justify-center px-8 text-[10px] font-semibold uppercase tracking-[0.16em] text-t1 transition-colors">
+        <span className="flex h-full w-full items-center justify-center px-10 text-[10px] font-semibold uppercase tracking-[0.16em] text-t1 transition-colors">
           {label}
         </span>
       )}
-      <span className="theme-knob absolute top-1/2 z-10 grid size-6 -translate-y-1/2 place-items-center rounded-[7px] border border-line bg-ink-700 shadow-[0_1px_2px_rgba(8,12,24,0.28)]">
-        <EbtMark size={15} />
+      <span className="theme-knob absolute top-1/2 z-10 size-8 -translate-y-1/2 overflow-hidden rounded-full shadow-[0_1px_3px_rgba(8,12,24,0.35)]">
+        <img src="/ebt-logo.png" alt="" className="h-full w-full scale-110 object-cover" draggable={false} />
       </span>
     </button>
   )

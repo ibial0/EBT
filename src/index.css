@@ -58,8 +58,8 @@
     --color-t1: #101526;
     --color-t2: #49536a;
     --color-t3: #6a7386;
-    --color-accent: #27395e;
-    --color-accent-2: #1e2d4c;
+    --color-accent: #abb8ff;
+    --color-accent-2: #c3ccff;
     --color-pos: #0b7a57;
     --color-neg: #b3261e;
     --color-warn: #8a5a00;
@@ -263,11 +263,11 @@
   }
   /* The logo rides along the label as the switch: dark theme parks it left, light parks it right. */
   .theme-knob {
-    left: 3px;
+    left: 2px;
     transition: left 320ms var(--ease);
   }
   html[data-theme='light'] .theme-knob {
-    left: calc(100% - 27px);
+    left: calc(100% - 34px);
   }
   /*
    * With View Transitions the knob gets its own named group, so it *glides* between the two
@@ -290,16 +290,17 @@
   .on-accent {
     color: #111628;
   }
-  html[data-theme='light'] .on-accent {
-    color: #ffffff;
+  /* Accent text on paper keeps the brand hue but mixes toward ink so 11px labels stay legible. */
+  html[data-theme='light'] .text-accent,
+  html[data-theme='light'] .chip-accent {
+    color: color-mix(in srgb, var(--color-accent) 52%, var(--color-t1));
+  }
+  html[data-theme='light'] .chip-accent {
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line-strong));
   }
   .btn-primary {
     background: var(--color-accent);
     color: #111628;
-  }
-  /* Light accent is a deep indigo, so primary labels flip to white for contrast. */
-  html[data-theme='light'] .btn-primary {
-    color: #ffffff;
   }
   /* A faded indigo reads as a broken button on paper, so disabled goes neutral instead. */
   html[data-theme='light'] .btn:disabled {
