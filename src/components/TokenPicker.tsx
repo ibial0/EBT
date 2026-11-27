@@ -13,6 +13,7 @@ import { getPublicClient } from 'wagmi/actions'
 import { useAccount } from 'wagmi'
 import { wagmiConfig } from '../lib/wallet'
 import { ChainLogo, NetworkLogo, TokenIcon, AllChainsMark } from './ui'
+import { initialPickerChain } from '../lib/pickerChain'
 
 export interface PickerGroup {
   chain: ChainCfg
@@ -92,6 +93,8 @@ export function TokenPicker({
 }) {
   const [q, setQ] = useState('')
   const [chainFilter, setChainFilter] = useState<number | 'all'>(() => rememberedChainFilters.get(filterKey) ?? 'all')
+  const valueChainRef = useRef<number | undefined>(value?.chainId)
+  valueChainRef.current = value?.chainId
   const [chainQuery, setChainQuery] = useState('')
   const [showChains, setShowChains] = useState(false)
   const { address: account } = useAccount()
@@ -126,7 +129,14 @@ export function TokenPicker({
     setQ('')
     setShowChains(false)
     setChainQuery('')
-    setChainFilter(rememberedChainFilters.get(filterKey) ?? 'all')
+    const available = groups.map((g) => g.chain.id)
+    setChainFilter(
+      initialPickerChain(
+        valueChainRef.current,
+        available,
+        rememberedChainFilters.get(filterKey) ?? 'all',
+      ),
+    )
     const t = setTimeout(() => inputRef.current?.focus(), 60)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current()
