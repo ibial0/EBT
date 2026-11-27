@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Copy, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
+import { ChevronDown, Copy, Info, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
 import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
@@ -285,7 +285,28 @@ export default function Portfolio() {
   const scoped = network === 'all' ? nonZero : nonZero.filter((r) => r.networkKey === network)
   const scopedUsd = scoped.reduce((s, r) => s + (r.usdValue ?? 0), 0)
   const totalUsd = nonZero.reduce((s, r) => s + (r.usdValue ?? 0), 0)
-  const unpriced = nonZero.filter((r) => r.usdValue == null).length
+
+  /** Counts and logo strips under the headline number: distinct assets, and networks that hold any. */
+  const assetCount = useMemo(() => new Set(scoped.map((r) => r.symbol.toUpperCase())).size, [scoped])
+  const assetIcons = useMemo(() => {
+    // One mark per distinct asset, not per chain position: the count beside it is distinct too.
+    const seen = new Map<string, Row>()
+    for (const r of [...scoped].sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0))) {
+      const k = r.symbol.toUpperCase()
+      if (!seen.has(k)) seen.set(k, r)
+    }
+    return [...seen.values()].slice(0, 3)
+  }, [scoped])
+  const networkIcons = useMemo(() => {
+    const seen = new Map<string, Row>()
+    for (const r of nonZero) if (!seen.has(r.networkKey)) seen.set(r.networkKey, r)
+    return [...seen.values()]
+      .sort(
+        (a, b) =>
+          (networkTotals.get(b.networkKey)?.usd ?? 0) - (networkTotals.get(a.networkKey)?.usd ?? 0),
+      )
+      .slice(0, 3)
+  }, [nonZero, networkTotals])
 
   const selectedChain = useMemo(
     () => (network.startsWith('eip155:') ? getChain(Number(network.slice(7))) ?? null : null),
@@ -448,7 +469,29 @@ export default function Portfolio() {
       {/* ── left: value + chart ───────────────────────────── */}
       <div className="card flex h-full min-h-0 flex-col overflow-hidden p-6">
         <div className="flex items-center justify-between">
-          <div className="col-head">Portfolio</div>
+          <div className="flex items-center gap-1.5">
+            <span className="head-num text-[17px] leading-6 text-t1" style={{ fontWeight: 750 }}>
+              Portfolio
+            </span>
+            <span className="group relative inline-flex">
+              <button
+                type="button"
+                aria-describedby="pf-scope-note"
+                aria-label="What this balance covers"
+                className="grid size-5 place-items-center rounded-full text-t3 transition-colors hover:text-t2 focus-visible:text-t2 focus-visible:outline-none"
+              >
+                <Info size={15} strokeWidth={1.9} />
+              </button>
+              <span
+                id="pf-scope-note"
+                role="tooltip"
+                className="pointer-events-none absolute left-[-10px] top-[calc(100%+9px)] z-30 w-[250px] rounded-[10px] bg-[#ECEDF2] px-3 py-2.5 text-left text-[12px] font-medium leading-[1.45] tracking-[-0.005em] text-[#171821] opacity-0 shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+              >
+                <span className="absolute -top-1 left-[14px] size-2 rotate-45 bg-[#ECEDF2]" />
+                Testnet only. Balances are read from each testnet chain; mainnet holdings are not shown.
+              </span>
+            </span>
+          </div>
           <button
             onClick={() => {
               if (address) portfolio.refetch()
@@ -457,7 +500,7 @@ export default function Portfolio() {
             title="Refresh balances"
             className="grid size-9 place-items-center rounded-full border border-line-strong bg-ink-850 text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
           >
-            <RefreshCw size={14} className={isFetchingAny ? 'spin' : undefined} />
+            <RefreshCw size={15} strokeWidth={2.4} className={isFetchingAny ? 'spin' : undefined} />
           </button>
         </div>
 
@@ -467,7 +510,7 @@ export default function Portfolio() {
           </div>
         )}
 
-        <div className="figure mt-4 text-[52px] leading-[60px] font-bold tracking-[-0.035em] text-t1">
+        <div className="figure-num mt-4 text-[52px] leading-[58px] font-extrabold text-t1">
           {initialLoading ? (
             <span className="skeleton inline-block h-12 w-52 align-middle" />
           ) : (
@@ -475,17 +518,46 @@ export default function Portfolio() {
           )}
         </div>
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="mono text-[12px] uppercase tracking-[0.6px] text-t2">
-            {scoped.length} assets · {network === 'all' ? fundedNetworks : 1} networks
-          </span>
-          {unpriced > 0 && (
-            <span className="mono text-[12px] uppercase tracking-[0.6px] text-warn">{unpriced} unpriced</span>
-          )}
-          <span className="mono flex items-center gap-1.5 text-[12px] uppercase tracking-[0.6px] text-t2">
-            <span className={`size-1.5 rotate-45 border ${prices.data?.live ? 'border-pos' : 'border-t3'}`} />
-            {prices.data?.live ? 'live prices' : 'estimated'}
-          </span>
+        <div className="mt-2.5 flex items-center justify-center gap-7">
+          <div
+            className="flex items-center gap-2"
+            title={`${assetCount} ${assetCount === 1 ? 'asset' : 'assets'} with a balance`}
+          >
+            <span className="head-num text-[15px] leading-5 text-t1">{assetCount}</span>
+            <span className="flex -space-x-1.5">
+              {assetIcons.map((r) => (
+                <span key={`${r.networkKey}:${r.symbol}:${r.address ?? 'native'}`} className="ring-2 ring-ink-800 rounded-full">
+                  <TokenIcon
+                    symbol={r.symbol}
+                    chainId={r.chainId ?? undefined}
+                    address={r.address}
+                    verified={r.verified}
+                    size={18}
+                  />
+                </span>
+              ))}
+            </span>
+          </div>
+          <span className="h-4 w-px bg-line-strong" aria-hidden />
+          <div
+            className="flex items-center gap-2"
+            title={`${fundedNetworks} ${fundedNetworks === 1 ? 'network' : 'networks'} with a balance`}
+          >
+            <span className="head-num text-[15px] leading-5 text-t1">{fundedNetworks}</span>
+            <span className="flex -space-x-1.5">
+              {networkIcons.map((r) =>
+                r.network ? (
+                  <span key={r.networkKey} className="ring-2 ring-ink-800 rounded-full">
+                    <NetworkLogo network={r.network} size={18} />
+                  </span>
+                ) : r.chainId != null && getChain(r.chainId) ? (
+                  <span key={r.networkKey} className="ring-2 ring-ink-800 rounded-full">
+                    <ChainLogo chain={getChain(r.chainId)!} size={18} />
+                  </span>
+                ) : null,
+              )}
+            </span>
+          </div>
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-1">
@@ -535,7 +607,7 @@ export default function Portfolio() {
             ) : selectedNonEvm ? (
               <NetworkLogo network={selectedNonEvm} size={14} />
             ) : (
-              <span className="size-1.5 rotate-45 border border-t3" />
+              <AllChainsMark size={14} />
             )}
             {selectedChain ? selectedChain.short : selectedNonEvm ? selectedNonEvm.short : 'All networks'}
             <ChevronDown size={12} className="text-t2" />

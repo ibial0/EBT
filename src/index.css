@@ -31,6 +31,7 @@
   --color-warn: #e6c17a;
   --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-num: 'Inter Tight Variable', 'Inter Tight', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -137,6 +138,18 @@
   .figure {
     font-family: var(--font-display);
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  /* Headline money and counts: tighter, heavier, tabular so digits never jitter while loading. */
+  .figure-num {
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.035em;
+  }
+  .head-num {
+    font-family: var(--font-num);
+    font-weight: 700;
     letter-spacing: -0.01em;
   }
   .mono {

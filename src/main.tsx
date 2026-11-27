@@ -7,6 +7,7 @@ import App from './App'
 // Self-hosted so the app never blocks on a font CDN: display, body, data.
 import '@fontsource/space-grotesk/500.css'
 import '@fontsource/space-grotesk/700.css'
+import '@fontsource-variable/inter-tight'
 import '@fontsource/ibm-plex-sans/400.css'
 import '@fontsource/ibm-plex-sans/500.css'
 import '@fontsource/ibm-plex-sans/600.css'
