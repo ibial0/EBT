@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-27T14:41:19.459Z",
+  "ranAt": "2026-11-27T16:13:57.310Z",
   "results": [
     {
       "id": "guard: mainnet rejected",
@@ -34,12 +34,12 @@
     {
       "id": "swap: quote WETH→USDC on Sepolia",
       "ok": true,
-      "detail": "out=42782528 fee=500 impact=5bps"
+      "detail": "out=42723965 fee=500 impact=5bps"
     },
     {
       "id": "swap: native ETH→USDC executes",
       "ok": true,
-      "detail": "returned 0x00000000000000000000000000000000000000000000000000000000028ccf40"
+      "detail": "returned 0x00000000000000000000000000000000000000000000000000000000028bea7d"
     },
     {
       "id": "opstack: GIWA deposit accepted",
@@ -64,7 +64,7 @@
     {
       "id": "swap: quote USDC→WETH on Base Sepolia",
       "ok": true,
-      "detail": "out=442770446646008 fee=100"
+      "detail": "out=407446349925459 fee=100"
     },
     {
       "id": "swap: quote USDC→WETH on OP Sepolia",
@@ -89,12 +89,12 @@
     {
       "id": "arc: USDC ERC-20 view is 6dp",
       "ok": true,
-      "detail": "decimals=6, gasPrice=20000000000"
+      "detail": "decimals=6, gasPrice=25000000000"
     },
     {
       "id": "arc: gas floor ≥20 gwei",
       "ok": true,
-      "detail": "20 gwei"
+      "detail": "25 gwei"
     },
     {
       "id": "opstack: ETH deposit targets from Sepolia",
@@ -154,7 +154,7 @@
     {
       "id": "swap: quote WBNB→BUSD on BNB Testnet",
       "ok": true,
-      "detail": "out=129130146289314763422 via PancakeSwap V2"
+      "detail": "out=129108797750920815824 via PancakeSwap V2"
     },
     {
       "id": "swap: BNB tBNB→BUSD executes",
@@ -169,7 +169,7 @@
     {
       "id": "swap: Hedera router calldata valid",
       "ok": true,
-      "detail": "[Request ID: 2070846b-07a0-4cd5-8263-6d0c562d0a03] execution reverted: CONTRACT_REVERT_EXECUTED, INSUFFICIENT_"
+      "detail": "[Request ID: d4c4d400-b6ae-4566-8b4c-8a683e5ec8d0] execution reverted: CONTRACT_REVERT_EXECUTED, INSUFFICIENT_"
     },
     {
       "id": "swap: Solana Dev live quote (SOL→USDC)",
@@ -179,7 +179,7 @@
     {
       "id": "swap: Stellar live quote (XLM→USDC)",
       "ok": true,
-      "detail": "out=6.423451 via Stellar SDEX direct orderbook"
+      "detail": "out=6.423313 via Stellar SDEX direct orderbook"
     },
     {
       "id": "cctp: HyperEVM (d19) depositForBurn",

@@ -1472,7 +1472,7 @@ export default function Bridge() {
       {/* console pages keep the nav as the visible title; the outline still needs a heading */}
       <h1 className="sr-only">Bridge</h1>
       <div className="grid w-full min-h-0 flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
-        <Card className="flex h-full min-h-0 flex-col p-5">
+        <Card className="flex h-full min-h-0 min-w-0 flex-col p-5">
           <div className="relative flex flex-1 flex-col gap-3">
             <div
               onMouseDown={(e) => {
@@ -1909,7 +1909,7 @@ export default function Bridge() {
           </div>
         </Card>
 
-        <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+        <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-y-auto pr-1">
           <Card className="p-4">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-t1">Route</h3>
