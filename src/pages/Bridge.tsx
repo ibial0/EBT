@@ -997,7 +997,7 @@ export default function Bridge() {
       updateStep(item.id, 'withdraw', { status: 'done', hash })
       updateStep(item.id, 'confirm', { status: 'active' })
       rememberWithdrawal({ txHash: hash, fromId, toId, amount: human, createdAt: Date.now(), activityId: item.id })
-      notify(`Withdrawal started — claim it from Activity once ${toShort} confirms.`, 'success')
+      notify(`Withdrawal started. Claim it from Activity once ${toShort} confirms.`, 'success')
       setAmount('')
     } catch (e) {
       const d = decodeTxError(e, fromId)
@@ -1219,13 +1219,17 @@ export default function Bridge() {
               </div>
             )
           ) : depositNeedsGasToken ? (
-            <div className="mt-3 rounded-xl border border-line-strong bg-ink-850 p-4">
-              <p className="text-[12.5px] font-semibold text-t1">ETH cannot be deposited into {toShort}</p>
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-t2">
+            <div
+              key={`${fromId}-${toId}`}
+              className="notice-in mt-3 rounded-xl border border-line-strong bg-ink-850 px-5 py-5 text-center"
+            >
+              <p className="text-[13px] font-semibold text-t1">ETH cannot be deposited into {toShort}</p>
+              <p className="mx-auto mt-2 max-w-[380px] text-[11.5px] leading-relaxed text-t2">
                 {to?.short ?? toShort} is an Orbit chain whose gas token is{' '}
-                {to?.viem.nativeCurrency.symbol ?? 'its own token'}, not ETH — its inbox prices retryable tickets in
-                that token, so a plain ETH deposit does not exist there. The reverse direction does work:{' '}
-                {toShort} → {fromShort} is a canonical withdrawal and the value can be claimed here once the rollup
+                {to?.viem.nativeCurrency.symbol ?? 'its own token'}, not ETH. Its inbox prices retryable tickets in that
+                token, so a plain ETH deposit does not exist there. The reverse direction does work:
+                {' '}
+                {toShort} to {fromShort} is a canonical withdrawal and the value can be claimed here once the rollup
                 confirms.
               </p>
             </div>
@@ -1500,11 +1504,11 @@ export default function Bridge() {
             {depositNeedsGasToken ? (
               <div className="space-y-2">
                 <p className="text-[12px] leading-5 text-t2">
-                  A deposit into {toShort} has to be paid in {to?.viem.nativeCurrency.symbol ?? 'its gas token'} —
-                  this chain's inbox does not accept an ETH retryable ticket.
+                  A deposit into {toShort} has to be paid in {to?.viem.nativeCurrency.symbol ?? 'its gas token'}.
+                  This chain's inbox does not accept an ETH retryable ticket.
                 </p>
                 <p className="text-[11.5px] leading-5 text-t3">
-                  The other direction works: pick {toShort} → {fromShort} and it runs as a canonical withdrawal,
+                  The other direction works. Pick {toShort} to {fromShort} and it runs as a canonical withdrawal,
                   claimable here once the rollup confirms.
                 </p>
               </div>
@@ -1564,13 +1568,13 @@ export default function Bridge() {
             ) : isCanonicalWithdraw ? (
               <div className="space-y-2">
                 <p className="text-[12px] leading-5 text-t2">
-                  {fromShort} settles on {toShort}, so the Bridge button starts a withdrawal instead of a
-                  deposit — there is no separate bridge to configure.
+                  {fromShort} settles on {toShort}, so the Bridge button starts a withdrawal instead of a deposit.
+                  There is no separate bridge to configure.
                 </p>
                 <ol className="space-y-1 text-[11.5px] leading-5 text-t3">
-                  <li>1 · Withdraw on {fromShort} — you sign</li>
+                  <li>1 · Withdraw on {fromShort}, you sign</li>
                   <li>2 · The rollup confirms the message on {toShort}</li>
-                  <li>3 · Claim on {toShort} — you sign again</li>
+                  <li>3 · Claim on {toShort}, you sign again</li>
                 </ol>
                 <p className="mono text-[11px] text-t3">≈ tens of minutes on this testnet</p>
               </div>
@@ -1606,7 +1610,7 @@ export default function Bridge() {
                 <p>
                   <span className="font-semibold text-t1">Canonical withdrawals</span> from an Orbit chain back to
                   its parent are handled as a withdrawal: one signature to start it, then a claim once the rollup
-                  confirms — quick on this testnet, 7 days on mainnet Arbitrum.
+                  confirms. Quick on this testnet, 7 days on mainnet Arbitrum.
                 </p>
               </div>
             </div>
