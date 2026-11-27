@@ -394,7 +394,7 @@ export default function Portfolio() {
     // A balance that rose is an observed receive — record it in the local ledger once.
     for (const e of events) {
       addActivity({
-        id: `recv-${e.networkKey}-${e.t}`,
+        id: `recv-${e.networkKey}-${e.symbol}-${e.t}`,
         kind: 'receive',
         provider: 'wallet',
         fromChainId: e.chainId ?? 0,

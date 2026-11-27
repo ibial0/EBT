@@ -2,20 +2,23 @@
  * Observed token inflows.
  *
  * There is no indexer behind this app, so an inflow is only recorded when *this browser*
- * saw a balance rise between two completed scans. That is a real observation, never a
- * guess: first sightings are ignored (a token that appears for the first time could just
- * be discovery finishing), and increases are timestamped at the moment they were seen.
+ * saw a balance rise between two completed scans. A token we have never seen before is
+ * discovery finishing, not a receive, so it never draws a bubble by itself.
  *
- * The chart uses these to draw a token bubble at the point in time the balance moved.
+ * One bubble per token per hour: the first arrival draws it immediately, and any further
+ * arrivals push the hour forward, so a bubble only appears again after a full quiet hour
+ * followed by a new arrival. Different tokens get their own bubbles.
  */
-const KEY = 'ebt.chartInflows.v1'
+const KEY = 'ebt.chartInflows.v2'
 const MAX_EVENTS = 400
-/** Same token within this window is one bubble, whichever chain it landed on. */
+/** A token needs a full hour since its previous arrival before it earns another bubble. */
 const MERGE_MS = 60 * 60_000
 
 export interface InflowEvent {
-  /** when the change was observed */
+  /** when the bubble was drawn */
   t: number
+  /** when this token last arrived — the hourly gate is measured from here */
+  anchor?: number
   /** portfolio value at that moment, so the bubble can sit on the line */
   v: number
   symbol: string
@@ -61,7 +64,7 @@ export function saveInflows(events: InflowEvent[]) {
   }
 }
 
-/** Balances that rose since the previous completed scan, timestamped now. */
+/** Balances that strictly rose since the previous completed scan, timestamped now. */
 export function diffInflows(
   prev: FlatHolding[] | null,
   next: FlatHolding[],
@@ -70,9 +73,7 @@ export function diffInflows(
 ): InflowEvent[] {
   if (!prev || prev.length === 0) return []
   const before = new Map<string, bigint>()
-  const chainsSeen = new Set<string>()
   for (const h of prev) {
-    chainsSeen.add(h.networkKey)
     if (h.amount != null) before.set(keyOf(h), h.amount)
   }
 
@@ -80,20 +81,18 @@ export function diffInflows(
   for (const h of next) {
     if (h.amount == null || h.amount <= 0n) continue
     const previous = before.get(keyOf(h))
-    // A row we have never seen is normally discovery catching up, not a receive. The exception
-    // is a token that shows up on a chain we had already scanned: that is a faucet claim or a
-    // transfer landing while the app was open, and it is exactly what the bubble is for.
-    const firstSighting = previous == null
-    if (firstSighting && !chainsSeen.has(h.networkKey)) continue
-    if (!firstSighting && h.amount <= previous!) continue
+    // A key we never read before is discovery catching up, not a receive: no bubble.
+    if (previous == null) continue
+    if (h.amount <= previous) continue
     out.push({
       t: at,
+      anchor: at,
       v: valueNow,
       symbol: h.symbol,
       address: h.address,
       networkKey: h.networkKey,
       chainId: h.chainId ?? null,
-      delta: (firstSighting ? h.amount : h.amount - (previous as bigint)).toString(),
+      delta: (h.amount - previous).toString(),
       decimals: h.decimals,
     })
   }
@@ -103,30 +102,28 @@ export function diffInflows(
 /**
  * Appends events, keeping one bubble per token per hour.
  *
- * The key is the symbol alone: the same token claimed on five chains inside an hour is one
- * arrival, so it stays one bubble. The earliest sighting anchors the bubble; a repeat of the
- * exact same token on the same chain adds its amount so the tooltip total stays honest.
+ * The key is the symbol alone: the same token arriving on five chains inside an hour is one
+ * arrival, so it stays one bubble. A repeat inside the hour draws nothing and only moves the
+ * gate forward, so bubbles cannot pile up while a user keeps claiming.
  */
 export function mergeInflows(existing: InflowEvent[], incoming: InflowEvent[]): InflowEvent[] {
   const merged = [...existing].sort((a, b) => a.t - b.t)
   for (const e of incoming) {
-    const idx = merged.findIndex(
-      (m) => m.symbol.toUpperCase() === e.symbol.toUpperCase() && Math.abs(m.t - e.t) < MERGE_MS,
-    )
-    if (idx < 0) {
-      merged.push(e)
+    const same = merged.filter((m) => m.symbol.toUpperCase() === e.symbol.toUpperCase())
+    const last = same[same.length - 1]
+    if (!last) {
+      merged.push({ ...e, anchor: e.t })
       continue
     }
-    const m = merged[idx]
-    const sameToken = m.networkKey === e.networkKey && (m.address ?? '') === (e.address ?? '')
-    if (!sameToken) continue
-    let delta = e.delta
-    try {
-      delta = (BigInt(m.delta) + BigInt(e.delta)).toString()
-    } catch {
-      /* keep the newer delta if either side is not an integer */
+    // The same scan can report the same arrival twice; keep one.
+    if (last.t === e.t) continue
+    const gate = last.anchor ?? last.t
+    if (e.t - gate < MERGE_MS) {
+      const idx = merged.indexOf(last)
+      merged[idx] = { ...last, anchor: e.t }
+      continue
     }
-    merged[idx] = { ...m, delta, v: e.v }
+    merged.push({ ...e, anchor: e.t })
   }
   return merged.sort((a, b) => a.t - b.t).slice(-MAX_EVENTS)
 }

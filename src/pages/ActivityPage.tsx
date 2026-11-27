@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, LifeBuoy, RefreshCw, Trash2 } from 'lucide-react'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
@@ -32,6 +32,18 @@ import { wagmiConfig, ensureWalletChain } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
 import type { Address } from '../config/chains'
 
+type ActivityFilter = 'all' | 'send' | 'receive' | 'bridge' | 'swap'
+const FILTERS: Array<{ id: ActivityFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'send', label: 'Send' },
+  { id: 'receive', label: 'Receive' },
+  { id: 'bridge', label: 'Bridge' },
+  { id: 'swap', label: 'Swap' },
+]
+const matchesFilter = (kind: string, f: ActivityFilter) =>
+  f === 'all' ? true : f === 'receive' ? kind === 'receive' || kind === 'deposit' : kind === f
+const kindWord = (kind: string) => (kind === 'deposit' ? 'receive' : kind)
+
 export default function ActivityPage() {
   useEffect(() => {
     void syncOrbitConfirmations()
@@ -39,6 +51,18 @@ export default function ActivityPage() {
   const { id } = useParams()
   const all = useActivity()
   const navigate = useNavigate()
+  const [filter, setFilter] = useState<ActivityFilter>('all')
+  const counts = useMemo(() => {
+    const c: Record<ActivityFilter, number> = { all: all.length, send: 0, receive: 0, bridge: 0, swap: 0 }
+    for (const a of all) {
+      if (a.kind === 'send') c.send++
+      else if (a.kind === 'receive' || a.kind === 'deposit') c.receive++
+      else if (a.kind === 'bridge') c.bridge++
+      else if (a.kind === 'swap') c.swap++
+    }
+    return c
+  }, [all])
+  const shown = useMemo(() => all.filter((a) => matchesFilter(a.kind, filter)), [all, filter])
 
   if (id) return <Detail id={id} />
   void navigate
@@ -94,8 +118,46 @@ export default function ActivityPage() {
           </div>
         </Card>
       ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-line bg-ink-850 p-1.5">
+            {FILTERS.map((f) => {
+              const active = filter === f.id
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFilter(f.id)}
+                  aria-pressed={active}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-medium transition-colors ${
+                    active ? 'bg-accent text-[#111628]' : 'text-t2 hover:bg-ink-700 hover:text-t1'
+                  }`}
+                >
+                  {f.label}
+                  <span
+                    className={`rounded-full px-1.5 py-[1px] text-[10px] tabular-nums ${
+                      active ? 'bg-[#111628]/15 text-[#111628]' : 'bg-ink-700 text-t3'
+                    }`}
+                  >
+                    {counts[f.id]}
+                  </span>
+                </button>
+              )
+            })}
+            <span className="ml-auto pr-1 text-[11px] text-t3">
+              {shown.length === all.length ? `${all.length} records` : `${shown.length} of ${all.length}`}
+            </span>
+          </div>
+
+          {shown.length === 0 ? (
+            <Card className="py-2">
+              <Empty
+                title={`No ${FILTERS.find((f) => f.id === filter)?.label.toLowerCase()} records`}
+                hint="Pick another filter, or make a transfer and it lands here with its timeline."
+              />
+            </Card>
+          ) : (
         <div className="space-y-2">
-          {all.map((a) => {
+          {shown.map((a) => {
             const from = getChain(a.fromChainId)
             const to = getChain(a.toChainId)
             return (
@@ -116,7 +178,8 @@ export default function ActivityPage() {
                           </span>
                         </>
                       )}
-                      <span className="chip !py-0 !text-[9px]">{a.provider}</span>
+                      <span className="chip !py-0 !text-[9px] uppercase tracking-wide">{kindWord(a.kind)}</span>
+                      {a.provider !== 'wallet' && <span className="chip !py-0 !text-[9px]">{a.provider}</span>}
                     </div>
                     <div className="mt-0.5 truncate text-[11px] text-t3">
                       {from?.short ?? a.fromChainId} → {to?.short ?? a.toChainId} · {timeAgo(a.createdAt)} · {shortAddr(a.owner, 3)}
@@ -128,6 +191,8 @@ export default function ActivityPage() {
             )
           })}
         </div>
+          )}
+        </>
       )}
     </div>
   )
