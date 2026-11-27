@@ -7,7 +7,7 @@ import { useSyncExternalStore } from 'react'
 export type StepStatus = 'pending' | 'active' | 'done' | 'failed' | 'skipped'
 export type ActivityKind = 'bridge' | 'swap' | 'deposit' | 'send' | 'receive'
 export type ActivityStatus = 'draft' | 'pending' | 'complete' | 'failed' | 'cancelled'
-export type ProviderId = 'cctp' | 'uniswap' | 'opstack' | 'orbit' | 'across' | 'dexv2' | 'wallet'
+export type ProviderId = 'cctp' | 'uniswap' | 'opstack' | 'orbit' | 'across' | 'stargate' | 'dexv2' | 'wallet'
 
 export interface TxStep {
   key: string

@@ -10,6 +10,7 @@ import { NON_EVM_NETWORKS, getNetwork, type NetworkEntry } from '../config/netwo
 import { WETH, isNativeToken, nativeToken, tokensForChain, type TokenCfg } from '../config/tokens'
 import { useSearchParams } from 'react-router-dom'
 import { initiateWithdrawEth, rememberWithdrawal } from '../lib/orbitWithdraw'
+import { buildStargateEthSend, quoteStargateEth, stargateEthPool } from '../lib/stargate'
 import { Card, Button, Badge, Row, notify, ChainLogo, NetworkLogo, TokenIcon, Spinner } from '../components/ui'
 import {
   NON_EVM_BRIDGE_ENDPOINTS,
@@ -34,7 +35,7 @@ import { startOrbitTracking } from '../lib/orbitTrack'
 import { startAcrossTracking } from '../lib/acrossTrack'
 import { ORBIT_ETH_NATIVE, orbitBridgeFor } from '../config/orbit'
 import { fmt, safeParseUnits } from '../lib/format'
-import { checkGas, walletSender } from '../lib/tx'
+import { checkGas, prepareTx, walletSender } from '../lib/tx'
 import { decodeTxError } from '../lib/errors'
 import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
 import { findRoutes, nativeSymbolOf, noRouteReason, reachableDestTokens, usableSourceTokens, type RouteCandidate, type RouteLeg } from '../lib/routes'
@@ -218,7 +219,9 @@ function RoutePath({
       ? 'CCTP v2'
       : bridgeLeg?.kind === 'across'
         ? 'Across v3'
-        : bridgeLeg?.kind === 'portal'
+        : bridgeLeg?.kind === 'stargate'
+          ? 'Stargate v2'
+          : bridgeLeg?.kind === 'portal'
           ? 'OP portal'
           : bridgeLeg?.kind === 'arbitrum'
             ? 'Arbitrum'
@@ -259,6 +262,33 @@ function RoutePath({
       </div>
     </div>
   )
+}
+
+/** Waits for the destination balance to rise: that is what "delivered" means on-chain. */
+async function pollStargateArrival(
+  activityId: string,
+  step: string,
+  chainId: number,
+  recipient: Address,
+  baseline: bigint,
+): Promise<void> {
+  const client = getPublicClient(wagmiConfig, { chainId: chainId as never })
+  if (!client) return
+  const deadline = Date.now() + 15 * 60 * 1000
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 6000))
+    const now = await client.getBalance({ address: recipient }).catch(() => null)
+    if (now != null && now > baseline) {
+      updateStep(activityId, step, { status: 'done', note: 'Delivered by LayerZero.' })
+      finalizeFromSteps(activityId)
+      notify('Stargate delivered the transfer on the destination.', 'success')
+      return
+    }
+  }
+  updateStep(activityId, step, {
+    status: 'active',
+    note: 'Still waiting for LayerZero delivery. It can take a few minutes on testnet.',
+  })
 }
 
 export default function Bridge() {
@@ -631,6 +661,20 @@ export default function Bridge() {
           } catch (e) {
             return { amountOut: 0n, lines, failed: e instanceof Error ? e.message : 'Across quote unavailable right now.' }
           }
+        } else if (leg.kind === 'stargate') {
+          const sg = stargateEthPool(leg.from, leg.to)
+          if (!sg) return { amountOut: 0n, lines, failed: 'Stargate has no pool for this pair.' }
+          const srcClient = getPublicClient(wagmiConfig, { chainId: leg.from as never })
+          if (!srcClient) return { amountOut: 0n, lines, failed: 'No RPC for the source chain.' }
+          try {
+            const fee = await quoteStargateEth(srcClient, sg.pool, sg.dstEid, effectiveRecipient as Address, current)
+            lines.push({
+              leg: legLabel(i, leg),
+              detail: `Stargate v2 messaging fee ${fmt(fee, 18, 6)} ${nativeSymbolOf(leg.from)}, LayerZero delivers in ~1–2 min.`,
+            })
+          } catch (e) {
+            return { amountOut: 0n, lines, failed: e instanceof Error ? e.message : 'Stargate quote unavailable right now.' }
+          }
         } else if (leg.kind === 'arbitrum') {
           lines.push({ leg: legLabel(i, leg), detail: 'Canonical Arbitrum Orbit retryable ticket.' })
         } else {
@@ -728,15 +772,15 @@ export default function Bridge() {
           status: 'pending' as const,
           chainId: leg.kind === 'swap' ? leg.chainId : leg.from,
         }
-        if (leg.kind === 'portal' || leg.kind === 'arbitrum' || leg.kind === 'across') {
+        if (leg.kind === 'portal' || leg.kind === 'arbitrum' || leg.kind === 'across' || leg.kind === 'stargate') {
           return [
             base,
             {
               key: `arrive${i}`,
-              label: leg.kind === 'across' ? `Relayer fill on ${getChain(leg.to)?.short ?? 'dest'}` : `Arrives on ${getChain(leg.to)?.short ?? 'L2'}`,
+              label: leg.kind === 'across' ? `Relayer fill on ${getChain(leg.to)?.short ?? 'dest'}` : leg.kind === 'stargate' ? `LayerZero delivery to ${getChain(leg.to)?.short ?? 'dest'}` : `Arrives on ${getChain(leg.to)?.short ?? 'L2'}`,
               status: 'pending' as const,
               chainId: leg.to,
-              note: leg.kind === 'across' ? 'Waiting for Across relayer to fill the intent.' : 'Waiting for the sequencer to include the deposit.',
+              note: leg.kind === 'across' ? 'Waiting for Across relayer to fill the intent.' : leg.kind === 'stargate' ? 'Waiting for LayerZero to deliver to the destination pool.' : 'Waiting for the sequencer to include the deposit.',
             },
           ]
         }
@@ -748,7 +792,9 @@ export default function Bridge() {
           ? 'cctp'
           : route.legs.some((l) => l.kind === 'across')
             ? 'across'
-            : route.legs.some((l) => l.kind === 'arbitrum')
+            : route.legs.some((l) => l.kind === 'stargate')
+              ? 'stargate'
+              : route.legs.some((l) => l.kind === 'arbitrum')
               ? 'orbit'
               : 'opstack',
         fromChainId: fromId,
@@ -896,6 +942,37 @@ export default function Bridge() {
           startAcrossTracking(item.id, {
             onDone: (st) => notify(st === 'complete' ? 'Across relayer filled the transfer on destination.' : 'Across intent expired before fill.', st === 'complete' ? 'success' : 'error'),
           })
+        } else if (leg.kind === 'stargate') {
+          const dstClient = getPublicClient(wagmiConfig, { chainId: leg.to as never })
+          if (!dstClient) throw new Error('No RPC for the destination chain.')
+          const baseline = await dstClient.getBalance({ address: effectiveRecipient as Address }).catch(() => 0n)
+          const sg = stargateEthPool(leg.from, leg.to)
+          if (!sg) throw new Error('Stargate has no pool for this pair.')
+          const fee = await quoteStargateEth(client, sg.pool, sg.dstEid, effectiveRecipient as Address, current)
+          const built = buildStargateEthSend({
+            pool: sg.pool,
+            dstEid: sg.dstEid,
+            to: effectiveRecipient as Address,
+            amount: current,
+            nativeFee: fee,
+            refund: address as Address,
+          })
+          const tx = await prepareTx(client, getChain(leg.from)!, {
+            to: built.to,
+            data: built.data,
+            value: built.value,
+            account: address as Address,
+          })
+          const hash = await sender.sendTransaction(tx)
+          updateStep(item.id, `leg${i}`, { status: 'active', hash })
+          const rc = await client.waitForTransactionReceipt({ hash })
+          if (rc.status !== 'success') throw new Error('The Stargate transfer reverted on the source chain.')
+          updateStep(item.id, `leg${i}`, { status: 'done', hash })
+          updateStep(item.id, `arrive${i}`, {
+            status: 'active',
+            note: 'Stargate accepted the transfer. LayerZero is delivering it to the destination pool.',
+          })
+          void pollStargateArrival(item.id, `arrive${i}`, leg.to, effectiveRecipient as Address, baseline)
         } else if (leg.kind === 'arbitrum') {
           const cfg = orbitBridgeFor(leg.to)
           if (!cfg) throw new Error(`Missing Arbitrum Orbit bridge config for ${getChain(leg.to)?.short ?? leg.to}.`)
@@ -1289,7 +1366,9 @@ export default function Bridge() {
                     const tag =
                       b?.kind === 'across'
                         ? 'Across v3 (~15s)'
-                        : b?.kind === 'cctp'
+                        : b?.kind === 'stargate'
+                          ? 'Stargate v2 (~1–2 min)'
+                          : b?.kind === 'cctp'
                           ? 'Circle CCTP v2'
                           : b?.kind === 'portal'
                             ? 'OP Portal'
@@ -1544,7 +1623,9 @@ export default function Bridge() {
                 <Row
                   label="ETA"
                   value={
-                    route.legs.some((l) => l.kind === 'arbitrum')
+                    route.legs.some((l) => l.kind === 'stargate')
+                      ? '≈1–2 min (LayerZero delivery)'
+                      : route.legs.some((l) => l.kind === 'arbitrum')
                       ? '≈1–10 min (retryable ticket)'
                       : route.legs.some((l) => l.kind === 'across')
                         ? '≈10–30s (Across relayer)'

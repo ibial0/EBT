@@ -22,6 +22,7 @@ import { getPortalAddress } from './opstack'
 import { orbitRouteExists } from './arbitrumOrbit'
 import { orbitBridgeFor } from '../config/orbit'
 import { ACROSS_ETH_CHAINS, ACROSS_WETH, acrossRouteAvailable } from './across'
+import { stargateEthPool } from './stargate'
 
 export type RouteLeg =
   | { kind: 'cctp'; from: number; to: number; token: Address }
@@ -29,6 +30,8 @@ export type RouteLeg =
   | { kind: 'portal'; from: number; to: number }
   /** Arbitrum Orbit canonical deposit; `token` is set for an ERC-20 deposit */
   | { kind: 'arbitrum'; from: number; to: number; token?: Address }
+  /** Stargate V2 native-ETH pool (LayerZero OFT) — one signature, destination credit */
+  | { kind: 'stargate'; from: number; to: number }
   | { kind: 'swap'; chainId: number; tokenIn: Address; tokenOut: Address; fee: number }
   /** LI.FI aggregated bridge/swap — covers many protocols in one signature */
   | { kind: 'lifi'; from: number; to: number; tool: string; inToken: Address; outToken: Address }
@@ -156,6 +159,18 @@ function bridgeEdges(chainId: number): BridgeEdge[] {
     })
   }
 
+  // Stargate V2 native pool (LayerZero OFT): ETH between Sepolia / Arb Sepolia / OP Sepolia.
+  for (const other of CHAINS) {
+    if (other.id === chainId) continue
+    if (!stargateEthPool(chainId, other.id)) continue
+    edges.push({
+      toChain: other.id,
+      token: nativeOf(other.id),
+      leg: { kind: 'stargate', from: chainId, to: other.id },
+      matchKey: `native:${chainId}`,
+    })
+  }
+
   // Across v3 fast intents across Sepolia / Base / Arb / OP / Unichain / Amoy
   for (const other of CHAINS) {
     if (other.id === chainId) continue
@@ -246,6 +261,19 @@ export function directRoutes(fromId: number, toId: number, token: TokenCfg): Rou
         txCount: 1,
         label: `${token.symbol} → Across v3 → ${ac.destToken.symbol}`,
         detail: `Across Protocol v3 fast relayer bridge ${from.short} → ${to.short}. Single signature, typically fills in ~10–30s (subject to testnet relayer pool cap).`,
+      })
+    }
+    // 4. Stargate V2 native pool (LayerZero OFT)
+    if (stargateEthPool(fromId, toId)) {
+      out.push({
+        id: `stargate-eth-${fromId}-${toId}`,
+        type: 'direct',
+        legs: [{ kind: 'stargate', from: fromId, to: toId }],
+        inToken: token,
+        outToken: nativeOf(toId),
+        txCount: 1,
+        label: `${token.symbol} → Stargate v2 → ${nativeOf(toId).symbol}`,
+        detail: `Stargate V2 native pool ${from.short} → ${to.short}. One signature; LayerZero delivers to the destination pool in about a minute.`,
       })
     }
     return out
@@ -425,7 +453,7 @@ function push(
   }
   if (assetKey(next.chainId, next.token.address) !== goalKey) return
   const type =
-    legs.length === 1 && (legs[0].kind === 'cctp' || legs[0].kind === 'portal' || legs[0].kind === 'arbitrum' || legs[0].kind === 'across' || legs[0].kind === 'lifi' || legs[0].kind === 'relay' || legs[0].kind === 'wormhole')
+    legs.length === 1 && (legs[0].kind === 'cctp' || legs[0].kind === 'portal' || legs[0].kind === 'arbitrum' || legs[0].kind === 'stargate' || legs[0].kind === 'across' || legs[0].kind === 'lifi' || legs[0].kind === 'relay' || legs[0].kind === 'wormhole')
       ? 'direct'
       : 'composite'
   const txCount = legs.length
@@ -458,6 +486,8 @@ function describeLegs(legs: RouteLeg[], fromId: number, toId: number): string {
       parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Native bridge → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
     else if (leg.kind === 'arbitrum')
       parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Arbitrum bridge → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
+    else if (leg.kind === 'stargate')
+      parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Stargate v2 → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
     else if (leg.kind === 'lifi') {
       const symIn = findToken(leg.from, leg.inToken)?.symbol ?? nativeSymbolOf(leg.from)
       const symOut = findToken(leg.to, leg.outToken)?.symbol ?? nativeSymbolOf(leg.to)
