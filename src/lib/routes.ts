@@ -328,8 +328,13 @@ export function directRoutes(fromId: number, toId: number, token: TokenCfg): Rou
     }
   }
 
-  // USDC via Wormhole Token Bridge: native USDC on both ends, two signatures (send + claim).
-  {
+  // Wormhole Token Bridge: mechanically verified end to end on 2026-11-27 (transfer + VAA + claim),
+  // but the claim minted a Wormhole-wrapped USDC (0x3f87…795d on Base Sepolia), NOT the native
+  // Circle USDC the rest of the app uses. Showing it as a USDC route would hand the user a
+  // different asset than the one on the button, so it stays off until Wormhole registers native
+  // testnet USDC or we surface it explicitly as a wrapped asset.
+  const WORMHOLE_USDC_ROUTE = false
+  if (WORMHOLE_USDC_ROUTE) {
     const usdcIn = tokensForChain(fromId).find((t) => t.symbol === 'USDC')
     const usdcOut = tokensForChain(toId).find((t) => t.symbol === 'USDC')
     if (usdcIn && usdcOut && wormholeBridgeFor(fromId, toId)) {

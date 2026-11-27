@@ -76,3 +76,20 @@ feed (`docs.uniswap.org/deployments.json`, generated 2026-11-09).
   inventing a route, which we do not do.
 - Swap UI now states this plainly: "No AMM is deployed on <chain>. … Bridge the token to a
   chain that has a pool instead." (previously the form rendered silently empty).
+
+## Wormhole Token Bridge — verified, and why the route is off (2026-11-27)
+
+- Token Bridge contracts confirmed by `chainId()`: Sepolia `0xDB54…bd9` (10002), Arb Sepolia
+  `0xC7A2…97e` (10003), Base Sepolia `0x86F5…239` (10004), OP Sepolia `0x9973…0Ac` (10005).
+- `isWrappedAsset(native USDC) == false` on all four — which looked like native USDC both ends.
+- Full flow executed on testnet:
+  - send `0x2450bcb3…4d227` (0.5 USDC, Sepolia, gas 128,299)
+  - guardians signed the VAA (256 bytes, ~15 min)
+  - claim `0x56fcc08f…09fe2` (Base Sepolia, success)
+- **The claim minted `0x3f872340b6a75397aa9b0a463000349962a8795d` ("USDC", from address(0)) — a
+  Wormhole-wrapped USDC, not the Circle USDC (`0x036C…CF7e`) the app holds.** `isWrappedAsset`
+  only says the native token is not itself a wrapped asset; it does not mean this bridge maps
+  Sepolia USDC onto the native destination token.
+- Consequence: the route is disabled (`WORMHOLE_USDC_ROUTE = false` in `routes.ts`). The library,
+  VAA polling, resume-on-reopen and claim path stay in the repo, verified, for the day Wormhole
+  registers native testnet USDC (or for an explicit "wrapped asset" surface).
