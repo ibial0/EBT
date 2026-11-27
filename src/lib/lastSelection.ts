@@ -21,7 +21,7 @@ export interface SwapSelection {
   outAddress?: string
 }
 
-const mem: { bridge?: BridgeSelection; swap?: SwapSelection } = {}
+const mem: { bridge?: BridgeSelection; swap?: SwapSelection; bridgeRoute?: { pair: string; provider: string } } = {}
 
 export const lastSelection = {
   bridge: (): BridgeSelection | undefined => mem.bridge,
@@ -31,5 +31,10 @@ export const lastSelection = {
   swap: (): SwapSelection | undefined => mem.swap,
   setSwap: (v: SwapSelection) => {
     mem.swap = v
+  },
+  /** Manual portal choice for a pair: survives page switches, cleared by a reload. */
+  bridgeRoute: () => mem.bridgeRoute,
+  setBridgeRoute: (v: { pair: string; provider: string }) => {
+    mem.bridgeRoute = v
   },
 }

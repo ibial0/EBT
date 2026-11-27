@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Copy, Info, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
+import { ChevronDown, Info, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
 import { useAccount } from 'wagmi'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
@@ -11,7 +11,7 @@ import { Badge, Button, ChainLogo, NetworkLogo, Empty, Modal, Spinner, TokenIcon
 import { ConnectButton } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { ClaimableWithdrawals } from '../components/ClaimableWithdrawals'
-import { shortAddr, fmt } from '../lib/format'
+import { fmt } from '../lib/format'
 import { TokenActions, TokenSheet, tokenRowKey } from '../components/TokenActions'
 import { addActivity } from '../lib/activity'
 import {
@@ -806,7 +806,7 @@ export default function Portfolio() {
                   className="input text-[13px]"
                 />
               </div>
-              <label className="flex cursor-pointer items-center gap-2 text-[12px] text-t2">
+              <label className="ml-auto flex cursor-pointer items-center gap-2 text-[12px] text-t2">
                 <button
                   type="button"
                   role="switch"
@@ -818,20 +818,6 @@ export default function Portfolio() {
                 </button>
                 Empty
               </label>
-              {displayAddr && (
-                <span className="mono ml-auto flex items-center gap-1 text-[11px] text-t3">
-                  {shortAddr(displayAddr, 4)}
-                  <button
-                    onClick={() => {
-                      navigator.clipboard?.writeText(displayAddr)
-                      notify('Address copied', 'success')
-                    }}
-                    className="hover:text-t1"
-                  >
-                    <Copy size={11} />
-                  </button>
-                </span>
-              )}
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -907,16 +893,6 @@ export default function Portfolio() {
                               {g.amount > 0 ? `${fmtAmount(g.amount)} ${g.symbol}` : '—'}
                             </span>
                           </span>
-                          {multi ? (
-                            <ChevronDown
-                              size={15}
-                              className="accordion-chevron shrink-0 text-t3"
-                              data-open={open ? 'true' : 'false'}
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <span className="w-[15px] shrink-0" aria-hidden="true" />
-                          )}
                         </span>
                       </button>
 

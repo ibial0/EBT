@@ -320,7 +320,7 @@ function RoutePath({
   const label = !overrideLabel && hasSwap && bridgeLeg ? `${baseLabel} + Swap` : baseLabel
 
   return (
-    <div className="grid grid-cols-[auto_minmax(40px,1fr)_auto] items-center gap-3">
+    <div className="relative grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] items-center gap-3">
       <div className="flex min-w-0 items-center gap-2.5">
         {fromExtra ? (
           <NetworkLogo network={fromExtra.network} size={36} />
@@ -333,10 +333,12 @@ function RoutePath({
         </div>
       </div>
 
-      <div className="relative z-20 flex items-center justify-center">
-        <span className="absolute inset-x-0 top-1/2 -z-0 h-px -translate-y-1/2 bg-line-strong" />
+      <div>
+        <div className="relative h-8" aria-hidden>
+          <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-line-strong" />
+        </div>
         {choices && choices.length > 1 && onChoose ? (
-          <div ref={wrapRef} className="relative z-10">
+          <div ref={wrapRef} className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -386,7 +388,7 @@ function RoutePath({
             )}
           </div>
         ) : (
-          <span className="relative z-10 whitespace-nowrap rounded-full border border-line-strong bg-ink-900 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-t2">
+          <span className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-line-strong bg-ink-900 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-t2">
             {label}
           </span>
         )}
@@ -495,6 +497,24 @@ async function claimWormholeTransfer(args: {
   })
 }
 
+/** Which protocol actually moves the asset (swap legs are just the on-ramp). */
+const routeProvider = (r: RouteCandidate) => {
+  const b = r.legs.find((l) => l.kind !== 'swap')
+  if (!b) return 'direct'
+  return b.kind === 'lifi' ? `lifi:${b.tool}` : b.kind
+}
+/** Lower is faster. Used to auto-pick the quickest portal for a pair. */
+const routeSpeed = (r: RouteCandidate) => {
+  const k = r.legs.find((l) => l.kind !== 'swap')?.kind
+  if (k === 'across') return 0
+  if (k === 'stargate' || k === 'relay') return 1
+  if (k === 'cctp' || k === 'lifi') return 2
+  if (k === 'portal') return 3
+  if (k === 'arbitrum') return 4
+  if (k === 'wormhole') return 5
+  return 6
+}
+
 export default function Bridge() {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
@@ -510,15 +530,17 @@ export default function Bridge() {
   const [fromId, setFromId] = useState(() => paramId('from', lastSelection.bridge()?.fromId ?? 11155111))
   const [toId, setToId] = useState(() => paramId('to', lastSelection.bridge()?.toId ?? 84532))
 
-  useEffect(() => {
-    const next = new URLSearchParams(searchParams)
-    next.set('from', String(fromId))
-    next.set('to', String(toId))
-    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fromId, toId])
   const [sourceId, setSourceId] = useState(() => lastSelection.bridge()?.sourceId ?? keyOf(11155111, NATIVE))
   const [destId, setDestId] = useState(() => lastSelection.bridge()?.destId ?? keyOf(84532, NATIVE))
+  // A deep link may carry the pair once; strip it so a later reload starts from the defaults.
+  useEffect(() => {
+    if (!searchParams.has('from') && !searchParams.has('to')) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('from')
+    next.delete('to')
+    setSearchParams(next, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Resume any Wormhole claim that was still waiting for its VAA when the tab was closed.
   useEffect(() => {
@@ -714,11 +736,27 @@ export default function Bridge() {
     [destOptions, destId, toId, isNonEvmBridge, reachableDests],
   )
 
-  const routes = useMemo(
-    () => (isNonEvmBridge || !source || !dest ? [] : findRoutes(fromId, toId, source, dest)),
-    [isNonEvmBridge, fromId, toId, source, dest],
-  )
-  useEffect(() => setRouteIdx(0), [fromId, toId, sourceId, destId])
+  const routes = useMemo(() => {
+    const all = isNonEvmBridge || !source || !dest ? [] : findRoutes(fromId, toId, source, dest)
+    // The same portal can be produced twice (e.g. a direct leg plus a swap-wrapped twin); keep one.
+    const seen = new Set<string>()
+    return all.filter((r) => {
+      const key = `${routeProvider(r)}|${r.inToken.address.toLowerCase()}>${r.outToken.address.toLowerCase()}|${r.legs.map((l) => l.kind).join('>')}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }, [isNonEvmBridge, fromId, toId, source, dest])
+  const pairKey = `${fromId}:${source?.address ?? ''}>${toId}:${dest?.address ?? ''}`
+  // Default to the fastest portal; a manual pick survives page switches, a reload clears it.
+  useEffect(() => {
+    if (!routes.length) return
+    const manual = lastSelection.bridgeRoute()
+    const manualIdx = manual && manual.pair === pairKey ? routes.findIndex((r) => routeProvider(r) === manual.provider) : -1
+    let best = 0
+    for (let i = 1; i < routes.length; i++) if (routeSpeed(routes[i]) < routeSpeed(routes[best])) best = i
+    setRouteIdx(manualIdx >= 0 ? manualIdx : best)
+  }, [pairKey, routes])
   const route: RouteCandidate | null = routes[routeIdx] ?? routes[0] ?? null
   const hasCctpLeg = route
     ? route.legs.some((l) => l.kind === 'cctp')
@@ -1678,7 +1716,11 @@ export default function Bridge() {
                   hint: routeHint(r.legs),
                 }))}
                 choiceIndex={routes[routeIdx] ? routeIdx : 0}
-                onChoose={setRouteIdx}
+                onChoose={(i) => {
+                  setRouteIdx(i)
+                  const picked = routes[i]
+                  if (picked) lastSelection.setBridgeRoute({ pair: pairKey, provider: routeProvider(picked) })
+                }}
               />
             </div>
           )}
