@@ -1400,8 +1400,10 @@ function ValueChart({
         <span
           className="mono rounded-md px-1.5 py-0.5 text-[10px] font-medium"
           style={{
-            color: up ? '#6adbb6' : '#ff8f8f',
-            background: up ? 'rgba(106,219,182,0.10)' : 'rgba(255,143,143,0.10)',
+            color: up ? 'var(--color-pos)' : 'var(--color-neg)',
+            background: up
+              ? 'color-mix(in srgb, var(--color-pos) 12%, transparent)'
+              : 'color-mix(in srgb, var(--color-neg) 12%, transparent)',
           }}
         >
           {up ? '+' : ''}

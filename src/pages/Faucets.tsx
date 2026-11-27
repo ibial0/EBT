@@ -191,7 +191,7 @@ function RequirementsPopup({
             href={faucet.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1.5 text-[12px] font-semibold text-[#111628] hover:bg-accent-2"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1.5 text-[12px] font-semibold on-accent hover:bg-accent-2"
           >
             Open <ArrowUpRight size={11} />
           </a>
@@ -308,7 +308,7 @@ function FaucetRow({
             href={faucet.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-[6px] text-[12px] font-semibold text-[#111628] transition-colors hover:bg-accent-2"
+            className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-[6px] text-[12px] font-semibold on-accent transition-colors hover:bg-accent-2"
           >
             Open <ArrowUpRight size={11} />
           </a>

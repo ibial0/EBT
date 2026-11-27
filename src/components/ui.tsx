@@ -57,9 +57,9 @@ export function Toaster() {
             'rounded-[10px] border px-4 py-3 text-[13px] leading-5',
             t.leaving ? 'toast-leave' : 'enter',
             t.tone === 'error'
-              ? 'border-[#ff8f8f]/40 bg-[#241519] text-[#ffb4b4]'
+              ? 'border-neg/40 bg-[#241519] text-neg'
               : t.tone === 'success'
-                ? 'border-[#6adbb6]/40 bg-[#121d1a] text-[#a8ecd6]'
+                ? 'border-pos/40 bg-[#121d1a] text-[#a8ecd6]'
                 : 'border-line-strong bg-ink-800 text-t1',
           )}
         >
@@ -137,9 +137,9 @@ export function Badge({
     <span
       className={clsx(
         'chip',
-        tone === 'mint' && 'border-[#6adbb6]/35 text-[#6adbb6]',
-        tone === 'amber' && 'border-[#e6c17a]/35 text-[#e6c17a]',
-        tone === 'red' && 'border-[#ff8f8f]/35 text-[#ff8f8f]',
+        tone === 'mint' && 'border-pos/35 text-pos',
+        tone === 'amber' && 'border-warn/35 text-warn',
+        tone === 'red' && 'border-neg/35 text-neg',
         tone === 'blue' && 'border-[#abb8ff]/40 text-[#abb8ff]',
         className,
       )}
@@ -384,14 +384,24 @@ export function Empty({ icon, title, hint }: { icon?: ReactNode; title: string; 
 }
 
 export function StatusDot({ tone, live }: { tone: 'mint' | 'amber' | 'red' | 'slate'; live?: boolean }) {
-  const c = tone === 'mint' ? '#6adbb6' : tone === 'amber' ? '#e6c17a' : tone === 'red' ? '#ff8f8f' : '#85858b'
+  const c =
+    tone === 'mint'
+      ? 'var(--color-pos)'
+      : tone === 'amber'
+        ? 'var(--color-warn)'
+        : tone === 'red'
+          ? 'var(--color-neg)'
+          : 'var(--color-t3)'
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="dot" style={{ background: c, boxShadow: live ? `0 0 0 3px ${c}1a` : undefined }} />
+      <span
+        className="dot"
+        style={{ background: c, boxShadow: live ? `0 0 0 3px color-mix(in srgb, ${c} 14%, transparent)` : undefined }}
+      />
     </span>
   )
 }
 
 export function CheckLine({ ok }: { ok: boolean }) {
-  return ok ? <Check size={14} className="text-[#6adbb6]" /> : <X size={14} className="text-[#ff8f8f]" />
+  return ok ? <Check size={14} className="text-pos" /> : <X size={14} className="text-neg" />
 }

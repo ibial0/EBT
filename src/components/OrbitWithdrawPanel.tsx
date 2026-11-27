@@ -231,7 +231,7 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
           <button
             disabled={!canStart}
             onClick={() => void start()}
-            className="h-10 shrink-0 rounded-lg bg-accent px-3.5 text-[12px] font-semibold text-[#111628] disabled:opacity-40"
+            className="h-10 shrink-0 rounded-lg bg-accent px-3.5 text-[12px] font-semibold on-accent disabled:opacity-40"
           >
             Withdraw
           </button>
@@ -269,7 +269,7 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
           {phase === 'ready' && (
             <button
               onClick={() => void claim()}
-              className="mt-1 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent text-[12.5px] font-semibold text-[#111628]"
+              className="mt-1 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent text-[12.5px] font-semibold on-accent"
             >
               Claim {amount} on {to.short}
             </button>

@@ -341,9 +341,9 @@ export default function Settings() {
                     {rows.map((r) => (
                       <td key={r.key} className="px-2 py-1.5" title={r.note}>
                         {r.state === 'yes' ? (
-                          <span className="text-[#6adbb6]">yes</span>
+                          <span className="text-pos">yes</span>
                         ) : r.state === 'partial' ? (
-                          <span className="text-[#e6c17a]" title={r.note}>
+                          <span className="text-warn" title={r.note}>
                             partial
                           </span>
                         ) : (

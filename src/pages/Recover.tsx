@@ -168,7 +168,7 @@ export default function Recover() {
           </div>
 
           {state.kind === 'pending' && (
-            <div className="mt-3 rounded-[10px] border border-[#e6c17a]/25 bg-[#e6c17a]/8 p-3 text-[11px] leading-relaxed text-[#e6c17a]">
+            <div className="mt-3 rounded-[10px] border border-warn/25 bg-warn/8 p-3 text-[11px] leading-relaxed text-warn">
               <div className="mb-1 flex items-center gap-1.5 font-semibold">
                 <Spinner size={12} /> Circle has not attested this burn yet
               </div>
@@ -177,7 +177,7 @@ export default function Recover() {
           )}
 
           {state.kind === 'error' && (
-            <div className="mt-3 rounded-[10px] border border-[#ff8f8f]/30 bg-[#ff8f8f]/8 p-3 text-[11px] leading-relaxed text-[#ffb4b4]">
+            <div className="mt-3 rounded-[10px] border border-neg/30 bg-neg/8 p-3 text-[11px] leading-relaxed text-neg">
               <div className="mb-1 flex items-center gap-1.5 font-semibold">
                 <AlertTriangle size={12} /> {state.detail}
               </div>

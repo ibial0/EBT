@@ -489,7 +489,7 @@ function LiquidityTable({
                   <span className="ml-1 text-[11px] text-t3">{p.symbol1}</span>
                 </td>
                 <td className="px-3 py-2.5 figure text-right">
-                  <span className={p.status === 'active' ? 'text-t1' : 'text-[#ffb4b4]'}>
+                  <span className={p.status === 'active' ? 'text-t1' : 'text-neg'}>
                     {p.depth == null ? '-' : p.depth.toFixed(4)}
                   </span>
                 </td>

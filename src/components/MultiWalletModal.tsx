@@ -470,14 +470,14 @@ export function MultiWalletModal({
 
           {installPrompt && (
             <div className="mt-4 flex items-center justify-between gap-3 rounded-[12px] border border-warn/40 bg-[#1c1810] px-3.5 py-2.5">
-              <div className="text-[11.5px] leading-5 text-[#e6c17a]">
+              <div className="text-[11.5px] leading-5 text-warn">
                 <strong>{installPrompt.name}</strong> isn’t installed in this browser.
               </div>
               <a
                 href={installPrompt.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-[#111628] hover:bg-accent-2"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold on-accent hover:bg-accent-2"
               >
                 Get it <ExternalLink size={11} />
               </a>
@@ -602,14 +602,14 @@ export function MultiWalletModal({
 
           {installPrompt && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-[12px] border border-warn/40 bg-[#1c1810] px-3.5 py-2.5">
-              <div className="text-[11.5px] leading-5 text-[#e6c17a]">
+              <div className="text-[11.5px] leading-5 text-warn">
                 <strong>{installPrompt.name}</strong> isn’t installed in this browser.
               </div>
               <a
                 href={installPrompt.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-[#111628] hover:bg-accent-2"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold on-accent hover:bg-accent-2"
               >
                 Get it <ExternalLink size={11} />
               </a>

@@ -42,8 +42,8 @@ export function NotificationBell() {
         <div
           className={`enter flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] ${
             flash.tone === 'done'
-              ? 'border-[#6adbb6]/35 bg-[#111a15] text-[#c7ebd8]'
-              : 'border-[#ff8f8f]/35 bg-[#1b1113] text-[#ffb4b4]'
+              ? 'border-pos/35 bg-[#111a15] text-[#c7ebd8]'
+              : 'border-neg/35 bg-[#1b1113] text-neg'
           }`}
         >
           {flash.tone === 'done' ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
@@ -59,7 +59,7 @@ export function NotificationBell() {
       >
         <Bell size={16} strokeWidth={1.6} />
         {pending.length > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#ff8f8f] px-1 text-[10px] font-medium leading-none text-[#241014]">
+          <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-neg px-1 text-[10px] font-medium leading-none text-[#241014]">
             {pending.length}
           </span>
         )}
@@ -110,7 +110,7 @@ export function NotificationBell() {
                           void doClaim(p.id)
                         }}
                         disabled={claimBusy === p.id}
-                        className="h-6 shrink-0 rounded-md bg-accent px-2 text-[10.5px] font-semibold text-[#111628] disabled:opacity-60"
+                        className="h-6 shrink-0 rounded-md bg-accent px-2 text-[10.5px] font-semibold on-accent disabled:opacity-60"
                       >
                         {claimBusy === p.id ? '…' : 'Claim'}
                       </button>

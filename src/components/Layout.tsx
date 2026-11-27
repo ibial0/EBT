@@ -28,9 +28,7 @@ import {
 import { usePortfolioPrefetch } from '../lib/portfolio'
 import { NotificationBell } from './NotificationBell'
 import { GlobalWalletModal, nonEvmLogoSrc } from './MultiWalletModal'
-import pkg from '../../package.json'
-
-const APP_VERSION = pkg.version
+import { toggleTheme, useTheme } from '../lib/theme'
 
 const NAV = [
   { to: '/', label: 'Overview', short: 'Overview', icon: LayoutGrid },
@@ -102,19 +100,17 @@ export function Layout() {
         </div>
         <div className={clsx('mt-auto pb-1', collapsed ? 'px-0' : 'px-0')}>
           {collapsed ? (
-            <div className="flex justify-center" title="Testnet only">
-              <EbtMark size={22} className="shrink-0" />
+            <div className="flex justify-center">
+              <ThemeToggle compact />
             </div>
           ) : (
-            <div className="rounded-[10px] border border-line bg-ink-800 p-3">
-              <div className="flex items-center gap-2.5">
-                <EbtMark size={24} className="shrink-0" />
-                <span className="text-[12px] font-semibold text-t1">Testnet only</span>
-              </div>
-              <p className="mt-2 text-[12px] leading-5 text-t2">
-                Mainnet chains are rejected before a transaction is built. No custody, no backend.
+            <div className="rounded-[12px] border border-line bg-ink-800 px-4 py-4">
+              <ThemeToggle label="Testnet only" />
+              <p className="mt-3 text-center text-[11.5px] leading-[18px] text-t3">
+                Bridge, swap and track.
+                <br />
+                Every testnet, one console.
               </p>
-              <div className="mono mt-2 text-[11px] text-t3">build {APP_VERSION}</div>
             </div>
           )}
         </div>
@@ -127,6 +123,7 @@ export function Layout() {
         </button>
         <Brand compact />
         <div className="flex items-center gap-2">
+          <ThemeToggle compact />
           <NotificationBell />
           <ConnectButton compact />
         </div>
@@ -186,7 +183,36 @@ export function Layout() {
   )
 }
 
-/** The EBT mark from the design file: diamond + Xi. Clicking it toggles the rail. */
+/**
+ * Theme switch. The brand mark rides along the "Testnet only" label and parks on the right for
+ * the light theme, left for dark — one hit target, label included.
+ */
+function ThemeToggle({ compact = false, label }: { compact?: boolean; label?: string }) {
+  const light = useTheme() === 'light'
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-pressed={light}
+      aria-label={light ? 'Switch to dark theme' : 'Switch to light theme'}
+      title={light ? 'Light theme' : 'Dark theme'}
+      className={clsx(
+        'group relative block h-8 rounded-full border border-line-strong bg-ink-900 transition-colors hover:border-accent/45',
+        compact ? 'w-[54px]' : 'w-full',
+      )}
+    >
+      {label && (
+        <span className="flex h-full w-full items-center justify-center px-8 text-[10px] font-semibold uppercase tracking-[0.16em] text-t1 transition-colors">
+          {label}
+        </span>
+      )}
+      <span className="theme-knob absolute top-1/2 z-10 grid size-6 -translate-y-1/2 place-items-center rounded-[7px] border border-line bg-ink-700 shadow-[0_1px_2px_rgba(8,12,24,0.28)]">
+        <EbtMark size={15} />
+      </span>
+    </button>
+  )
+}
+
 function Brand({ compact, onToggle }: { compact?: boolean; onToggle?: () => void }) {
   const inner = (
     <>
@@ -398,7 +424,7 @@ export function ConnectButton({ compact, full }: { compact?: boolean; full?: boo
                     onClick={w.onDisconnect}
                     title={`Disconnect ${w.label}`}
                     aria-label={`Disconnect ${w.label}`}
-                    className="grid size-7 shrink-0 place-items-center rounded-md text-t3 transition-colors hover:bg-[#ff8f8f]/15 hover:text-[#ffb4b4]"
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-t3 transition-colors hover:bg-neg/15 hover:text-neg"
                   >
                     <LogOut size={13} />
                   </button>

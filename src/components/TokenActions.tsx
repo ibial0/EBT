@@ -161,7 +161,7 @@ export function TokenSheet({
         <div className="grid grid-cols-2 gap-2 px-5 pb-4 pt-4">
           <button
             onClick={() => onSend(rows[0] ? rowKey(rows[0]) : undefined)}
-            className="flex h-[48px] items-center justify-center gap-2 rounded-xl bg-accent text-[14px] font-semibold text-[#111628] transition-opacity hover:opacity-90"
+            className="flex h-[48px] items-center justify-center gap-2 rounded-xl bg-accent text-[14px] font-semibold on-accent transition-opacity hover:opacity-90"
           >
             <ArrowUpRight size={16} /> Send
           </button>
@@ -476,7 +476,7 @@ export function TokenActions({
               className="input mono h-[52px] w-full rounded-xl border border-line-strong bg-ink-900 px-4 text-[13px] text-t1 placeholder:text-t3 focus:border-accent/60"
             />
             {to.trim().length > 0 && !isEvmAddress(to) && (
-              <p className="text-[11.5px] text-[#ffb4b6]">That is not a valid EVM address.</p>
+              <p className="text-[11.5px] text-neg">That is not a valid EVM address.</p>
             )}
 
             {/* amount: one field, MAX inside */}
@@ -495,12 +495,12 @@ export function TokenActions({
                 MAX
               </button>
             </div>
-            {over && <p className="text-[11.5px] text-[#ffb4b6]">More than the balance on this chain.</p>}
+            {over && <p className="text-[11.5px] text-neg">More than the balance on this chain.</p>}
 
             <button
               disabled={!canSend || sending}
               onClick={() => void doSend()}
-              className="h-[52px] w-full rounded-xl bg-accent text-[15px] font-semibold text-[#111628] transition-opacity disabled:opacity-40"
+              className="h-[52px] w-full rounded-xl bg-accent text-[15px] font-semibold on-accent transition-opacity disabled:opacity-40"
             >
               {sending ? 'Waiting for wallet…' : `Send ${group.symbol}`}
             </button>
@@ -543,7 +543,7 @@ export function TokenActions({
                 </p>
                 <button
                   onClick={() => setPicker(true)}
-                  className="h-11 rounded-xl bg-accent px-5 text-[13px] font-semibold text-[#111628]"
+                  className="h-11 rounded-xl bg-accent px-5 text-[13px] font-semibold on-accent"
                 >
                   Select network
                 </button>

@@ -1568,19 +1568,19 @@ export default function Bridge() {
                   </button>
                   <div className="mt-1 flex h-6 items-center justify-center">
                     {!isNonEvmBridge && isCanonicalWithdraw && amountIn > 0n && (
-                      <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-[#6adbb6]">
+                      <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-pos">
                         <Plus size={13} strokeWidth={2.5} />
                         {fmt(amountIn, 18, 4)}
                       </span>
                     )}
                     {!isNonEvmBridge && amountIn > 0n && estimate.data && dest && (
-                      <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-[#6adbb6]">
+                      <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-pos">
                         <Plus size={13} strokeWidth={2.5} />
                         {fmt(estimate.data.amountOut, dest.decimals, 4)}
                       </span>
                     )}
                     {isNonEvmBridge && amountIn > 0n && nonEvmOutAmt != null && dest && (
-                      <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-[#6adbb6]">
+                      <span className="drop-in flex items-center gap-1 text-[15px] font-semibold text-pos">
                         <Plus size={13} strokeWidth={2.5} />
                         {nonEvmOutAmt.toFixed(4)}
                       </span>
@@ -1593,8 +1593,8 @@ export default function Bridge() {
 
           {isNonEvmBridge ? (
             nonEvmBlockerReason ? (
-              <div className="mt-3 rounded-lg border border-[#ff8f8f]/25 bg-[#ff8f8f]/8 px-3 py-2.5">
-                <div className="text-[12px] font-medium text-[#ffb4b6]">
+              <div className="mt-3 rounded-lg border border-neg/25 bg-neg/8 px-3 py-2.5">
+                <div className="text-[12px] font-medium text-neg">
                   No route from {fromShort} to {toShort} for {source?.symbol ?? 'this asset'}.
                 </div>
                 <p className="mt-1 text-[11px] leading-relaxed text-t2">{nonEvmBlockerReason}</p>
@@ -1641,8 +1641,8 @@ export default function Bridge() {
               </p>
             </div>
           ) : !route ? (
-            <div className="mt-3 rounded-lg border border-[#ff8f8f]/25 bg-[#ff8f8f]/8 px-3 py-2.5">
-              <div className="text-[12px] font-medium text-[#ffb4b6]">
+            <div className="mt-3 rounded-lg border border-neg/25 bg-neg/8 px-3 py-2.5">
+              <div className="text-[12px] font-medium text-neg">
                 No route from {fromShort} to {toShort} for {source?.symbol ?? 'this asset'}.
               </div>
               <p className="mt-1 text-[11px] leading-relaxed text-t2">
@@ -1685,9 +1685,9 @@ export default function Bridge() {
 
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="space-y-1">
-              {insufficient && <div className="text-[11px] text-[#ffb4b6]">Amount exceeds your balance on {fromShort}.</div>}
+              {insufficient && <div className="text-[11px] text-neg">Amount exceeds your balance on {fromShort}.</div>}
               {!isNonEvmBridge && srcGas.data && !srcGas.data.ok && (
-                <div className="text-[11px] text-[#e6c17a]">
+                <div className="text-[11px] text-warn">
                   No {srcGas.data.symbol} for gas on {fromShort}, get some from the Faucets page.
                 </div>
               )}
@@ -1935,7 +1935,7 @@ export default function Bridge() {
                                   : 'a few seconds per swap'
                   }
                 />
-                {estimate.data?.failed && <p className="mt-2 text-[11px] text-[#ffb4b6]">{estimate.data.failed}</p>}
+                {estimate.data?.failed && <p className="mt-2 text-[11px] text-neg">{estimate.data.failed}</p>}
               </>
             ) : isCanonicalWithdraw ? (
               <div className="space-y-2">

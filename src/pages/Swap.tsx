@@ -978,9 +978,9 @@ export default function Swap() {
                 </div>
               </div>
 
-              {sameToken && <div className="mt-2 text-[11px] text-[#e6c17a]">Pick two different tokens.</div>}
+              {sameToken && <div className="mt-2 text-[11px] text-warn">Pick two different tokens.</div>}
               {insufficient && (
-                <div className="mt-2 text-[11px] text-[#ffb4b4]">
+                <div className="mt-2 text-[11px] text-neg">
                   Insufficient {sellSymbol} balance on {isNonEvm ? nonEvmNet!.short : chain.short}.
                 </div>
               )}
@@ -992,9 +992,9 @@ export default function Swap() {
               )}
 
               {!isNonEvm && !hasAmm && (
-                <div className="mb-3 rounded-lg border border-[#e6c17a]/25 bg-[#e6c17a]/8 px-3 py-2.5 text-[12px] leading-5 text-[#e6c17a]">
+                <div className="mb-3 rounded-lg border border-warn/25 bg-warn/8 px-3 py-2.5 text-[12px] leading-5 text-warn">
                   <div className="font-medium">No AMM is deployed on {chain.short}.</div>
-                  <div className="mt-0.5 text-[#e6c17a]/80">
+                  <div className="mt-0.5 text-warn/80">
                     A swap needs a DEX on the same chain. This testnet has none that we could verify on chain, so there is no
                     honest route to show. Bridge the token to a chain that has a pool instead.
                   </div>
@@ -1002,7 +1002,7 @@ export default function Swap() {
               )}
 
               {!isNonEvm && amountIn > 0n && !quote.isFetching && !quote.data && !sameToken && (
-                <div className="mt-2 rounded-lg border border-[#e6c17a]/25 bg-[#e6c17a]/8 px-3 py-2.5 text-[12px] leading-5 text-[#e6c17a]">
+                <div className="mt-2 rounded-lg border border-warn/25 bg-warn/8 px-3 py-2.5 text-[12px] leading-5 text-warn">
                   <div className="font-medium">
                     {depth.isFetching
                       ? `Checking how much ${tokenIn.symbol} this pool can fill`
@@ -1010,7 +1010,7 @@ export default function Swap() {
                         ? `This pool can fill about ${formatAmount(depth.data.amount, tokenIn.decimals, 6)} ${tokenIn.symbol} right now`
                         : `No fillable ${tokenIn.symbol} to ${tokenOut.symbol} route on ${chain.short}`}
                   </div>
-                  <div className="mt-0.5 text-[#e6c17a]/80">
+                  <div className="mt-0.5 text-warn/80">
                     {depth.data
                       ? 'Larger orders would only partially fill, so the router would revert. Try the size below or split the swap.'
                       : 'Every fee tier failed the fill check, so there is no honest quote to show.'}
@@ -1018,7 +1018,7 @@ export default function Swap() {
                   {depth.data && (
                     <button
                       onClick={() => setAmount(formatAmount(depth.data!.amount, tokenIn.decimals, 6))}
-                      className="mt-2 rounded-md border border-[#e6c17a]/40 px-2.5 py-1 text-[11px] text-[#e6c17a] transition-colors hover:bg-[#e6c17a]/10"
+                      className="mt-2 rounded-md border border-warn/40 px-2.5 py-1 text-[11px] text-warn transition-colors hover:bg-warn/10"
                     >
                       Use {formatAmount(depth.data.amount, tokenIn.decimals, 4)} {tokenIn.symbol}
                     </button>
@@ -1027,7 +1027,7 @@ export default function Swap() {
               )}
 
               {!isNonEvm && quote.data?.priceImpactBps != null && quote.data.priceImpactBps > 1500 && (
-                <div className="mt-3 rounded-lg border border-[#ff8f8f]/30 bg-[#ff8f8f]/8 px-3 py-2 text-[12px] leading-5 text-[#ffb4b4]">
+                <div className="mt-3 rounded-lg border border-neg/30 bg-neg/8 px-3 py-2 text-[12px] leading-5 text-neg">
                   Very thin pool: this quote moves the price by {(quote.data.priceImpactBps / 100).toFixed(1)}%. Check the pool before
                   signing.
                 </div>
@@ -1068,7 +1068,7 @@ export default function Swap() {
               )}
 
               {!isNonEvm && chainId !== swapChainId && isConnected && (
-                <button onClick={() => ensureChain(swapChainId)} className="mt-2 w-full text-center text-[11px] text-[#e6c17a] hover:underline">
+                <button onClick={() => ensureChain(swapChainId)} className="mt-2 w-full text-center text-[11px] text-warn hover:underline">
                   Wallet is on {getChain(chainId)?.short ?? chainId}, switch to {chain.short} to sign.
                 </button>
               )}
@@ -1122,13 +1122,13 @@ export default function Swap() {
               </>
             ) : (
               <>
-                {quote.isError && <div className="text-[11px] text-[#ffb4b4]">Quote failed: {(quote.error as Error).message}</div>}
+                {quote.isError && <div className="text-[11px] text-neg">Quote failed: {(quote.error as Error).message}</div>}
                 <Row label="Rate" value={rate > 0 ? `1 ${tokenIn.symbol} ≈ ${rate < 0.0001 ? rate.toExponential(3) : rate.toFixed(6)} ${tokenOut.symbol}` : '-'} />
                 <Row
                   label="Price impact"
                   value={
                     quote.data?.priceImpactBps != null ? (
-                      <span className={quote.data.priceImpactBps > 300 ? 'text-[#e6c17a]' : ''}>{pct(quote.data.priceImpactBps, 2)}</span>
+                      <span className={quote.data.priceImpactBps > 300 ? 'text-warn' : ''}>{pct(quote.data.priceImpactBps, 2)}</span>
                     ) : (
                       '-'
                     )
@@ -1356,7 +1356,7 @@ function WallToken({
         />
       </div>
       {amountBadge && (
-        <span className="amount-rise pointer-events-none absolute -right-3 -top-2 z-20 whitespace-nowrap rounded-md border border-[#6adbb6]/40 bg-[#0d1f18]/90 px-2 py-0.5 text-[12px] font-semibold text-[#6adbb6] shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+        <span className="amount-rise pointer-events-none absolute -right-3 -top-2 z-20 whitespace-nowrap rounded-md border border-pos/40 bg-[#0d1f18]/90 px-2 py-0.5 text-[12px] font-semibold text-pos shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
           +{amountBadge}
         </span>
       )}

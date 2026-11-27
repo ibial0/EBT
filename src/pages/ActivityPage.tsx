@@ -397,7 +397,7 @@ function Detail({ id }: { id: string }) {
                 cancelActivity(item.id)
                 notify('Transfer marked cancelled', 'success')
               }}
-              className="mb-2 w-full rounded-[10px] border border-line-strong py-2 text-[11px] text-t1 hover:border-[#ff8f8f]/40 hover:text-[#ffb4b4]"
+              className="mb-2 w-full rounded-[10px] border border-line-strong py-2 text-[11px] text-t1 hover:border-neg/40 hover:text-neg"
             >
               Cancel this transfer
             </button>
@@ -409,7 +409,7 @@ function Detail({ id }: { id: string }) {
               navigate('/activity', { replace: true })
               setTimeout(() => removeActivity(item.id), 0)
             }}
-            className="w-full rounded-[10px] border border-[#ff8f8f]/25 bg-[#ff8f8f]/6 py-2 text-[11px] text-[#ffb4b4] hover:bg-[#ff8f8f]/10"
+            className="w-full rounded-[10px] border border-neg/25 bg-neg/6 py-2 text-[11px] text-neg hover:bg-neg/10"
           >
             Remove local record
           </button>

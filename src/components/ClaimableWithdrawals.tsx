@@ -136,7 +136,7 @@ export function ClaimableWithdrawals() {
                 <button
                   onClick={() => void claim(s)}
                   disabled={busy === s.txHash}
-                  className="flex h-7 items-center gap-1 rounded-md bg-accent px-2.5 text-[11px] font-semibold text-[#111628] disabled:opacity-50"
+                  className="flex h-7 items-center gap-1 rounded-md bg-accent px-2.5 text-[11px] font-semibold on-accent disabled:opacity-50"
                 >
                   {busy === s.txHash && <Loader2 size={12} className="animate-spin" />}
                   Claim
