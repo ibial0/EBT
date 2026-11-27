@@ -218,6 +218,22 @@ export const V2_PAIRS: V2PairCfg[] = [
 
 const v2PairsCache = new Map<number, Array<{ token0: Address; token1: Address }>>()
 
+/**
+ * Venues the owner added in Settings. Kept separate from the built-in registry so a reload can never lose
+ * them and so the shipped list stays exactly what was verified at build time.
+ */
+let CUSTOM_DEXES: Record<number, V2DexConfig[]> = {}
+
+export function setCustomDexes(map: Record<number, V2DexConfig[]>) {
+  CUSTOM_DEXES = map
+  v2PairsCache.clear()
+}
+
+/** Built-in venues plus any custom ones for this chain. */
+export function dexesForChain(chainId: number): V2DexConfig[] {
+  return [...(V2_DEXES[chainId] ?? []), ...(CUSTOM_DEXES[chainId] ?? [])]
+}
+
 export function v2PairsForChain(chainId: number): Array<{ token0: Address; token1: Address }> {
   const cached = v2PairsCache.get(chainId)
   if (cached) return cached
@@ -229,7 +245,7 @@ export function v2PairsForChain(chainId: number): Array<{ token0: Address; token
 function buildV2PairsForChain(chainId: number): Array<{ token0: Address; token1: Address }> {
   const direct = V2_PAIRS.filter((p) => p.chainId === chainId)
   const out = direct.map(({ token0, token1 }) => ({ token0, token1 }))
-  const dexes = V2_DEXES[chainId] ?? []
+  const dexes = dexesForChain(chainId)
   for (const dex of dexes) {
     const w = dex.wrappedNative.toLowerCase()
     const peers: Address[] = []
@@ -324,8 +340,8 @@ export async function quoteBestV2(
   _tokenInDecimals: number,
   _tokenOutDecimals: number,
 ): Promise<V2Quote | null> {
-  const dexes = V2_DEXES[chainId]
-  if (!dexes || amountIn <= 0n) return null
+  const dexes = dexesForChain(chainId)
+  if (!dexes.length || amountIn <= 0n) return null
 
   const candidates = await Promise.all(
     dexes.map(async (dex) => {
@@ -523,10 +539,10 @@ export async function executeV2Swap(p: {
 
 /** True when a chain uses the V2-style DEX (no Uniswap V3 quoter). */
 export function hasV2Dex(chainId: number): boolean {
-  return Boolean(V2_DEXES[chainId]?.length)
+  return dexesForChain(chainId).length > 0
 }
 
 /** Returns the primary DEX config for a chain, or null. */
 export function primaryV2Dex(chainId: number): V2DexConfig | null {
-  return V2_DEXES[chainId]?.[0] ?? null
+  return dexesForChain(chainId)[0] ?? null
 }

@@ -18,7 +18,8 @@ import { ChainSelect } from '../components/ChainSelect'
 import { TokenPicker, syntheticChainForNetwork, type PickerGroup } from '../components/TokenPicker'
 import { addActivity, updateStep, finalizeFromSteps, getActivity, updateActivity } from '../lib/activity'
 import { quoteBest, maxFillable, applySlippage, erc20Balance, formatAmount, erc20Abi, type SwapQuote } from '../lib/uniswap'
-import { quoteBestV2, executeV2Swap, hasV2Dex, primaryV2Dex, v2PairsForChain, type V2Quote } from '../lib/dexV2'
+import { dexesForChain, quoteBestV2, executeV2Swap, hasV2Dex, primaryV2Dex, v2PairsForChain, type V2Quote } from '../lib/dexV2'
+import { CUSTOM_DEX_EVENT, customDexChainIds } from '../lib/customDex'
 import {
   NON_EVM_SWAP_NETWORKS,
   getNonEvmSwapNet,
@@ -70,7 +71,25 @@ export default function Swap() {
   const { switchChainAsync } = useSwitchChain()
   const multiWallets = useNonEvmWallets()
 
-  const supportedSwap = useMemo(() => new Set(SWAP_CHAINS.map((c) => c.id)), [])
+  /** bump when the owner adds/removes a custom DEX in Settings, so lists recompute without a reload */
+  const [dexVersion, setDexVersion] = useState(0)
+  useEffect(() => {
+    const on = () => setDexVersion((v) => v + 1)
+    window.addEventListener(CUSTOM_DEX_EVENT, on)
+    return () => window.removeEventListener(CUSTOM_DEX_EVENT, on)
+  }, [])
+
+  /** swap-ready chains: the built-in registry plus any chain where the owner enabled a custom DEX */
+  const swapChains = useMemo(() => {
+    const seen = new Set(SWAP_CHAINS.map((c) => c.id))
+    const extra = customDexChainIds()
+      .map((id) => getChain(id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c) && !seen.has(c!.id))
+    return extra.length ? [...SWAP_CHAINS, ...extra] : SWAP_CHAINS
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dexVersion])
+
+  const supportedSwap = useMemo(() => new Set(swapChains.map((c) => c.id)), [swapChains])
 
   const nonEvmEntries = useMemo(
     () =>
@@ -163,7 +182,7 @@ export default function Swap() {
 
   /** every swap-capable chain (EVM + non-EVM) with its tokens, in one unified picker list */
   const allSwapGroups = useMemo<PickerGroup[]>(() => {
-    const evm: PickerGroup[] = SWAP_CHAINS.map((c) => {
+    const evm: PickerGroup[] = swapChains.map((c) => {
       const addrs = new Set<string>()
       for (const pool of poolsForChain(c.id)) {
         addrs.add(pool.token0.toLowerCase())
@@ -386,7 +405,7 @@ export default function Swap() {
   )
   useEffect(() => {
     const v3Factory = chain.uniswap?.factory
-    const v2Factory = chain.dexV2?.[0]?.factory
+    const v2Factory = dexesForChain(swapChainId)[0]?.factory
     const weth = WETH[swapChainId]
     if ((!v3Factory && !v2Factory) || !weth || !publicClient || !discoveryKey) {
       setNativePools(new Set())
@@ -425,7 +444,7 @@ export default function Swap() {
     return () => {
       alive = false
     }
-  }, [chain.uniswap?.factory, chain.dexV2, swapChainId, discoveryKey, publicClient])
+  }, [chain.uniswap?.factory, swapChainId, discoveryKey, publicClient, dexVersion])
 
   const quote = useQuery<SwapQuote | V2Quote | null>({
     queryKey: ['swap-quote', swapChainId, tokenIn.address, tokenOut.address, amountIn.toString()],
@@ -1120,14 +1139,14 @@ export default function Swap() {
         <div className="flex justify-center">
           <Card className="w-full max-w-[560px] border-warn/40 p-4">
             <div className="text-[14px] font-semibold text-t1">
-              Swaps run on {SWAP_CHAINS.map((c) => c.short).join(', ')}.
+              Swaps run on {swapChains.map((c) => c.short).join(', ')}.
             </div>
             <p className="mt-1 text-[13px] leading-5 text-t2">
               Your wallet is on {getChain(chainId)?.short ?? chainId}, which has no verified DEX pool. Switch to one of
               the chains below to swap.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {SWAP_CHAINS.map((c) => (
+              {swapChains.map((c) => (
                 <Button
                   key={c.id}
                   size="sm"
@@ -1227,7 +1246,7 @@ export default function Swap() {
       <ChainSelect
         open={showChainPick}
         onClose={() => setShowChainPick(false)}
-        chains={SWAP_CHAINS}
+        chains={swapChains}
         extraNetworks={nonEvmEntries.map((x) => x.entry)}
         value={swapChainId}
         extraValue={nonEvmMode}

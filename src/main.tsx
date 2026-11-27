@@ -14,6 +14,7 @@ import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import './index.css'
 import { wagmiConfig } from './lib/wallet'
+import { initCustomDexes } from './lib/customDex'
 import { resumeTracking } from './lib/tracker'
 import { resumeDepositTracking } from './lib/depositTrack'
 import { resumeOrbitTracking } from './lib/orbitTrack'
@@ -28,6 +29,7 @@ const queryClient = new QueryClient({
 
 function Root() {
   useEffect(() => {
+    initCustomDexes()
     resumeTracking()
     resumeAcrossTracking()
     resumeDepositTracking((chainId) => getPublicClient(wagmiConfig, { chainId: chainId as never }))

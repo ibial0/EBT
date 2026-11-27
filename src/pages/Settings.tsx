@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Download, Search, Trash2 } from 'lucide-react'
-import { CHAINS } from '../config/chains'
+import { CHAINS, getChain, type Address } from '../config/chains'
 import { DEPRECATED_NETWORKS, NON_EVM_NETWORKS } from '../config/networks'
 import { PROVIDERS } from '../config/providers'
 import { RPC } from '../lib/wallet'
@@ -10,11 +10,18 @@ import { clearActivity, listActivity } from '../lib/activity'
 import { useNetworkHealth, useNonEvmHealth } from '../lib/health'
 import { allowlistSummary } from '../lib/guard'
 import { capabilitiesOf } from '../lib/capabilities'
+import { listCustomDexes, removeCustomDex, saveCustomDex, verifyRouter } from '../lib/customDex'
 
 export default function Settings() {
   const health = useNetworkHealth()
   const nonEvmHealth = useNonEvmHealth()
   const [chainQuery, setChainQuery] = useState('')
+  const [custom, setCustom] = useState(() => listCustomDexes())
+  const [cChain, setCChain] = useState<number>(CHAINS[0].id)
+  const [cRouter, setCRouter] = useState('')
+  const [cName, setCName] = useState('')
+  const [cBusy, setCBusy] = useState(false)
+  const [cMsg, setCMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const records = listActivity()
 
   function exportData() {
@@ -29,6 +36,33 @@ export default function Settings() {
   }
 
   const allow = allowlistSummary()
+
+  async function addCustomDex() {
+    setCBusy(true)
+    setCMsg(null)
+    const result = await verifyRouter(cChain, cRouter.trim() as Address)
+    setCBusy(false)
+    if (!result.ok) {
+      setCMsg({ ok: false, text: result.error })
+      return
+    }
+    const chain = getChain(cChain)
+    saveCustomDex({
+      chainId: cChain,
+      name: cName.trim() || 'Custom DEX',
+      router: cRouter.trim() as Address,
+      factory: result.factory,
+      wrappedNative: result.wrappedNative,
+      nativeFnStyle: result.nativeFnStyle,
+      addedAt: Date.now(),
+    })
+    setCustom(listCustomDexes())
+    setCRouter('')
+    setCName('')
+    const label = chain ? chain.short : String(cChain)
+    setCMsg({ ok: true, text: 'Verified on chain. ' + result.pairs.toString() + ' pools found. ' + label + ' is now swap-ready.' })
+    notify('Custom DEX saved.', 'success')
+  }
 
   return (
     <div className="space-y-5">
@@ -57,6 +91,95 @@ export default function Settings() {
             </div>
           ))}
         </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-t1">Custom DEX</h3>
+          <Badge tone={custom.length ? 'mint' : 'default'}>{custom.length} saved</Badge>
+        </div>
+        <p className="mt-1 text-[11px] leading-relaxed text-t2">
+          Point EBT at any Uniswap v2 style router on a chain in the registry. The factory, the wrapped native
+          token and the pool count are read from the router and checked on chain before anything is saved.
+        </p>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wide text-t3">Chain</span>
+            <select
+              value={cChain}
+              onChange={(e) => setCChain(Number(e.target.value))}
+              className="h-9 rounded-lg border border-line bg-ink-850 px-2.5 text-[12px] text-t1 outline-none focus:border-accent/60"
+            >
+              {CHAINS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wide text-t3">Label (optional)</span>
+            <input
+              value={cName}
+              onChange={(e) => setCName(e.target.value)}
+              placeholder="LineaSwap"
+              className="h-9 rounded-lg border border-line bg-ink-850 px-2.5 text-[12px] text-t1 outline-none placeholder:text-t3 focus:border-accent/60"
+            />
+          </label>
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="text-[10px] uppercase tracking-wide text-t3">Router address</span>
+            <input
+              value={cRouter}
+              onChange={(e) => setCRouter(e.target.value)}
+              placeholder="0x1234...abcd"
+              spellCheck={false}
+              className="h-9 rounded-lg border border-line bg-ink-850 px-2.5 font-mono text-[12px] text-t1 outline-none placeholder:text-t3 focus:border-accent/60"
+            />
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button variant="primary" size="sm" loading={cBusy} disabled={!cRouter.trim()} onClick={addCustomDex}>
+            Verify and save
+          </Button>
+          <span className="text-[10px] text-t3">Checks bytecode, WETH/WAVAX/WSEI, factory() and pool count.</span>
+        </div>
+
+        {cMsg ? (
+          <p className={cMsg.ok ? 'mt-2 text-[11px] leading-relaxed text-pos' : 'mt-2 text-[11px] leading-relaxed text-neg'}>
+            {cMsg.text}
+          </p>
+        ) : null}
+
+        {custom.length > 0 ? (
+          <div className="mt-4 space-y-2 border-t border-line pt-3">
+            {custom.map((d) => (
+              <div key={d.chainId + ':' + d.router} className="panel flex flex-wrap items-center justify-between gap-2 p-2.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-t1">{d.name}</span>
+                    <Badge tone="blue">{getChain(d.chainId)?.short ?? d.chainId}</Badge>
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-[10px] text-t3">
+                    router {d.router.slice(0, 10)} factory {d.factory.slice(0, 10)} wrapped {d.wrappedNative.slice(0, 10)}
+                  </div>
+                </div>
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  onClick={() => {
+                    removeCustomDex(d.chainId, d.router)
+                    setCustom(listCustomDexes())
+                    notify('Custom DEX removed.', 'info')
+                  }}
+                >
+                  <Trash2 size={13} /> Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </Card>
 
       <Card className="p-4">

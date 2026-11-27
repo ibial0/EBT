@@ -96,3 +96,34 @@ Coverage can stop being a code problem. Add a **Custom DEX** entry in Settings: 
 native. The app validates it on chain (router bytecode, `WETH()`, `factory().allPairsLength() > 0`) and then
 treats it like any other V2 venue. Any testnet DEX the owner finds can then be enabled in a minute, without a
 code change or a rebuild.
+
+
+## Custom DEX (Settings)
+
+Purpose: any testnet that gets a Uniswap-v2 style DEX can be enabled without a code change.
+
+How to add one:
+
+1. Settings -> Custom DEX.
+2. Pick the chain, optionally type a label.
+3. Paste the router address (UniswapV2Router02-compatible).
+4. Press "Verify and save".
+
+What the app checks before saving, in order, against the chain's own RPC:
+
+- the address has bytecode;
+- `WETH()` / `WAVAX()` / `WSEI()` returns the wrapped native token (this also picks the native swap function family);
+- `factory()` returns an address that has bytecode;
+- `factory.allPairsLength() > 0`, so the venue actually has pools.
+
+Only the router is typed by hand. Factory and wrapped native are read from the router and stored with it. The entry
+lives in `localStorage` under `ebt.customDex.v1`, is pushed into the swap engine at boot (`applyToRegistry`), and the
+chain is added to the swap chain list, so its native coin and any token with a pair appear in the picker.
+
+Limits, stated plainly:
+
+- Uniswap v2 style only. Algebra, Maverick, Balancer, iZiSwap and order-book venues are rejected because their
+  swap math and ABIs differ; a false positive here would break transactions.
+- A venue with pools but no pool for the token you hold still cannot swap that token; the picker will simply not
+  offer a route.
+- Custom venues are quoted exactly like the built-in v2 DEXes (direct pair, then a two-hop route via wrapped native).
