@@ -259,8 +259,13 @@ export const WALLET_FAMILIES: Record<NonEvmFamily, WalletFamilyDescriptor> = {
     family: 'canton',
     label: 'Canton Network',
     chainsLabel: 'Canton DevNet',
-    // Canton wallets are validator-backed apps (Splice / CIP-103), not browser extensions.
-    recommendedExtensions: [],
+    // Canton has both app wallets (Splice, Bron, 5N Loop) and a real browser extension.
+    recommendedExtensions: [
+      {
+        name: 'Send Connect (browser extension)',
+        url: 'https://chromewebstore.google.com/detail/send-connect/ldmohiccoioolenadmogclhoklmanpgi',
+      },
+    ],
   },
 }
 
