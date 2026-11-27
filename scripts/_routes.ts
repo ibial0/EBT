@@ -1,0 +1,7 @@
+
+import { findRoutes } from '../src/lib/routes'
+import { findToken } from '../src/config/tokens'
+const a = findToken(11155111, '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
+const b = findToken(84532, '0x036CbD53842c5426634e7929541eC2318f3dCF7e')
+if (!a || !b) throw new Error('token missing')
+for (const r of findRoutes(11155111, 84532, a, b)) console.log(r.type, '|', r.label, '| tx', r.txCount, '|', r.legs.map(l => l.kind).join('+'))

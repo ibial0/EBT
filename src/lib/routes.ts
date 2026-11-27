@@ -23,6 +23,7 @@ import { orbitRouteExists } from './arbitrumOrbit'
 import { orbitBridgeFor } from '../config/orbit'
 import { ACROSS_ETH_CHAINS, ACROSS_WETH, acrossRouteAvailable } from './across'
 import { stargateEthPool } from './stargate'
+import { wormholeBridgeFor } from './wormholeBridge'
 
 export type RouteLeg =
   | { kind: 'cctp'; from: number; to: number; token: Address }
@@ -32,13 +33,13 @@ export type RouteLeg =
   | { kind: 'arbitrum'; from: number; to: number; token?: Address }
   /** Stargate V2 native-ETH pool (LayerZero OFT) — one signature, destination credit */
   | { kind: 'stargate'; from: number; to: number }
+  /** Wormhole Token Bridge — send, guardians sign a VAA, claim on the destination */
+  | { kind: 'wormhole'; from: number; to: number; token: Address }
   | { kind: 'swap'; chainId: number; tokenIn: Address; tokenOut: Address; fee: number }
   /** LI.FI aggregated bridge/swap — covers many protocols in one signature */
   | { kind: 'lifi'; from: number; to: number; tool: string; inToken: Address; outToken: Address }
   /** Relay Protocol intent-based fast bridge */
   | { kind: 'relay'; from: number; to: number; inToken: Address; outToken: Address }
-  /** Wormhole Token Bridge or CCTP relay */
-  | { kind: 'wormhole'; from: number; to: number; inToken: Address; outToken: Address; mode: 'cctp' | 'token-bridge' }
 
 export type RouteType = 'direct' | 'composite'
 
@@ -327,6 +328,24 @@ export function directRoutes(fromId: number, toId: number, token: TokenCfg): Rou
     }
   }
 
+  // USDC via Wormhole Token Bridge: native USDC on both ends, two signatures (send + claim).
+  {
+    const usdcIn = tokensForChain(fromId).find((t) => t.symbol === 'USDC')
+    const usdcOut = tokensForChain(toId).find((t) => t.symbol === 'USDC')
+    if (usdcIn && usdcOut && wormholeBridgeFor(fromId, toId)) {
+      out.push({
+        id: `wormhole-usdc-${fromId}-${toId}`,
+        type: 'direct',
+        legs: [{ kind: 'wormhole', from: fromId, to: toId, token: usdcIn.address }],
+        inToken: usdcIn,
+        outToken: usdcOut,
+        txCount: 2,
+        label: 'USDC → Wormhole → USDC',
+        detail: `Wormhole Token Bridge ${from.short} → ${to.short}. Native USDC on both sides: sign the transfer, the guardians sign a VAA (usually 1–15 min), then the app claims it with a second signature.`,
+      })
+    }
+  }
+
   return out
 }
 
@@ -453,7 +472,7 @@ function push(
   }
   if (assetKey(next.chainId, next.token.address) !== goalKey) return
   const type =
-    legs.length === 1 && (legs[0].kind === 'cctp' || legs[0].kind === 'portal' || legs[0].kind === 'arbitrum' || legs[0].kind === 'stargate' || legs[0].kind === 'across' || legs[0].kind === 'lifi' || legs[0].kind === 'relay' || legs[0].kind === 'wormhole')
+    legs.length === 1 && (legs[0].kind === 'cctp' || legs[0].kind === 'portal' || legs[0].kind === 'arbitrum' || legs[0].kind === 'stargate' || legs[0].kind === 'wormhole' || legs[0].kind === 'across' || legs[0].kind === 'lifi' || legs[0].kind === 'relay')
       ? 'direct'
       : 'composite'
   const txCount = legs.length
@@ -486,6 +505,8 @@ function describeLegs(legs: RouteLeg[], fromId: number, toId: number): string {
       parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Native bridge → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
     else if (leg.kind === 'arbitrum')
       parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Arbitrum bridge → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
+    else if (leg.kind === 'wormhole')
+      parts.push(`${getChain(leg.from)?.short} → Wormhole → ${getChain(leg.to)?.short}`)
     else if (leg.kind === 'stargate')
       parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} → Stargate v2 → ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`)
     else if (leg.kind === 'lifi') {
@@ -496,10 +517,6 @@ function describeLegs(legs: RouteLeg[], fromId: number, toId: number): string {
       const symIn = findToken(leg.from, leg.inToken)?.symbol ?? nativeSymbolOf(leg.from)
       const symOut = findToken(leg.to, leg.outToken)?.symbol ?? nativeSymbolOf(leg.to)
       parts.push(`${getChain(leg.from)?.short} ${symIn} → Relay → ${getChain(leg.to)?.short} ${symOut}`)
-    } else if (leg.kind === 'wormhole') {
-      const symIn = findToken(leg.from, leg.inToken)?.symbol ?? nativeSymbolOf(leg.from)
-      const symOut = findToken(leg.to, leg.outToken)?.symbol ?? nativeSymbolOf(leg.to)
-      parts.push(`${getChain(leg.from)?.short} ${symIn} → Wormhole (${leg.mode}) → ${getChain(leg.to)?.short} ${symOut}`)
     } else {
       const a = findToken(leg.chainId, leg.tokenIn)
       const b = findToken(leg.chainId, leg.tokenOut)

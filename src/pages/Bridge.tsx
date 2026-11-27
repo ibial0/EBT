@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDownUp, Check, ChevronDown, Info, Plus, Route as RouteIcon, UserRoundPlus, Wallet, X } from 'lucide-react'
-import { formatUnits } from 'viem'
+import { encodeFunctionData, formatUnits } from 'viem'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { getPublicClient, getWalletClient } from 'wagmi/actions'
 import { CHAINS, getChain, type Address } from '../config/chains'
@@ -12,6 +12,16 @@ import { useSearchParams } from 'react-router-dom'
 import { initiateWithdrawEth, rememberWithdrawal } from '../lib/orbitWithdraw'
 import { buildStargateEthSend, quoteStargateEth, stargateEthPool } from '../lib/stargate'
 import { lastSelection } from '../lib/lastSelection'
+import { listActivity } from '../lib/activity'
+import {
+  WORMHOLE_BRIDGE,
+  buildCompleteTransfer,
+  buildTokenTransfer,
+  erc20Abi as wormholeErc20Abi,
+  fetchVaa,
+  sequenceFromLogs,
+  wormholeBridgeFor,
+} from '../lib/wormholeBridge'
 import { Card, Button, Badge, Row, notify, ChainLogo, NetworkLogo, TokenIcon, Spinner } from '../components/ui'
 import {
   NON_EVM_BRIDGE_ENDPOINTS,
@@ -220,7 +230,9 @@ function RoutePath({
       ? 'CCTP v2'
       : bridgeLeg?.kind === 'across'
         ? 'Across v3'
-        : bridgeLeg?.kind === 'stargate'
+        : bridgeLeg?.kind === 'wormhole'
+          ? 'Wormhole'
+          : bridgeLeg?.kind === 'stargate'
           ? 'Stargate v2'
           : bridgeLeg?.kind === 'portal'
           ? 'OP portal'
@@ -292,6 +304,67 @@ async function pollStargateArrival(
   })
 }
 
+/** Waits for the guardian VAA, then claims it on the destination with a second signature. */
+const wormholeClaimsInFlight = new Set<string>()
+
+async function claimWormholeTransfer(args: {
+  activityId: string
+  step: string
+  sourceChainId: number
+  toChainId: number
+  bridge: Address
+  emitter: Address
+  sequence: string
+}): Promise<void> {
+  const { activityId, step, toChainId } = args
+  if (wormholeClaimsInFlight.has(activityId)) return
+  wormholeClaimsInFlight.add(activityId)
+  const deadline = Date.now() + 45 * 60 * 1000
+  const srcWh = WORMHOLE_BRIDGE[args.sourceChainId]?.wormholeChainId
+  if (!srcWh) return
+  while (Date.now() < deadline) {
+    const vaa = await fetchVaa(srcWh, args.emitter, args.sequence)
+    if (vaa) {
+      try {
+        await ensureWalletChain(toChainId)
+        const wallet = await getWalletClient(wagmiConfig, { chainId: toChainId as never })
+        const client = getPublicClient(wagmiConfig, { chainId: toChainId as never })
+        if (!wallet || !client) throw new Error('Connect the wallet on the destination chain to claim.')
+        const built = buildCompleteTransfer({ bridge: args.bridge, vaa })
+        const tx = await prepareTx(client, getChain(toChainId)!, {
+          to: built.to,
+          data: built.data,
+          value: 0n,
+          account: wallet.account.address,
+        })
+        const hash = await walletSender(wallet).sendTransaction(tx)
+        updateStep(activityId, step, { status: 'active', hash, note: 'VAA signed. Claim submitted.' })
+        const rc = await client.waitForTransactionReceipt({ hash })
+        if (rc.status === 'success') {
+          updateStep(activityId, step, { status: 'done', hash })
+          finalizeFromSteps(activityId)
+          notify('Wormhole delivered the USDC on the destination.', 'success')
+        } else {
+          updateStep(activityId, step, { status: 'active', hash, note: 'Claim reverted. Retry from Activity.' })
+        }
+      } catch (e) {
+        updateStep(activityId, step, {
+          status: 'active',
+          note: e instanceof Error ? e.message : 'Claim failed. Retry from Activity.',
+        })
+      }
+      wormholeClaimsInFlight.delete(activityId)
+      return
+    }
+    await new Promise((r) => setTimeout(r, 20000))
+  }
+  wormholeClaimsInFlight.delete(activityId)
+  updateStep(activityId, step, {
+    status: 'active',
+    note: 'The guardians have not signed the VAA yet. Reopen the app to retry the claim.',
+  })
+}
+
 export default function Bridge() {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
@@ -316,6 +389,26 @@ export default function Bridge() {
   }, [fromId, toId])
   const [sourceId, setSourceId] = useState(() => lastSelection.bridge()?.sourceId ?? keyOf(11155111, NATIVE))
   const [destId, setDestId] = useState(() => lastSelection.bridge()?.destId ?? keyOf(84532, NATIVE))
+
+  // Resume any Wormhole claim that was still waiting for its VAA when the tab was closed.
+  useEffect(() => {
+    for (const a of listActivity()) {
+      if (a.provider !== 'wormhole' || a.status === 'complete') continue
+      const meta = a.meta as { whEmitter?: string; whSequence?: string; whSource?: number; whBridge?: string } | undefined
+      const step = a.steps.find((s) => s.key.startsWith('arrive'))?.key
+      if (!meta?.whEmitter || !meta.whSequence || !meta.whSource || !meta.whBridge || !step) continue
+      void claimWormholeTransfer({
+        activityId: a.id,
+        step,
+        sourceChainId: meta.whSource,
+        toChainId: a.toChainId,
+        bridge: meta.whBridge as Address,
+        emitter: meta.whEmitter as Address,
+        sequence: meta.whSequence,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Keep the pair the user picked when they visit Portfolio/Swap and come back. A reload clears it.
   useEffect(() => {
@@ -555,7 +648,7 @@ export default function Bridge() {
       try {
         return (await sourceClient.readContract({
           address: source.address,
-          abi: erc20Abi,
+          abi: wormholeErc20Abi,
           functionName: 'balanceOf',
           args: [address as Address],
         })) as bigint
@@ -667,6 +760,11 @@ export default function Bridge() {
           } catch (e) {
             return { amountOut: 0n, lines, failed: e instanceof Error ? e.message : 'Across quote unavailable right now.' }
           }
+        } else if (leg.kind === 'wormhole') {
+          lines.push({
+            leg: legLabel(i, leg),
+            detail: 'Wormhole: native USDC on both sides. Guardians sign a VAA (usually 1–15 min), then the claim is signed for you.',
+          })
         } else if (leg.kind === 'stargate') {
           const sg = stargateEthPool(leg.from, leg.to)
           if (!sg) return { amountOut: 0n, lines, failed: 'Stargate has no pool for this pair.' }
@@ -778,15 +876,15 @@ export default function Bridge() {
           status: 'pending' as const,
           chainId: leg.kind === 'swap' ? leg.chainId : leg.from,
         }
-        if (leg.kind === 'portal' || leg.kind === 'arbitrum' || leg.kind === 'across' || leg.kind === 'stargate') {
+        if (leg.kind === 'portal' || leg.kind === 'arbitrum' || leg.kind === 'across' || leg.kind === 'stargate' || leg.kind === 'wormhole') {
           return [
             base,
             {
               key: `arrive${i}`,
-              label: leg.kind === 'across' ? `Relayer fill on ${getChain(leg.to)?.short ?? 'dest'}` : leg.kind === 'stargate' ? `LayerZero delivery to ${getChain(leg.to)?.short ?? 'dest'}` : `Arrives on ${getChain(leg.to)?.short ?? 'L2'}`,
+              label: leg.kind === 'across' ? `Relayer fill on ${getChain(leg.to)?.short ?? 'dest'}` : leg.kind === 'stargate' ? `LayerZero delivery to ${getChain(leg.to)?.short ?? 'dest'}` : leg.kind === 'wormhole' ? `Wormhole claim on ${getChain(leg.to)?.short ?? 'dest'}` : `Arrives on ${getChain(leg.to)?.short ?? 'L2'}`,
               status: 'pending' as const,
               chainId: leg.to,
-              note: leg.kind === 'across' ? 'Waiting for Across relayer to fill the intent.' : leg.kind === 'stargate' ? 'Waiting for LayerZero to deliver to the destination pool.' : 'Waiting for the sequencer to include the deposit.',
+              note: leg.kind === 'across' ? 'Waiting for Across relayer to fill the intent.' : leg.kind === 'stargate' ? 'Waiting for LayerZero to deliver to the destination pool.' : leg.kind === 'wormhole' ? 'Waiting for the guardians to sign the VAA, then the claim is signed.' : 'Waiting for the sequencer to include the deposit.',
             },
           ]
         }
@@ -800,6 +898,8 @@ export default function Bridge() {
             ? 'across'
             : route.legs.some((l) => l.kind === 'stargate')
               ? 'stargate'
+              : route.legs.some((l) => l.kind === 'wormhole')
+                ? 'wormhole'
               : route.legs.some((l) => l.kind === 'arbitrum')
               ? 'orbit'
               : 'opstack',
@@ -979,6 +1079,83 @@ export default function Bridge() {
             note: 'Stargate accepted the transfer. LayerZero is delivering it to the destination pool.',
           })
           void pollStargateArrival(item.id, `arrive${i}`, leg.to, effectiveRecipient as Address, baseline)
+        } else if (leg.kind === 'wormhole') {
+          const wh = wormholeBridgeFor(leg.from, leg.to)
+          if (!wh) throw new Error('Wormhole has no bridge for this pair.')
+          const dstClient = getPublicClient(wagmiConfig, { chainId: leg.to as never })
+          if (!dstClient) throw new Error('No RPC for the destination chain.')
+          const baseline = await dstClient
+            .readContract({
+              address: route.outToken.address,
+              abi: wormholeErc20Abi,
+              functionName: 'balanceOf',
+              args: [effectiveRecipient as Address],
+            })
+            .catch(() => 0n)
+          const allowance = await client.readContract({
+            address: leg.token,
+            abi: wormholeErc20Abi,
+            functionName: 'allowance',
+            args: [address as Address, wh.bridge],
+          })
+          if (allowance < current) {
+            const approveTx = await prepareTx(client, getChain(leg.from)!, {
+              to: leg.token,
+              data: encodeFunctionData({ abi: wormholeErc20Abi, functionName: 'approve', args: [wh.bridge, current] }),
+              value: 0n,
+              account: address as Address,
+            })
+            const approveHash = await sender.sendTransaction(approveTx)
+            updateStep(item.id, `leg${i}`, {
+              status: 'active',
+              hash: approveHash,
+              note: 'Approving USDC for the Wormhole Token Bridge.',
+            })
+            const approveRc = await client.waitForTransactionReceipt({ hash: approveHash })
+            if (approveRc.status !== 'success') throw new Error('The USDC approval reverted.')
+          }
+          const built = buildTokenTransfer({
+            bridge: wh.bridge,
+            token: leg.token,
+            amount: current,
+            recipientChain: wh.recipientChain,
+            recipient: effectiveRecipient as Address,
+          })
+          const tx = await prepareTx(client, getChain(leg.from)!, {
+            to: built.to,
+            data: built.data,
+            value: built.value,
+            account: address as Address,
+          })
+          const hash = await sender.sendTransaction(tx)
+          updateStep(item.id, `leg${i}`, { status: 'active', hash })
+          const rc = await client.waitForTransactionReceipt({ hash })
+          if (rc.status !== 'success') throw new Error('The Wormhole transfer reverted on the source chain.')
+          updateStep(item.id, `leg${i}`, { status: 'done', hash })
+          const seq = sequenceFromLogs(rc.logs.map((l) => ({ topics: l.topics, data: l.data })))
+          if (!seq) throw new Error('The Wormhole message id was not found in the receipt.')
+          updateActivity(item.id, {
+            meta: {
+              ...(item.meta ?? {}),
+              whEmitter: seq.emitter,
+              whSequence: seq.sequence,
+              whSource: leg.from,
+              whBridge: wh.bridge,
+            },
+          })
+          updateStep(item.id, `arrive${i}`, {
+            status: 'active',
+            note: 'Transfer accepted. Waiting for the Wormhole guardians to sign the VAA.',
+          })
+          void claimWormholeTransfer({
+            activityId: item.id,
+            step: `arrive${i}`,
+            sourceChainId: leg.from,
+            toChainId: leg.to,
+            bridge: wh.bridge,
+            emitter: seq.emitter,
+            sequence: seq.sequence,
+          })
         } else if (leg.kind === 'arbitrum') {
           const cfg = orbitBridgeFor(leg.to)
           if (!cfg) throw new Error(`Missing Arbitrum Orbit bridge config for ${getChain(leg.to)?.short ?? leg.to}.`)
@@ -1372,7 +1549,9 @@ export default function Bridge() {
                     const tag =
                       b?.kind === 'across'
                         ? 'Across v3 (~15s)'
-                        : b?.kind === 'stargate'
+                        : b?.kind === 'wormhole'
+                          ? 'Wormhole (~5–20 min)'
+                          : b?.kind === 'stargate'
                           ? 'Stargate v2 (~1–2 min)'
                           : b?.kind === 'cctp'
                           ? 'Circle CCTP v2'
@@ -1629,7 +1808,9 @@ export default function Bridge() {
                 <Row
                   label="ETA"
                   value={
-                    route.legs.some((l) => l.kind === 'stargate')
+                    route.legs.some((l) => l.kind === 'wormhole')
+                      ? '≈5–20 min (VAA + claim)'
+                      : route.legs.some((l) => l.kind === 'stargate')
                       ? '≈1–2 min (LayerZero delivery)'
                       : route.legs.some((l) => l.kind === 'arbitrum')
                       ? '≈1–10 min (retryable ticket)'
