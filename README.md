@@ -195,7 +195,9 @@ at a funded key.
 - Every external URL is validated, every quote is sanity-checked, every amount is bounded.
 - Token prices apply only to verified contracts, so a copycat token cannot inflate a total.
 - See [SECURITY.md](SECURITY.md) for the threat model, the dependency advisory notes and how to
-  report a problem.
+  report a problem. Dependabot currently lists 8 alerts, all in transitive dependencies of the
+  wallet stack (ws, zod, uuid, decode-uri-component, react-router 6); each one is triaged there
+  with its real reachability instead of being silenced.
 
 ## Contributing
 
