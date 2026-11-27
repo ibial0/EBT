@@ -14,6 +14,7 @@ export const NATIVE_KEY = (chainId: number) => `${chainId}:${NATIVE_SENTINEL.toL
 export const tokenKey = (chainId: number, address: string) => `${chainId}:${address.toLowerCase()}`
 
 const CHAIN_LOGOS: Record<string, string> = {
+  cantonDevnet: 'canton.png',
   sepolia: 'tw_ethereum.png',
   baseSepolia: 'tw_base.png',
   arbitrumSepolia: 'tw_arbitrum.png',
