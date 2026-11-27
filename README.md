@@ -19,7 +19,7 @@ No API keys. No backend. No custody. No mainnet path anywhere in the code.
 ## Quick start
 
 ```bash
-cd "C:\Testnet web"
+cd "C:\EBT"
 npm install
 npm run dev          # http://localhost:5178
 ```
