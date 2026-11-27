@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-27T12:51:46.791Z",
+  "ranAt": "2026-11-27T14:41:19.459Z",
   "results": [
     {
       "id": "guard: mainnet rejected",
@@ -34,12 +34,12 @@
     {
       "id": "swap: quote WETH→USDC on Sepolia",
       "ok": true,
-      "detail": "out=43041715 fee=100 impact=3bps"
+      "detail": "out=42782528 fee=500 impact=5bps"
     },
     {
       "id": "swap: native ETH→USDC executes",
       "ok": true,
-      "detail": "returned 0x000000000000000000000000000000000000000000000000000000000290c3b3"
+      "detail": "returned 0x00000000000000000000000000000000000000000000000000000000028ccf40"
     },
     {
       "id": "opstack: GIWA deposit accepted",
@@ -49,7 +49,7 @@
     {
       "id": "swap: quote USDC→WETH on Sepolia",
       "ok": true,
-      "detail": "out=23430857013139 fee=500"
+      "detail": "out=23395751784676 fee=100"
     },
     {
       "id": "swap: USDC.approve(router, exact)",
@@ -89,12 +89,12 @@
     {
       "id": "arc: USDC ERC-20 view is 6dp",
       "ok": true,
-      "detail": "decimals=6, gasPrice=25000000000"
+      "detail": "decimals=6, gasPrice=20000000000"
     },
     {
       "id": "arc: gas floor ≥20 gwei",
       "ok": true,
-      "detail": "25 gwei"
+      "detail": "20 gwei"
     },
     {
       "id": "opstack: ETH deposit targets from Sepolia",
@@ -169,7 +169,7 @@
     {
       "id": "swap: Hedera router calldata valid",
       "ok": true,
-      "detail": "[Request ID: 02f31fa5-6e30-4e04-b2a4-152e66e29a52] execution reverted: CONTRACT_REVERT_EXECUTED, INSUFFICIENT_"
+      "detail": "[Request ID: 2070846b-07a0-4cd5-8263-6d0c562d0a03] execution reverted: CONTRACT_REVERT_EXECUTED, INSUFFICIENT_"
     },
     {
       "id": "swap: Solana Dev live quote (SOL→USDC)",
@@ -179,7 +179,7 @@
     {
       "id": "swap: Stellar live quote (XLM→USDC)",
       "ok": true,
-      "detail": "out=6.426638 via Stellar SDEX direct orderbook"
+      "detail": "out=6.423451 via Stellar SDEX direct orderbook"
     },
     {
       "id": "cctp: HyperEVM (d19) depositForBurn",

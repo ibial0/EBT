@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Check, ChevronDown, ChevronRight, Copy, X } from 'lucide-react'
 import { formatUnits } from 'viem'
 import type { NetworkEntry } from '../config/networks'
 import { getChain } from '../config/chains'
 import { ChainLogo, NetworkLogo, TokenIcon, notify } from './ui'
 import { shortAddr } from '../lib/format'
-import { isEvmAddress, sendToken } from '../lib/sendToken'
+import { canSendFrom, validateReceiver } from '../lib/addressCheck'
+import { sendToken } from '../lib/sendToken'
 import { addActivity, finalizeFromSteps, updateStep } from '../lib/activity'
 import { safeParseUnits } from '../lib/format'
 import { getPublicClient } from 'wagmi/actions'
@@ -121,16 +123,26 @@ export function TokenSheet({
   formatUsd?: (value: number) => string
 }) {
   const rows = useMemo(() => group.rows.slice().sort(byBalance), [group.rows])
+  const sendableRows = useMemo(() => rows.filter((r) => r.chainId != null), [rows])
+  /** Dismiss on a click that started on the backdrop: dragging out of a text field must not. */
+  const backdropDown = useRef(false)
   const totalText =
     group.amount > 0
       ? `${group.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${group.symbol}`
       : '—'
   const price = (v: number | null) => (v == null ? 'not priced' : formatUsd ? formatUsd(v) : `$${v.toFixed(2)}`)
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center backdrop-blur-sm"
-      onClick={onClose}
+      onPointerDown={(e) => {
+        backdropDown.current = e.target === e.currentTarget
+      }}
+      onClick={(e) => {
+        const started = backdropDown.current
+        backdropDown.current = false
+        if (started && e.target === e.currentTarget) onClose()
+      }}
       style={{ animation: 'popupBgIn 200ms ease-out both', background: 'rgba(0,0,0,0.62)' }}
     >
       <div
@@ -165,8 +177,14 @@ export function TokenSheet({
 
         <div className="grid grid-cols-2 gap-2 px-5 pb-4 pt-4">
           <button
-            onClick={() => onSend(rows[0] ? rowKey(rows[0]) : undefined)}
-            className="flex h-[48px] items-center justify-center gap-2 rounded-xl bg-accent text-[14px] font-semibold on-accent transition-opacity hover:opacity-90"
+            onClick={() =>
+              onSend(
+                sendableRows[0] ? rowKey(sendableRows[0]) : rows[0] ? rowKey(rows[0]) : undefined,
+              )
+            }
+            disabled={sendableRows.length === 0}
+            title={sendableRows.length === 0 ? 'Sending is EVM-only; use Receive for this account' : undefined}
+            className="flex h-[48px] items-center justify-center gap-2 rounded-xl bg-accent text-[14px] font-semibold on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-ink-700 disabled:text-t3 disabled:opacity-100"
           >
             <ArrowUpRight size={16} /> Send
           </button>
@@ -177,13 +195,19 @@ export function TokenSheet({
             <ArrowDownLeft size={16} /> Receive
           </button>
         </div>
+        {sendableRows.length === 0 && (
+          <p className="px-5 pb-4 text-[11.5px] leading-4 text-t3">
+            This account is receive-only here: EBT only signs EVM transfers, so pick an EVM
+            network to send.
+          </p>
+        )}
 
         <div className="max-h-[46vh] space-y-1.5 overflow-y-auto px-5 pb-5">
           {rows.map((r) => (
             <button
               key={rowKey(r)}
               type="button"
-              onClick={() => onPickChain(rowKey(r))}
+              onClick={() => (r.chainId == null ? onReceive(rowKey(r)) : onPickChain(rowKey(r)))}
               className="flex w-full items-center gap-3 rounded-xl border border-line bg-ink-850 px-3.5 py-2.5 text-left transition-all hover:border-line-strong hover:bg-ink-750"
             >
               <span className="relative shrink-0">
@@ -208,7 +232,8 @@ export function TokenSheet({
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -241,19 +266,30 @@ export function TokenActions({
 }) {
   const rows = useMemo(() => group.rows.slice().sort(byBalance), [group.rows])
   const sendable = useMemo(() => rows.filter((r) => r.chainId != null), [rows])
+  const backdropDown = useRef(false)
   const [mode, setMode] = useState<'send' | 'receive'>(initialMode)
   /** Opened from one chain row: that chain is the only option. */
-  const selectable = useMemo(
-    () => (lockedRowKey ? rows.filter((r) => rowKey(r) === lockedRowKey) : sendable.length > 0 ? sendable : rows),
-    [rows, lockedRowKey, sendable],
-  )
+  const selectable = useMemo(() => {
+    if (lockedRowKey) return rows.filter((r) => rowKey(r) === lockedRowKey)
+    // Send is EVM-only, so a chain that cannot sign is not offered while sending.
+    if (mode === 'send' && sendable.length > 0) return sendable
+    return rows
+  }, [rows, lockedRowKey, sendable, mode])
   /** More than one network to choose from: the From card opens a picker instead of listing them all. */
   const multi = !lockedRowKey && rows.length > 1
   const [picker, setPicker] = useState(() => initialMode === 'receive' && !lockedRowKey && group.rows.length > 1)
   /** Receive with several networks asks which one first, then shows the QR. */
   const [receivePicked, setReceivePicked] = useState(() => !(initialMode === 'receive' && !lockedRowKey && group.rows.length > 1))
 
-  const [selected, setSelected] = useState<string>(initialRowKey ?? rowKey(rows[0]))
+  const [selected, setSelected] = useState<string>(() => {
+    if (initialRowKey) return initialRowKey
+    // Opening straight into Send must not preselect a chain that cannot sign.
+    if (initialMode === 'send') {
+      const evm = rows.find((r) => r.chainId != null)
+      if (evm) return rowKey(evm)
+    }
+    return rowKey(rows[0])
+  })
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
   const [sending, setSending] = useState(false)
@@ -261,12 +297,18 @@ export function TokenActions({
   const [qr, setQr] = useState<string | null>(null)
 
   const row = rows.find((r) => rowKey(r) === selected) ?? rows[0]
+  // The family that will actually sign; a row without a chainId is a non-EVM account.
+  const family = row?.network?.family ?? (row?.chainId != null ? 'evm' : undefined)
+  const sendSupported = canSendFrom(family)
+  const addressCheck = to.trim().length > 0 ? validateReceiver(to, family) : null
   // Send signs on the row the sheet is showing, never a different chain's first EVM row.
   const evmRow = row?.chainId != null ? row : undefined
 
   const parsed = safeParseUnits(amount, evmRow?.decimals ?? 18)
   const over = parsed != null && evmRow?.amount != null && parsed > evmRow.amount
-  const canSend = Boolean(evmRow && isEvmAddress(to) && parsed != null && parsed > 0n && !over)
+  const canSend = Boolean(
+    sendSupported && evmRow && addressCheck?.ok && parsed != null && parsed > 0n && !over,
+  )
 
   // QR for the receive tab (testnet address, generated locally — nothing leaves the device)
   useEffect(() => {
@@ -364,10 +406,17 @@ export function TokenActions({
       ? `${group.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${group.symbol}`
       : '—'
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center backdrop-blur-sm"
-      onClick={onClose}
+      onPointerDown={(e) => {
+        backdropDown.current = e.target === e.currentTarget
+      }}
+      onClick={(e) => {
+        const started = backdropDown.current
+        backdropDown.current = false
+        if (started && e.target === e.currentTarget) onClose()
+      }}
       style={{ animation: 'popupBgIn 200ms ease-out both', background: 'rgba(0,0,0,0.62)' }}
     >
       <div
@@ -421,6 +470,11 @@ export function TokenActions({
               key={key}
               onClick={() => {
                 setMode(key)
+                // Send is EVM-only: land on a chain that can actually sign.
+                if (key === 'send' && !lockedRowKey) {
+                  const current = rows.find((r) => rowKey(r) === selected)
+                  if (current?.chainId == null && sendable[0]) setSelected(rowKey(sendable[0]))
+                }
                 // several networks: ask which one to receive on before showing an address
                 if (key === 'receive' && multi) {
                   setReceivePicked(false)
@@ -436,7 +490,26 @@ export function TokenActions({
           ))}
         </div>
 
-        {mode === 'send' ? (
+        {mode === 'send' && !sendSupported ? (
+          <div className="space-y-3 px-5 pb-5 pt-4">
+            <div className="rounded-xl border border-line-strong bg-ink-900/60 p-4">
+              <p className="text-[13px] font-semibold text-t1">
+                Sending isn’t available on {row?.chainShort ?? 'this network'} yet
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-t2">
+                EBT signs EVM transfers only. This account can receive on {row?.chainShort ?? 'its network'}, but
+                its keys live in a wallet this app cannot ask for a signature.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMode('receive')}
+              className="h-[46px] w-full rounded-xl border border-line-strong bg-ink-800 text-[14px] font-semibold text-t1 transition-colors hover:bg-ink-700"
+            >
+              Show receive address
+            </button>
+          </div>
+        ) : mode === 'send' ? (
           <div className="space-y-3.5 px-5 pb-5 pt-4">
             {/* from: the selected chain only — tap the card to pick another network */}
             <div className="space-y-1.5">
@@ -481,8 +554,8 @@ export function TokenActions({
               autoComplete="off"
               className="input mono h-[52px] w-full rounded-xl border border-line-strong bg-ink-900 px-4 text-[13px] text-t1 placeholder:text-t3 focus:border-accent/60"
             />
-            {to.trim().length > 0 && !isEvmAddress(to) && (
-              <p className="text-[11.5px] text-neg">That is not a valid EVM address.</p>
+            {addressCheck && !addressCheck.ok && (
+              <p className="text-[11.5px] text-neg">{addressCheck.message}</p>
             )}
 
             {/* amount: one field, MAX inside */}
@@ -506,7 +579,7 @@ export function TokenActions({
             <button
               disabled={!canSend || sending}
               onClick={() => void doSend()}
-              className="h-[52px] w-full rounded-xl bg-accent text-[15px] font-semibold on-accent transition-opacity disabled:opacity-40"
+              className="h-[52px] w-full rounded-xl bg-accent text-[15px] font-semibold on-accent transition-opacity disabled:cursor-not-allowed disabled:bg-ink-700 disabled:text-t3 disabled:opacity-100"
             >
               {sending ? 'Waiting for wallet…' : `Send ${group.symbol}`}
             </button>
@@ -631,7 +704,8 @@ export function TokenActions({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

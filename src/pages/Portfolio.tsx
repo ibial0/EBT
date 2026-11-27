@@ -56,6 +56,8 @@ interface Row {
 }
 
 interface Group {
+  /** Stable identity: symbol plus verification, so two "USDC" groups never share a React key. */
+  id: string
   symbol: string
   name: string
   usd: number | null
@@ -378,6 +380,13 @@ export default function Portfolio() {
   const isFetchingAny = portfolio.isFetching || nonEvmQuery.isFetching
   /** How many EVM chains have answered in the current scan, so the refresh can say so. */
   const scanned = streamed.size
+  /** One number for the reload button: answered chains out of everything being read. */
+  const progressTotal = CHAINS.length + (hasNonEvm ? 1 : 0)
+  const progressDone = scanned + (hasNonEvm && nonEvmQuery.isFetched ? 1 : 0)
+  const progressPct =
+    progressTotal > 0
+      ? Math.min(isFetchingAny ? 99 : 100, Math.round((progressDone / progressTotal) * 100))
+      : 0
 
   // one point per hour, written only when the value is actually known
   useEffect(() => {
@@ -446,7 +455,7 @@ export default function Portfolio() {
       const key = `${r.symbol.toUpperCase()}::${r.verified ? 'v' : 'u'}`
       const g: Group =
         bySymbol.get(key) ??
-        ({ symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)
+        ({ id: key, symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)
       g.rows.push(r)
       // a group with no priced asset must stay "—", not become $0.00
       if (r.usdValue != null) g.usd = (g.usd ?? 0) + r.usdValue
@@ -481,7 +490,7 @@ export default function Portfolio() {
       const key = `${r.symbol.toUpperCase()}::${r.verified ? 'v' : 'u'}`
       const g: Group =
         bySymbol.get(key) ??
-        ({ symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)
+        ({ id: key, symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)
       g.rows.push(r)
       if (r.usdValue != null) g.usd = (g.usd ?? 0) + r.usdValue
       g.amount += r.amount == null ? 0 : Number(formatUnits(r.amount, r.decimals))
@@ -540,18 +549,41 @@ export default function Portfolio() {
               if (address) portfolio.refetch()
               if (hasNonEvm) nonEvmQuery.refetch()
             }}
-            title="Refresh balances"
-            className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-850 text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
+            title={isFetchingAny ? `Refreshing balances ${progressPct}%` : 'Refresh balances'}
+            aria-label={isFetchingAny ? `Refreshing balances ${progressPct}%` : 'Refresh balances'}
+            className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center overflow-hidden rounded-full border border-line-strong bg-ink-850 text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
           >
-            <RefreshCw size={15} strokeWidth={2.4} className={isFetchingAny ? 'spin' : undefined} />
+            {isFetchingAny ? (
+              <span className="relative grid size-9 place-items-center">
+                <svg
+                  viewBox="0 0 36 36"
+                  width="36"
+                  height="36"
+                  className="absolute inset-0 -rotate-90"
+                  aria-hidden="true"
+                >
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--color-line-strong)" strokeWidth="2" />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="var(--color-accent)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 15.5}
+                    strokeDashoffset={2 * Math.PI * 15.5 * (1 - progressPct / 100)}
+                  />
+                </svg>
+                <span className="figure-num relative text-[10px] font-bold leading-none text-t1">
+                  {progressPct}%
+                </span>
+              </span>
+            ) : (
+              <RefreshCw size={15} strokeWidth={2.4} />
+            )}
           </button>
         </div>
-
-        {portfolio.isFetching && scanned > 0 && (
-          <div className="mt-3 text-center text-[11px] text-t3">
-            Scanning chains… {scanned}/{CHAINS.length} answered
-          </div>
-        )}
 
         <div className="figure-num mt-4 text-center text-[52px] leading-[58px] font-extrabold text-t1">
           {initialLoading ? (
@@ -731,7 +763,7 @@ export default function Portfolio() {
               const first = g.rows[0]
               return (
                 <button
-                  key={g.symbol}
+                  key={g.id}
                   type="button"
                   onClick={() => {
                     // one token spread over several chains: show the chain summary first
@@ -856,7 +888,7 @@ export default function Portfolio() {
                   const multi = g.rows.length > 1
                   const first = g.rows[0]
                   return (
-                    <div key={g.symbol} className="border-b border-line last:border-0">
+                    <div key={g.id} className="border-b border-line last:border-0">
                       <button
                         type="button"
                         aria-expanded={multi ? open : undefined}
@@ -1126,14 +1158,15 @@ function RingIcon({
   const [displayPct, setDisplayPct] = useState(0)
 
   useEffect(() => {
-    const t = requestAnimationFrame(() => setDisplayPct(clamped))
-    return () => cancelAnimationFrame(t)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // Set the target directly; the CSS transition draws the arc. requestAnimationFrame is
+    // paused in a background tab, which would leave the ring at zero until the tab is focused.
+    setDisplayPct(clamped)
+  }, [clamped])
 
   function handleMouseEnter() {
     setAnimKey((k) => k + 1)
     setDisplayPct(0)
-    requestAnimationFrame(() => requestAnimationFrame(() => setDisplayPct(clamped)))
+    window.setTimeout(() => setDisplayPct(clamped), 20)
   }
 
   const offset = circumference - (circumference * displayPct) / 100
@@ -1142,6 +1175,7 @@ function RingIcon({
     <span
       className="relative grid size-[88px] place-items-center"
       onMouseEnter={handleMouseEnter}
+      title={`${Math.round(clamped)}% of this portfolio`}
     >
       <svg width="88" height="88" viewBox="0 0 88 88" className="absolute -rotate-90">
         <circle cx="44" cy="44" r={r} fill="none" stroke="rgba(171,184,255,0.13)" strokeWidth="3" />

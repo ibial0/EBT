@@ -52,8 +52,3 @@ export async function sendToken(params: SendTokenParams): Promise<`0x${string}`>
   })
   return wallet.sendTransaction({ to: token.address as Address, data, account, chain: null })
 }
-
-/** True when the string looks like a real 20-byte EVM address. */
-export function isEvmAddress(value: string): value is Address {
-  return /^0x[0-9a-fA-F]{40}$/.test(value.trim())
-}

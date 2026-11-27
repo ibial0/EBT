@@ -57,7 +57,7 @@ export function NotificationBell() {
         className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-ink-800 text-t2 transition-colors hover:border-line-strong hover:text-t1"
         aria-label={pending.length ? `${pending.length} pending transactions` : 'No pending transactions'}
       >
-        <Bell size={16} strokeWidth={1.6} />
+        <Bell size={17} strokeWidth={2.2} />
         {pending.length > 0 && (
           <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#e5484d] px-1 text-[10px] font-semibold leading-none text-white shadow-[0_0_0_2px_var(--color-ink-850)]">
             {pending.length}
