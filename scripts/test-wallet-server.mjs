@@ -86,7 +86,15 @@ async function handle(method, params = []) {
 }
 
 const server = createServer(async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  // Loopback only, and never for an arbitrary web origin: this server signs with a local key.
+  const origin = req.headers.origin
+  const allowed = origin == null || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+  if (!allowed) {
+    res.statusCode = 403
+    return res.end('origin not allowed')
+  }
+  res.setHeader('Access-Control-Allow-Origin', origin ?? 'http://127.0.0.1')
+  res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Headers', 'content-type')
   if (req.method === 'OPTIONS') return res.end()
   if (req.method !== 'POST') return res.end('test wallet: post {method, params}')

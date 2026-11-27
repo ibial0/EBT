@@ -83,7 +83,8 @@ export function buildStargateEthSend(args: {
     abi: stargatePoolAbi,
     functionName: 'send',
     args: [
-      stargateSendParam(args.dstEid, args.to, args.amount, 0n),
+      // 0.5% tolerance: a zero minimum lets any relayer deliver an arbitrarily small amount.
+      stargateSendParam(args.dstEid, args.to, args.amount, (args.amount * 9950n) / 10000n),
       { nativeFee: args.nativeFee, lzTokenFee: 0n },
       args.refund ?? args.to,
     ],

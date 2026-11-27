@@ -47,7 +47,10 @@ export async function prepareTx(
     const tip = gasPrice > baseFee ? gasPrice - baseFee : 1n * 10n ** 9n
     prepared.maxPriorityFeePerGas = tip < 10n ** 9n ? 10n ** 9n : tip
     const candidate = gasPrice + (gasPrice * 20n) / 100n
-    prepared.maxFeePerGas = candidate > floor ? candidate : floor
+    // A node that reports an absurd gasPrice must not turn into an absurd fee cap.
+    const ceiling = 500n * 10n ** 9n
+    const capped = candidate > ceiling ? ceiling : candidate
+    prepared.maxFeePerGas = capped > floor ? capped : floor
   }
 
   return prepared

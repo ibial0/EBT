@@ -186,6 +186,8 @@ function initials(name: string) {
   // wrapped-BTC tokens carry the generic bitcoin glyph, which reads correctly and claims no brand
   if (/btc/i.test(name)) return '₿'
   const parts = name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean)
+  // A symbol such as "★" leaves nothing behind; never index into an empty list.
+  if (parts.length === 0) return name.trim().slice(0, 2).toUpperCase() || '?'
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[1][0]).toUpperCase()
 }

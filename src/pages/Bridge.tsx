@@ -525,7 +525,9 @@ export default function Bridge() {
   const [searchParams, setSearchParams] = useSearchParams()
   const paramId = (key: string, fallback: number) => {
     const n = Number(searchParams.get(key))
-    return Number.isFinite(n) && n > 0 ? n : fallback
+    // Only chains we actually support: a crafted ?from=999999 must not reach mustChain().
+    if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n) || !getChain(n)) return fallback
+    return n
   }
   const [fromId, setFromId] = useState(() => paramId('from', lastSelection.bridge()?.fromId ?? 11155111))
   const [toId, setToId] = useState(() => paramId('to', lastSelection.bridge()?.toId ?? 84532))

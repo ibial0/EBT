@@ -187,16 +187,33 @@ export async function fetchAcrossFee(params: {
     )
   }
 
+  // Sanity-check the remote quote before it becomes calldata: a fresh timestamp, a positive
+  // output and a bounded exclusivity window. Anything else is a misquote, not a cheaper route.
+  const nowSec = Math.floor(Date.now() / 1000)
+  const quoteTs = Number(body.timestamp)
+  if (!Number.isFinite(quoteTs) || quoteTs < nowSec - 1800 || quoteTs > nowSec + 300) {
+    throw new AcrossQuoteError('Across returned a stale quote. Try again.')
+  }
+  if (outputAmount <= 0n) throw new AcrossQuoteError('Across returned an empty quote.')
+  const exclusivity = Number(body.exclusivityDeadline ?? 0)
+  if (!Number.isFinite(exclusivity) || exclusivity < 0 || exclusivity > nowSec + 7200) {
+    throw new AcrossQuoteError('Across returned an invalid exclusivity window.')
+  }
+  const relayerRaw = (body.exclusiveRelayer || '0x0000000000000000000000000000000000000000').toLowerCase()
+  if (!/^0x[0-9a-f]{40}$/.test(relayerRaw)) {
+    throw new AcrossQuoteError('Across returned an invalid relayer address.')
+  }
+
   const feeStr = body.totalRelayFee?.total ?? body.relayFeeTotal ?? '0'
   const quote: AcrossQuote = {
     spokePool: body.spokePoolAddress as Address,
     inputAmount: params.amount,
     outputAmount,
     totalFee: BigInt(feeStr),
-    quoteTimestamp: Number(body.timestamp),
-    fillDeadline: Number(body.fillDeadline ?? Number(body.timestamp) + 7200),
-    exclusivityDeadline: Number(body.exclusivityDeadline ?? 0),
-    exclusiveRelayer: (body.exclusiveRelayer || '0x0000000000000000000000000000000000000000') as Address,
+    quoteTimestamp: quoteTs,
+    fillDeadline: Number(body.fillDeadline ?? quoteTs + 7200),
+    exclusivityDeadline: exclusivity,
+    exclusiveRelayer: relayerRaw as Address,
     estimatedFillTimeSec: Number(body.estimatedFillTimeSec ?? 15),
     minDeposit,
     maxDeposit,

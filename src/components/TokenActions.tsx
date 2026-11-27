@@ -139,7 +139,12 @@ export function TokenSheet({
         style={{ animation: 'popupCardIn 280ms cubic-bezier(0.34,1.56,0.64,1) both' }}
       >
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-          <TokenIcon symbol={group.symbol} size={44} chainId={rows[0]?.chainId ?? undefined} />
+          <TokenIcon
+            symbol={group.symbol}
+            size={44}
+            chainId={rows[0]?.chainId ?? undefined}
+            verified={rows[0]?.verified ?? false}
+          />
           <div className="min-w-0 flex-1">
             <p className="text-[16px] font-semibold text-t1">
               {group.symbol}
@@ -256,7 +261,8 @@ export function TokenActions({
   const [qr, setQr] = useState<string | null>(null)
 
   const row = rows.find((r) => rowKey(r) === selected) ?? rows[0]
-  const evmRow = row?.chainId != null ? row : sendable[0]
+  // Send signs on the row the sheet is showing, never a different chain's first EVM row.
+  const evmRow = row?.chainId != null ? row : undefined
 
   const parsed = safeParseUnits(amount, evmRow?.decimals ?? 18)
   const over = parsed != null && evmRow?.amount != null && parsed > evmRow.amount

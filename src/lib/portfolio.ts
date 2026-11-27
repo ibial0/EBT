@@ -71,14 +71,18 @@ async function blockscoutTokens(chainId: number, owner: string): Promise<TokenCf
       const sym = h.token?.symbol
       const dec = h.token?.decimals
       const val = h.value
-      if (!addr || !sym || dec == null || !val || val === '0') continue
+      if (typeof addr !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(addr)) continue
+      if (typeof sym !== 'string' || sym.length === 0 || sym.length > 24) continue
+      const decimals = Number(dec)
+      if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) continue
+      if (!val || val === '0') continue
       if (known.has(addr.toLowerCase())) continue
       out.push({
         chainId,
         address: addr as Address,
         symbol: sym,
-        name: h.token?.name ?? sym,
-        decimals: Number(dec),
+        name: typeof h.token?.name === 'string' ? h.token.name.slice(0, 64) : sym,
+        decimals,
         kind: 'token',
         color: '#64748b',
         verified: false,
