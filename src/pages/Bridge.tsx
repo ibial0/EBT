@@ -1012,6 +1012,14 @@ export default function Bridge() {
   const hasRoute = Boolean(route) && Boolean(dest)
   /** Robinhood-like Orbit chains settle on their parent: value leaves by withdrawal, not a bridge. */
   const isCanonicalWithdraw = orbitBridgeFor(fromId)?.parentChainId === toId && Boolean(orbitBridgeFor(fromId)?.outbox)
+  /**
+   * Parent -> Orbit deposit needs an EthInbox. Chains that deploy an ERC20Inbox price the retryable
+   * ticket in their own gas token, so a plain ETH deposit simply does not exist there.
+   */
+  const depositNeedsGasToken = (() => {
+    const cfg = orbitBridgeFor(toId)
+    return Boolean(cfg) && cfg!.parentChainId === fromId && !ORBIT_ETH_NATIVE.has(toId)
+  })()
   const nonEvmOutAmt = nonEvmCctpEligible && nonEvmCctpQuote.data
     ? (fast ? nonEvmCctpQuote.data.fastOut : nonEvmCctpQuote.data.standardOut)
     : null
@@ -1210,6 +1218,17 @@ export default function Bridge() {
                 />
               </div>
             )
+          ) : depositNeedsGasToken ? (
+            <div className="mt-3 rounded-xl border border-line-strong bg-ink-850 p-4">
+              <p className="text-[12.5px] font-semibold text-t1">ETH cannot be deposited into {toShort}</p>
+              <p className="mt-1.5 text-[11.5px] leading-relaxed text-t2">
+                {to?.short ?? toShort} is an Orbit chain whose gas token is{' '}
+                {to?.viem.nativeCurrency.symbol ?? 'its own token'}, not ETH — its inbox prices retryable tickets in
+                that token, so a plain ETH deposit does not exist there. The reverse direction does work:{' '}
+                {toShort} → {fromShort} is a canonical withdrawal and the value can be claimed here once the rollup
+                confirms.
+              </p>
+            </div>
           ) : !route && isCanonicalWithdraw ? (
             <div className="mt-3 rounded-xl border border-line-strong bg-ink-850 p-4">
               <RoutePath
@@ -1303,7 +1322,7 @@ export default function Bridge() {
             </div>
           </div>
 
-          {!isCanonicalWithdraw && (
+          {!isCanonicalWithdraw && !depositNeedsGasToken && (
           <div className="mt-3 flex items-center justify-between rounded-lg border border-line bg-ink-850 px-3 py-2">
             <div>
               <div className="text-[12px] font-medium text-t1">Slippage tolerance</div>
@@ -1327,7 +1346,7 @@ export default function Bridge() {
           </div>
           )}
 
-          {isCanonicalWithdraw ? null : hasAcrossLeg && !hasCctpLeg ? (
+          {isCanonicalWithdraw || depositNeedsGasToken ? null : hasAcrossLeg && !hasCctpLeg ? (
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="panel border-accent/40 bg-accent/8 p-3 text-left">
                 <div className="flex items-center justify-between">
@@ -1438,14 +1457,18 @@ export default function Bridge() {
                 variant="primary"
                 className="h-[64px] w-full text-[17px]"
                 disabled={
-                  isCanonicalWithdraw
-                    ? !address || amountIn <= 0n || insufficient
-                    : !hasRoute || amountIn <= 0n || insufficient || Boolean(estimate.data?.failed)
+                  depositNeedsGasToken
+                    ? true
+                    : isCanonicalWithdraw
+                      ? !address || amountIn <= 0n || insufficient
+                      : !hasRoute || amountIn <= 0n || insufficient || Boolean(estimate.data?.failed)
                 }
                 loading={busy === 'start'}
                 onClick={isCanonicalWithdraw ? () => void runWithdraw() : run}
               >
-                {route ? (
+                {depositNeedsGasToken ? (
+                  `Deposit needs ${to?.viem.nativeCurrency.symbol ?? 'its gas token'}`
+                ) : route ? (
                   <span className="flex items-center gap-1.5">
                     {`Bridge ${source?.symbol ?? ''}`}
                     {source && dest && source.symbol !== dest.symbol && (
@@ -1468,11 +1491,24 @@ export default function Bridge() {
               <h3 className="text-sm font-semibold text-t1">Route</h3>
               {isNonEvmBridge ? (
                 nonEvmCctpEligible && <Badge tone="mint">CCTP v2</Badge>
+              ) : depositNeedsGasToken ? (
+                <Badge tone="amber">needs {to?.viem.nativeCurrency.symbol ?? 'gas'}</Badge>
               ) : (
                 route && <Badge tone={route.type === 'direct' ? 'mint' : 'blue'}>{route.type === 'direct' ? 'Direct' : 'Composite'}</Badge>
               )}
             </div>
-            {isNonEvmBridge ? (
+            {depositNeedsGasToken ? (
+              <div className="space-y-2">
+                <p className="text-[12px] leading-5 text-t2">
+                  A deposit into {toShort} has to be paid in {to?.viem.nativeCurrency.symbol ?? 'its gas token'} —
+                  this chain's inbox does not accept an ETH retryable ticket.
+                </p>
+                <p className="text-[11.5px] leading-5 text-t3">
+                  The other direction works: pick {toShort} → {fromShort} and it runs as a canonical withdrawal,
+                  claimable here once the rollup confirms.
+                </p>
+              </div>
+            ) : isNonEvmBridge ? (
               nonEvmCctpEligible ? (
                 <>
                   <p className="mb-2.5 truncate rounded-lg bg-ink-850 px-2.5 py-2 text-[11px] leading-5 text-t2">
@@ -1537,6 +1573,16 @@ export default function Bridge() {
                   <li>3 · Claim on {toShort} — you sign again</li>
                 </ol>
                 <p className="mono text-[11px] text-t3">≈ tens of minutes on this testnet</p>
+              </div>
+            ) : depositNeedsGasToken ? (
+              <div className="space-y-2">
+                <p className="text-[12px] leading-5 text-t2">
+                  A deposit into {toShort} has to be paid in {to?.viem.nativeCurrency.symbol ?? 'its gas token'} —
+                  that chain's inbox does not accept an ETH retryable ticket.
+                </p>
+                <p className="text-[11.5px] leading-5 text-t3">
+                  Withdrawing from {toShort} to {fromShort} works the other way round.
+                </p>
               </div>
             ) : (
               <p className="text-[12px] leading-5 text-t3">
