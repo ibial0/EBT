@@ -46,3 +46,32 @@ Paying for a key would not unlock these chains.
 
 Verified with real quotes: LINK → ETH on Sepolia (1 LINK ≈ 0.000625 ETH, 0.3% pool) and USDC → AVAX on
 Avalanche Fuji through Sushi (1 USDC = 0.00927 AVAX).
+
+
+## Batch 1 verification (Linea Sepolia, Plasma, Ink, Plume, opBNB)
+
+Each chain was probed with `eth_getCode` on the router/factory addresses published for the DEXes that run on
+the same ecosystem's mainnet, plus the canonical Uniswap addresses:
+
+| Chain | Probed | Found |
+| --- | --- | --- |
+| Linea Sepolia (59141) | Lynex router/factory, Algebra factory/router, Uniswap v3 factory, iZUMi factory, Uniswap v2, Sushi, Pancake | only Permit2 + Multicall3 |
+| Plasma (9746) | Uniswap v3 factory, Uniswap v2, Sushi, Pancake, QuickSwap | only Permit2 + Multicall3 |
+| Ink Sepolia (763373) | Uniswap v3 factory, Uniswap v2, Sushi, Pancake, QuickSwap | only Permit2 + Multicall3 |
+| Plume (98867) | Uniswap v3 factory, Uniswap v2, Sushi, Pancake, QuickSwap, Rooster lens | Multicall3 + WPLUME token; the DEX lens address did not resolve |
+| opBNB testnet (5611) | Pancake v2 (BSC and opBNB-mainnet addresses), Pancake v3, Uniswap v2/v3, Sushi, QuickSwap | only Permit2 + Multicall3 |
+
+What those chains actually have, from their own docs:
+
+- **Linea**: Lynex (Algebra) is deployed on Linea **mainnet** only (`0x610D2f07…`, `0xBc7695Fd…`).
+- **Plasma**: Uniswap v3 is listed on Plasma **mainnet** only.
+- **Ink**: the flagship venue is Nado, a central-limit order book, not an AMM; no AMM router on Sepolia.
+- **Plume**: Rooster (Maverick v2) is live on testnet, but Maverick's router/pool ABI is not Uniswap-compatible.
+- **opBNB**: Pancake runs on opBNB **mainnet** (`0x02a84c1b…`), not at that address on testnet.
+
+Conclusion: none of the five can be added with the Uniswap v2/v3 adapters the app has. Adding one of them means
+writing a new adapter for that DEX family (Algebra, Maverick, iZiSwap) and it still needs a pool for the exact
+token against the native coin.
+
+Also checked: **Zora Sepolia** has a full Uniswap v3 stack (official deployment) but no token list entry in
+`config/tokens.ts`, so there is nothing to quote against yet.
