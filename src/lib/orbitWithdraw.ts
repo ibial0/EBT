@@ -64,8 +64,14 @@ export async function initiateWithdrawEth(chainId: number, amountWei: bigint): P
   })
 }
 
+/** Immutable once mined, so a session-long cache makes repeat views instant. */
+const withdrawalCache = new Map<string, Withdrawal>()
+
 /** Reads the withdrawal message out of the L2 receipt. */
 export async function readWithdrawal(chainId: number, txHash: `0x${string}`): Promise<Withdrawal> {
+  const cacheKey = `${chainId}:${txHash.toLowerCase()}`
+  const cached = withdrawalCache.get(cacheKey)
+  if (cached) return cached
   const client = getPublicClient(wagmiConfig, { chainId: chainId as never })
   if (!client) throw new Error('No RPC for this chain.')
   const receipt = await client.waitForTransactionReceipt({ hash: txHash })
@@ -75,7 +81,7 @@ export async function readWithdrawal(chainId: number, txHash: `0x${string}`): Pr
     try {
       const decoded = decodeEventLog({ abi: [l2ToL1Event], data: log.data, topics: log.topics })
       const a = decoded.args as unknown as Record<string, never>
-      return {
+      const parsed: Withdrawal = {
         txHash,
         l2BlockHash: receipt.blockHash,
         position: a.position as unknown as bigint,
@@ -87,6 +93,8 @@ export async function readWithdrawal(chainId: number, txHash: `0x${string}`): Pr
         ethBlockNum: a.ethBlockNum as unknown as bigint,
         timestamp: a.timestamp as unknown as bigint,
       }
+      withdrawalCache.set(cacheKey, parsed)
+      return parsed
     } catch {
       /* not the withdrawal event */
     }
@@ -116,10 +124,16 @@ export async function confirmedSends(chainId: number, parentChainId: number): Pr
   const l2 = getPublicClient(wagmiConfig, { chainId: chainId as never })
   if (!l1 || !l2) return null
   const head = await l1.getBlockNumber().catch(() => 0n)
-  const from = head > 6000n ? head - 6000n : 0n
-  const logs = await l1
-    .getLogs({ address: cfg.rollup, event: assertionConfirmedEvent, fromBlock: from, toBlock: head })
+  // Assertions land every ~150 L1 blocks, so a narrow window almost always finds one and returns
+  // in a fraction of the time; only widen when the chain was quiet.
+  let logs = await l1
+    .getLogs({ address: cfg.rollup, event: assertionConfirmedEvent, fromBlock: head > 900n ? head - 900n : 0n, toBlock: head })
     .catch(() => [])
+  if (logs.length === 0) {
+    logs = await l1
+      .getLogs({ address: cfg.rollup, event: assertionConfirmedEvent, fromBlock: head > 6000n ? head - 6000n : 0n, toBlock: head })
+      .catch(() => [])
+  }
   const last = logs[logs.length - 1]
   if (!last) return null
   try {
@@ -217,6 +231,8 @@ export interface SavedWithdrawal {
   claimedHash?: string
   /** the local activity record this withdrawal writes to */
   activityId?: string
+  /** send index, cached after the first read so the claim button can render without RPC */
+  position?: string
 }
 
 const STORE = 'ebt.withdrawals.v1'
@@ -249,3 +265,15 @@ export function markWithdrawalClaimed(txHash: string, claimedHash: string): void
     /* storage full or blocked */
   }
 }
+/** Remembers the send index so a repeat visit can show "ready to claim" before any RPC. */
+export function markWithdrawalPosition(txHash: string, position: bigint): void {
+  try {
+    const list = loadWithdrawals().map((s) =>
+      s.txHash.toLowerCase() === txHash.toLowerCase() ? { ...s, position: position.toString() } : s,
+    )
+    localStorage.setItem(STORE, JSON.stringify(list.slice(0, 20)))
+  } catch {
+    /* storage full or blocked */
+  }
+}
+

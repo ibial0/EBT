@@ -2051,10 +2051,12 @@ function TransferCard({ item }: { item: ActivityItem }) {
             </span>
           )}
           <div className="relative h-px flex-1 bg-line-strong">
-            <span
-              className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-accent"
-              style={{ animation: 'flow 2s linear infinite' }}
-            />
+            {!canClaim && (
+              <span
+                className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-accent"
+                style={{ animation: 'flow 2s linear infinite' }}
+              />
+            )}
           </div>
           {to && (
             <span className="relative">

@@ -94,10 +94,12 @@ export function NotificationBell() {
                   <div className="flex items-center gap-2.5">
                     {fromC && <ChainLogo chain={fromC} size={18} />}
                     <div className="relative h-px flex-1 bg-line-strong">
-                      <span
-                        className="absolute top-1/2 size-1 -translate-y-1/2 rounded-full bg-accent"
-                        style={{ animation: 'flow 1.8s linear infinite' }}
-                      />
+                      {!claimable && (
+                        <span
+                          className="absolute top-1/2 size-1 -translate-y-1/2 rounded-full bg-accent"
+                          style={{ animation: 'flow 1.8s linear infinite' }}
+                        />
+                      )}
                     </div>
                     {toC && <ChainLogo chain={toC} size={18} />}
                     {claimable ? (

@@ -15,7 +15,7 @@ export default function App() {
   // Advance pending Orbit withdrawals as soon as the rollup confirms them, on any page.
   useEffect(() => {
     void syncOrbitConfirmations()
-    const t = window.setInterval(() => void syncOrbitConfirmations(), 15000)
+    const t = window.setInterval(() => void syncOrbitConfirmations(), 10000)
     return () => window.clearInterval(t)
   }, [])
 

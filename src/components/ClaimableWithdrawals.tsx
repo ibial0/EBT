@@ -9,16 +9,17 @@ import {
   findOutboxProof,
   loadWithdrawals,
   markWithdrawalClaimed,
+  markWithdrawalPosition,
   readWithdrawal,
   type SavedWithdrawal,
   type Withdrawal,
 } from '../lib/orbitWithdraw'
 import { shortAddr } from '../lib/format'
+import { confirmedSize, peekConfirmedSize } from '../lib/orbitStatus'
 
 type Row = {
   msg: string
   ready: boolean
-  proof?: `0x${string}`[]
   w?: Withdrawal
 }
 
@@ -28,19 +29,33 @@ type Row = {
  */
 export function ClaimableWithdrawals() {
   const [saved, setSaved] = useState<SavedWithdrawal[]>(() => loadWithdrawals().filter((s) => !s.claimedHash))
-  const [rows, setRows] = useState<Record<string, Row>>({})
+  // First paint from the cached position + cached send count, so the button is there immediately.
+  const [rows, setRows] = useState<Record<string, Row>>(() => {
+    const init: Record<string, Row> = {}
+    for (const s of loadWithdrawals()) {
+      if (s.claimedHash || !s.position) continue
+      const size = peekConfirmedSize(s.fromId, s.toId)
+      if (size == null) continue
+      const position = BigInt(s.position)
+      const ready = size > position
+      init[s.txHash] = {
+        msg: ready ? 'ready to claim' : `waiting · confirmed #${size} of #${position + 1n}`,
+        ready,
+      }
+    }
+    return init
+  })
   const [busy, setBusy] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     const scan = async () => {
-      // One confirmation read per pair, in parallel with the withdrawals themselves.
+      // Two cheap reads per row; the proof is built only when the user presses Claim.
       const sizes = new Map<string, bigint | null>()
       await Promise.all(
         [...new Set(saved.map((s) => `${s.fromId}:${s.toId}`))].map(async (key) => {
           const [fromId, toId] = key.split(':').map(Number)
-          const p = await confirmedSends(fromId, toId).catch(() => null)
-          sizes.set(key, p ? p.size : null)
+          sizes.set(key, await confirmedSize(fromId, toId))
         }),
       )
       await Promise.all(
@@ -48,18 +63,17 @@ export function ClaimableWithdrawals() {
           const size = sizes.get(`${s.fromId}:${s.toId}`) ?? null
           const w = await readWithdrawal(s.fromId, s.txHash).catch(() => null)
           if (!alive || !w) return
-          if (size == null || size <= w.position) {
+          markWithdrawalPosition(s.txHash, w.position)
+          const ready = size != null && size > w.position
+          if (alive) {
             setRows((v) => ({
               ...v,
-              [s.txHash]: { msg: `waiting · confirmed #${size ?? 0n} of #${w.position + 1n}`, ready: false, w },
+              [s.txHash]: {
+                msg: ready ? 'ready to claim' : `waiting · confirmed #${size ?? 0n} of #${w.position + 1n}`,
+                ready,
+                w,
+              },
             }))
-            return
-          }
-          try {
-            const built = await findOutboxProof(s.fromId, s.toId, w)
-            if (alive) setRows((v) => ({ ...v, [s.txHash]: { msg: 'ready to claim', ready: true, proof: built.proof, w } }))
-          } catch {
-            if (alive) setRows((v) => ({ ...v, [s.txHash]: { msg: 'rollup confirmed, waiting for the outbox', ready: false, w } }))
           }
         }),
       )
@@ -74,10 +88,11 @@ export function ClaimableWithdrawals() {
 
   async function claim(s: SavedWithdrawal) {
     const st = rows[s.txHash]
-    if (!st?.proof || !st.w) return
+    if (!st?.w) return
     setBusy(s.txHash)
     try {
-      const hash = await claimWithdrawal(s.fromId, s.toId, st.w, st.proof)
+      const built = await findOutboxProof(s.fromId, s.toId, st.w)
+      const hash = await claimWithdrawal(s.fromId, s.toId, st.w, built.proof)
       markWithdrawalClaimed(s.txHash, hash)
       if (s.activityId) {
         updateStep(s.activityId, 'confirm', { status: 'done' })

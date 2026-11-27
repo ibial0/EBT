@@ -8,6 +8,7 @@ import { Badge, Button, Card, ChainLogo, Empty, notify, CopyButton } from '../co
 import { PageHeader } from '../components/Layout'
 import { RecoveryPanel } from '../components/RecoveryPanel'
 import { ClaimableWithdrawals } from '../components/ClaimableWithdrawals'
+import { syncOrbitConfirmations } from '../lib/orbitWatch'
 import { Timeline } from '../components/Timeline'
 import {
   clearActivity,
@@ -32,6 +33,9 @@ import { walletSender } from '../lib/tx'
 import type { Address } from '../config/chains'
 
 export default function ActivityPage() {
+  useEffect(() => {
+    void syncOrbitConfirmations()
+  }, [])
   const { id } = useParams()
   const all = useActivity()
   const navigate = useNavigate()
