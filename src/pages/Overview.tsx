@@ -217,7 +217,7 @@ export default function Overview() {
               </div>
               <div className="mt-2.5 flex items-center justify-between text-[12px] text-t3">
                 <span>{p.chains}</span>
-                <a href={p.docs} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-accent">
+                <a href={p.docs} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 hover:text-accent">
                   docs <ArrowUpRight size={11} />
                 </a>
               </div>

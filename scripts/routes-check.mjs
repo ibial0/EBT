@@ -34764,6 +34764,7 @@ var TOKENS = [
   // ── Robinhood Chain Testnet (Synthra V3 DEX) — WETH & USDC both have 18 decimals here
   t(46630, "0x33e4191705c386532ba27cBF171Db86919200B94", "WETH", "Wrapped Ether", 18, "weth", "#627eea"),
   t(46630, "0xbf4479C07Dc6fdc6dAa764A0ccA06969e894275F", "USDC", "USD Coin", 18, "usdc", "#2775ca"),
+  t(46630, "0x8F9231B0F448bA9AD045348437458721676c23BC", "USDG", "Global Dollar (test)", 6, "usdc", "#00b3a4"),
   t(46630, "0xC5124C846c6e6307986988dFb7e743327aA05F19", "SYN", "Synapse", 18, "token", "#9e6de5"),
   t(46630, "0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02", "AMZN", "Amazon", 18, "token", "#ff9900"),
   t(46630, "0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E", "TSLA", "Tesla", 18, "token", "#e31937"),
@@ -34861,14 +34862,27 @@ var TOKENS = [
   t(296, "0x0000000000000000000000000000000000428957", "HLQT", "HeliSwap Liquidity", 8, "token", "#38bdf8"),
   t(296, "0x00000000000000000000000000000000003991ed", "KARATE", "Karate Combat", 8, "token", "#ef4444")
 ];
+var tokensByChain = /* @__PURE__ */ new Map();
 function tokensForChain(chainId) {
   if (chainId == null) return [];
-  return TOKENS.filter((tk) => tk.chainId === chainId);
+  let list = tokensByChain.get(chainId);
+  if (!list) {
+    list = TOKENS.filter((tk) => tk.chainId === chainId);
+    tokensByChain.set(chainId, list);
+  }
+  return list;
+}
+var tokenIndex = null;
+function tokenIndexFor() {
+  if (!tokenIndex) {
+    tokenIndex = /* @__PURE__ */ new Map();
+    for (const tk of TOKENS) tokenIndex.set(`${tk.chainId}:${tk.address.toLowerCase()}`, tk);
+  }
+  return tokenIndex;
 }
 function findToken(chainId, address2) {
   if (!address2) return void 0;
-  const a = address2.toLowerCase();
-  return TOKENS.find((tk) => tk.chainId === chainId && tk.address.toLowerCase() === a);
+  return tokenIndexFor().get(`${chainId}:${address2.toLowerCase()}`);
 }
 var USDC_OF = (chainId) => {
   const c = getChain(chainId);
@@ -36682,8 +36696,14 @@ var POOLS = [
     "verifiedAt": "2026-11-26"
   }
 ];
+var poolsByChain = /* @__PURE__ */ new Map();
 function poolsForChain(chainId) {
-  return POOLS.filter((p) => p.chainId === chainId);
+  let list = poolsByChain.get(chainId);
+  if (!list) {
+    list = POOLS.filter((p) => p.chainId === chainId);
+    poolsByChain.set(chainId, list);
+  }
+  return list;
 }
 
 // src/lib/uniswap.ts
@@ -36916,10 +36936,22 @@ var V2_PAIRS = [
     pair: "0x012d9cEB1aaE02d31f5665275175Bd8A7c55CDd2"
   }
 ];
+var v2PairsCache = /* @__PURE__ */ new Map();
+var CUSTOM_DEXES = {};
+function dexesForChain(chainId) {
+  return [...V2_DEXES[chainId] ?? [], ...CUSTOM_DEXES[chainId] ?? []];
+}
 function v2PairsForChain(chainId) {
+  const cached = v2PairsCache.get(chainId);
+  if (cached) return cached;
+  const built = buildV2PairsForChain(chainId);
+  v2PairsCache.set(chainId, built);
+  return built;
+}
+function buildV2PairsForChain(chainId) {
   const direct = V2_PAIRS.filter((p) => p.chainId === chainId);
   const out = direct.map(({ token0, token1 }) => ({ token0, token1 }));
-  const dexes = V2_DEXES[chainId] ?? [];
+  const dexes = dexesForChain(chainId);
   for (const dex of dexes) {
     const w = dex.wrappedNative.toLowerCase();
     const peers = [];
@@ -37036,6 +37068,7 @@ var ORBIT_BRIDGES = {
     rollup: "0x2A419230ACA266F4BCddE349936871C6e622529d",
     inbox: "0xb0579056c22aD1fF85a1288f82089B1205447613",
     bridge: "0xD522DC770E2452375AfceD3c3ec96eb784c75570",
+    outbox: "0xDE290348c15283a812E393DE59EC178Bb7D65de9",
     l1GatewayRouter: "0x6E5d41f9a8aA672938f719cC6562676808f9bf60",
     l1Erc20Gateway: "0xe557F0db287eD44f11630dCA4aDf850660f0B38E",
     source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
@@ -37048,6 +37081,7 @@ var ORBIT_BRIDGES = {
     rollup: "0x537F6A3606cb000aE568005bebAF8bd1Ea2DE3b6",
     inbox: "0xAAD45a7bF65b43E56767CdE3Ab84A5433c714Afc",
     bridge: "0x1DDe0F57E7889B6866505634E58E3057b01dfed0",
+    outbox: "0x781Fc2C8EAeA5DFBa4E40A2487187C70703BD92C",
     l1GatewayRouter: "0x8deBBE23AAE151C49609A46ad2b14590e3692F21",
     l1Erc20Gateway: "0x15C7018696e1bDc392C252a28E0accD429D85b3E",
     l1WethGateway: "0xbB0c4391ACBA1e218feE5aD156fA661eBff5545B",
@@ -37062,6 +37096,7 @@ var ORBIT_BRIDGES = {
     rollup: "0xb4d897FFc6b163414C36A470E5c3B9AE8a4e784E",
     inbox: "0x574DB42697C40492ED620441AA5Ca633E06d1B47",
     bridge: "0x53A868f525D27F1c5De0fd983a7672A501C54853",
+    outbox: "0x9988C5F8e1d59759Cd147F71292C10e64701a87C",
     l1GatewayRouter: "0x779922999bFD660e1A4997E2774b472Fbeb6a9D4",
     l1Erc20Gateway: "0xD0e209e57709C34Bba9AF68F515bb0d17fdD6E5E",
     source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
@@ -37074,6 +37109,7 @@ var ORBIT_BRIDGES = {
     rollup: "0xdc57101751220C05f401b9C7982B183A11B7D173",
     inbox: "0xb78614a722431f15F47bCd873e48A5B1cf9983b1",
     bridge: "0xAA8bb4E9851735E07Fe6ccb29d61def136Cce3E9",
+    outbox: "0xB711935AB91E8d3c3cD3bf913d8D54896397AA5a",
     l1GatewayRouter: "0xDA4BA4BE6e32241B45Af53182e9E5606ba62A7e6",
     l1Erc20Gateway: "0xa43ff360E93fA20551C2Ef49d8cf8ea6E40586Ab",
     source: "https://portal-data.arbitrum.io/__auto-generated-orbitChains.json"
@@ -37086,6 +37122,7 @@ var ORBIT_BRIDGES = {
     rollup: "0x96cb416A3defB4Ec596e23806581Eb02f6def71a",
     inbox: "0x0f76cf640B349bA9D66DB844CF420c138C43d49A",
     bridge: "0x4F408768E4eC8Fffb55E84c9ac21801c088C183c",
+    outbox: "0x2e61FF852ECF20c5b4964C283eA20b07d7ea27Ff",
     l1GatewayRouter: "0x68F084B09c9b34CeD4894313689e1Fb55d114f34",
     l1Erc20Gateway: "0xD28787A5f3fDC85cB3e706978C63583a53C856E7",
     l2GatewayRouter: "0x707DbF4d53390238C96A15C9406881Aec98f9289",
@@ -37129,6 +37166,7 @@ var ORBIT_BRIDGES = {
     rollup: "0x244935dedb20c68df097abd384b4eff531457867",
     inbox: "0x784702Ec0D8E1CA4B3a062230F2cf748841560F7",
     bridge: "0x399FEA0125A0B8A9782cB0Cdb6DC11669305E68d",
+    outbox: "0x13cbb1C920e8fb8E43F90FadB8B2E23ad03ba956",
     l1GatewayRouter: "0x3ef0E50bE1063A1FA76319b457F46411Add06d89",
     l1Erc20Gateway: "0x68A6e8A0C10954C2A3D6349d4c1B746f4dCFA8Ab",
     l1WethGateway: "0xdCA777FFCa62E791CC83fc46b8880A7E192050Ee",
@@ -37234,6 +37272,52 @@ function acrossRouteAvailable(fromId, toId, assetKind) {
   };
 }
 
+// src/lib/stargate.ts
+var STARGATE_CHAINS = {
+  11155111: { eid: 40161, nativePool: "0x9Cc7e185162Aa5D1425ee924D97a87A0a34A0706" },
+  421614: { eid: 40231, nativePool: "0x6fddB6270F6c71f31B62AE0260cfa8E2e2d186E0" },
+  11155420: { eid: 40232, nativePool: "0xa31dCc5C71E25146b598bADA33E303627D7fC97e" }
+};
+function stargateEthPool(fromId, toId) {
+  const from27 = STARGATE_CHAINS[fromId];
+  const to2 = STARGATE_CHAINS[toId];
+  if (!from27 || !to2 || fromId === toId) return null;
+  return { pool: from27.nativePool, dstEid: to2.eid };
+}
+var stargatePoolAbi = parseAbi([
+  "struct SendParam { uint32 dstEid; bytes32 to; uint256 amountLD; uint256 minAmountLD; bytes extraOptions; bytes composeMsg; bytes oftCmd; }",
+  "struct MessagingFee { uint256 nativeFee; uint256 lzTokenFee; }",
+  "struct MessagingReceipt { bytes32 guid; uint64 nonce; MessagingFee fee; }",
+  "function quoteSend(SendParam _sendParam, bool _payInLzToken) view returns (MessagingFee)",
+  "function send(SendParam _sendParam, MessagingFee _fee, address _refundAddress) payable returns (MessagingReceipt)"
+]);
+
+// src/lib/wormholeBridge.ts
+var WORMHOLE_BRIDGE = {
+  11155111: { bridge: "0xDB5492265f6038831E89f495670FF909aDe94bd9", wormholeChainId: 10002 },
+  421614: { bridge: "0xC7A204bDBFe983FCD8d8E61D02b475D4073fF97e", wormholeChainId: 10003 },
+  84532: { bridge: "0x86F55A04690fd7815A3D802bD587e83eA888B239", wormholeChainId: 10004 },
+  11155420: { bridge: "0x99737Ec4B815d816c49A385943baf0380e75c0Ac", wormholeChainId: 10005 }
+};
+function wormholeBridgeFor(fromId, toId) {
+  const from27 = WORMHOLE_BRIDGE[fromId];
+  const to2 = WORMHOLE_BRIDGE[toId];
+  if (!from27 || !to2 || fromId === toId) return null;
+  return { bridge: from27.bridge, recipientChain: to2.wormholeChainId };
+}
+var erc20Abi2 = parseAbi([
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function balanceOf(address owner) view returns (uint256)"
+]);
+var tokenBridgeAbi = parseAbi([
+  "function transferTokens(address token, uint256 amount, uint16 recipientChain, bytes32 recipient, uint256 arbiterFee, uint32 nonce) payable returns (uint64)",
+  "function wrapAndTransferETH(uint16 recipientChain, bytes32 recipient, uint256 arbiterFee, uint32 nonce) payable returns (uint64)",
+  "function completeTransfer(bytes encodedVm)",
+  "function completeTransferAndUnwrapETH(bytes encodedVm)",
+  "function isWrappedAsset(address token) view returns (bool)"
+]);
+
 // src/lib/routes.ts
 function assetKey(chainId, address2) {
   const a = address2.toLowerCase();
@@ -37298,6 +37382,16 @@ function bridgeEdges(chainId) {
       toChain: l2.id,
       token: nativeOf(l2.id),
       leg: { kind: "arbitrum", from: chainId, to: l2.id },
+      matchKey: `native:${chainId}`
+    });
+  }
+  for (const other of CHAINS) {
+    if (other.id === chainId) continue;
+    if (!stargateEthPool(chainId, other.id)) continue;
+    edges.push({
+      toChain: other.id,
+      token: nativeOf(other.id),
+      leg: { kind: "stargate", from: chainId, to: other.id },
       matchKey: `native:${chainId}`
     });
   }
@@ -37379,6 +37473,18 @@ function directRoutes(fromId, toId, token) {
         detail: `Across Protocol v3 fast relayer bridge ${from27.short} \u2192 ${to2.short}. Single signature, typically fills in ~10\u201330s (subject to testnet relayer pool cap).`
       });
     }
+    if (stargateEthPool(fromId, toId)) {
+      out.push({
+        id: `stargate-eth-${fromId}-${toId}`,
+        type: "direct",
+        legs: [{ kind: "stargate", from: fromId, to: toId }],
+        inToken: token,
+        outToken: nativeOf(toId),
+        txCount: 1,
+        label: `${token.symbol} \u2192 Stargate v2 \u2192 ${nativeOf(toId).symbol}`,
+        detail: `Stargate V2 native pool ${from27.short} \u2192 ${to2.short}. One signature; LayerZero delivers to the destination pool in about a minute.`
+      });
+    }
     return out;
   }
   if (isWrappedOrAmoyWeth) {
@@ -37425,9 +37531,35 @@ function directRoutes(fromId, toId, token) {
       });
     }
   }
+  const WORMHOLE_USDC_ROUTE = false;
+  if (WORMHOLE_USDC_ROUTE) {
+    const usdcIn = tokensForChain(fromId).find((t2) => t2.symbol === "USDC");
+    const usdcOut = tokensForChain(toId).find((t2) => t2.symbol === "USDC");
+    if (usdcIn && usdcOut && wormholeBridgeFor(fromId, toId)) {
+      out.push({
+        id: `wormhole-usdc-${fromId}-${toId}`,
+        type: "direct",
+        legs: [{ kind: "wormhole", from: fromId, to: toId, token: usdcIn.address }],
+        inToken: usdcIn,
+        outToken: usdcOut,
+        txCount: 2,
+        label: "USDC \u2192 Wormhole \u2192 USDC",
+        detail: `Wormhole Token Bridge ${from27.short} \u2192 ${to2.short}. Native USDC on both sides: sign the transfer, the guardians sign a VAA (usually 1\u201315 min), then the app claims it with a second signature.`
+      });
+    }
+  }
   return out;
 }
+var routeCache = /* @__PURE__ */ new Map();
 function findRoutes(fromId, toId, inToken, outToken) {
+  const key = `${fromId}:${inToken.address.toLowerCase()}>${toId}:${outToken.address.toLowerCase()}`;
+  const hit = routeCache.get(key);
+  if (hit) return hit;
+  const built = buildRoutes(fromId, toId, inToken, outToken);
+  routeCache.set(key, built);
+  return built;
+}
+function buildRoutes(fromId, toId, inToken, outToken) {
   if (fromId === toId) return [];
   const matchingDirect = directRoutes(fromId, toId, inToken).filter(
     (d) => assetKey(toId, d.outToken.address) === assetKey(toId, outToken.address)
@@ -37491,7 +37623,7 @@ function push(_cur, next, legs, goalKey, visited, queue, found, fromId, toId, in
     queue.push({ chainId: next.chainId, token: next.token, legs });
   }
   if (assetKey(next.chainId, next.token.address) !== goalKey) return;
-  const type2 = legs.length === 1 && (legs[0].kind === "cctp" || legs[0].kind === "portal" || legs[0].kind === "arbitrum" || legs[0].kind === "across" || legs[0].kind === "lifi" || legs[0].kind === "relay" || legs[0].kind === "wormhole") ? "direct" : "composite";
+  const type2 = legs.length === 1 && (legs[0].kind === "cctp" || legs[0].kind === "portal" || legs[0].kind === "arbitrum" || legs[0].kind === "stargate" || legs[0].kind === "wormhole" || legs[0].kind === "across" || legs[0].kind === "lifi" || legs[0].kind === "relay") ? "direct" : "composite";
   const txCount = legs.length;
   found.push({
     id: `${type2}-${legs.map((l) => `${l.kind}${l.kind === "swap" ? l.fee : ""}`).join("-")}-${fromId}-${toId}`,
@@ -37519,6 +37651,10 @@ function describeLegs(legs, fromId, toId) {
       parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} \u2192 Native bridge \u2192 ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`);
     else if (leg.kind === "arbitrum")
       parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} \u2192 Arbitrum bridge \u2192 ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`);
+    else if (leg.kind === "wormhole")
+      parts.push(`${getChain(leg.from)?.short} \u2192 Wormhole \u2192 ${getChain(leg.to)?.short}`);
+    else if (leg.kind === "stargate")
+      parts.push(`${getChain(leg.from)?.short} ${nativeSymbolOf(leg.from)} \u2192 Stargate v2 \u2192 ${getChain(leg.to)?.short} ${nativeSymbolOf(leg.to)}`);
     else if (leg.kind === "lifi") {
       const symIn = findToken(leg.from, leg.inToken)?.symbol ?? nativeSymbolOf(leg.from);
       const symOut = findToken(leg.to, leg.outToken)?.symbol ?? nativeSymbolOf(leg.to);
@@ -37527,10 +37663,6 @@ function describeLegs(legs, fromId, toId) {
       const symIn = findToken(leg.from, leg.inToken)?.symbol ?? nativeSymbolOf(leg.from);
       const symOut = findToken(leg.to, leg.outToken)?.symbol ?? nativeSymbolOf(leg.to);
       parts.push(`${getChain(leg.from)?.short} ${symIn} \u2192 Relay \u2192 ${getChain(leg.to)?.short} ${symOut}`);
-    } else if (leg.kind === "wormhole") {
-      const symIn = findToken(leg.from, leg.inToken)?.symbol ?? nativeSymbolOf(leg.from);
-      const symOut = findToken(leg.to, leg.outToken)?.symbol ?? nativeSymbolOf(leg.to);
-      parts.push(`${getChain(leg.from)?.short} ${symIn} \u2192 Wormhole (${leg.mode}) \u2192 ${getChain(leg.to)?.short} ${symOut}`);
     } else {
       const a = findToken(leg.chainId, leg.tokenIn);
       const b = findToken(leg.chainId, leg.tokenOut);
@@ -37547,14 +37679,32 @@ function hasAnyRoute(fromId, toId, token) {
   }
   return false;
 }
+var usableSourceCache = /* @__PURE__ */ new Map();
 function usableSourceTokens(fromId, toId) {
+  const key = `${fromId}>${toId}`;
+  const hit = usableSourceCache.get(key);
+  if (hit) return hit;
+  const built = buildUsableSourceTokens(fromId, toId);
+  usableSourceCache.set(key, built);
+  return built;
+}
+function buildUsableSourceTokens(fromId, toId) {
   const all = [...tokensForChain(fromId)];
   const native = nativeOf(fromId);
   const hasNative = all.some((t2) => t2.address.toLowerCase() === NATIVE_SENTINEL.toLowerCase());
   const list = hasNative ? all : [native, ...all];
   return list.filter((t2) => hasAnyRoute(fromId, toId, t2));
 }
+var reachableDestCache = /* @__PURE__ */ new Map();
 function reachableDestTokens(fromId, toId, inToken) {
+  const key = `${fromId}>${toId}:${inToken.address.toLowerCase()}`;
+  const hit = reachableDestCache.get(key);
+  if (hit) return hit;
+  const built = buildReachableDestTokens(fromId, toId, inToken);
+  reachableDestCache.set(key, built);
+  return built;
+}
+function buildReachableDestTokens(fromId, toId, inToken) {
   const out = /* @__PURE__ */ new Map();
   const all = tokensForChain(toId);
   const native = nativeOf(toId);

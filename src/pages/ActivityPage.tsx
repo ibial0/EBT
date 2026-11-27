@@ -435,7 +435,7 @@ function Detail({ id }: { id: string }) {
                     key={s.key}
                     href={explorerTx(s.chainId ?? item.fromChainId, s.hash!)}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="flex items-center justify-between gap-2 rounded-lg border border-line bg-ink-850 px-2.5 py-2 text-[11px] hover:border-accent/40"
                   >
                     <span className="text-t1">{s.label}</span>

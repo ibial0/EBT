@@ -476,7 +476,7 @@ export function MultiWalletModal({
               <a
                 href={installPrompt.url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold on-accent hover:bg-accent-2"
               >
                 Get it <ExternalLink size={11} />
@@ -608,7 +608,7 @@ export function MultiWalletModal({
               <a
                 href={installPrompt.url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold on-accent hover:bg-accent-2"
               >
                 Get it <ExternalLink size={11} />

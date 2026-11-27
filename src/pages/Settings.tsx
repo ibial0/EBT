@@ -370,10 +370,10 @@ export default function Settings() {
                   <Badge tone={p.status === 'live' ? 'mint' : p.status === 'limited' ? 'amber' : 'red'}>{p.status}</Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-t3">
-                  <a href={p.docs} target="_blank" rel="noreferrer" className="hover:text-accent">
+                  <a href={p.docs} target="_blank" rel="noopener noreferrer" className="hover:text-accent">
                     docs ↗
                   </a>
-                  <a href={p.github} target="_blank" rel="noreferrer" className="hover:text-accent">
+                  <a href={p.github} target="_blank" rel="noopener noreferrer" className="hover:text-accent">
                     github ↗
                   </a>
                   <span>api key: {p.apiKey}</span>

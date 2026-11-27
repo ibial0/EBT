@@ -9,3 +9,6 @@ scripts/portfolio-probe.mjs
 scripts/pools.mjs
 .scratch/
 .test-wallet.json
+
+*.tsbuildinfo
+.scratch_rows.json

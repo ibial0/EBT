@@ -1155,7 +1155,7 @@ export default function Swap() {
                   <div key={s.key} className="flex items-center justify-between gap-2 text-[11px]">
                     <span className="text-t2">{s.label}</span>
                     {s.hash ? (
-                      <a href={explorerTx(activity.fromChainId, s.hash)} target="_blank" rel="noreferrer" className="mono text-t1 hover:text-accent">
+                      <a href={explorerTx(activity.fromChainId, s.hash)} target="_blank" rel="noopener noreferrer" className="mono text-t1 hover:text-accent">
                         {s.hash.slice(0, 8)}…
                       </a>
                     ) : (

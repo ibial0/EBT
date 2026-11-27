@@ -200,7 +200,7 @@ export default function Recover() {
               {state.used ? (
                 <div className="mt-3 rounded-[10px] border border-accent/30 bg-accent/8 p-3 text-[11px] text-t1">
                   This message is already delivered. Nothing to recover -{' '}
-                  <a className="underline" href={explorerAddress(dest.id, state.recipient)} target="_blank" rel="noreferrer">
+                  <a className="underline" href={explorerAddress(dest.id, state.recipient)} target="_blank" rel="noopener noreferrer">
                     check the balance on {dest.short}
                   </a>
                   .

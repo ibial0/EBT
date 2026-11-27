@@ -190,7 +190,7 @@ function RequirementsPopup({
           <a
             href={faucet.url}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1.5 text-[12px] font-semibold on-accent hover:bg-accent-2"
           >
             Open <ArrowUpRight size={11} />
@@ -307,7 +307,7 @@ function FaucetRow({
           <a
             href={faucet.url}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-[6px] text-[12px] font-semibold on-accent transition-colors hover:bg-accent-2"
           >
             Open <ArrowUpRight size={11} />
@@ -483,7 +483,7 @@ export default function Faucets() {
                   <a
                     href={n.explorerUrl}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="mono uppercase tracking-[0.6px] text-accent transition-opacity hover:opacity-80"
                   >
                     explorer ↗

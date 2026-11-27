@@ -34,7 +34,7 @@ export function Timeline({ steps, compact = false }: { steps: TxStep[]; compact?
                 <a
                   href={explorerTx(s.chainId, s.hash)}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="mono inline-flex items-center gap-0.5 text-[10px] text-t3 hover:text-accent"
                 >
                   {shortAddr(s.hash, 4)} <ExternalLink size={9} />
