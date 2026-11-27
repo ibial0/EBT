@@ -546,15 +546,19 @@ export default function Bridge() {
   useEffect(() => {
     for (const a of listActivity()) {
       if (a.provider !== 'wormhole' || a.status === 'complete') continue
-      const meta = a.meta as { whEmitter?: string; whSequence?: string; whSource?: number; whBridge?: string } | undefined
+      const meta = a.meta as
+        | { whEmitter?: string; whSequence?: string; whSource?: number; whBridge?: string; whDestBridge?: string }
+        | undefined
       const step = a.steps.find((s) => s.key.startsWith('arrive'))?.key
-      if (!meta?.whEmitter || !meta.whSequence || !meta.whSource || !meta.whBridge || !step) continue
+      if (!meta?.whEmitter || !meta.whSequence || !meta.whSource || !step) continue
+      const destBridge = (meta.whDestBridge ?? WORMHOLE_BRIDGE[a.toChainId]?.bridge) as Address | undefined
+      if (!destBridge) continue
       void claimWormholeTransfer({
         activityId: a.id,
         step,
         sourceChainId: meta.whSource,
         toChainId: a.toChainId,
-        bridge: meta.whBridge as Address,
+        bridge: destBridge,
         emitter: meta.whEmitter as Address,
         sequence: meta.whSequence,
       })
@@ -1300,7 +1304,10 @@ export default function Bridge() {
           const rc = await client.waitForTransactionReceipt({ hash })
           if (rc.status !== 'success') throw new Error('The Wormhole transfer reverted on the source chain.')
           updateStep(item.id, `leg${i}`, { status: 'done', hash })
-          const seq = sequenceFromLogs(rc.logs.map((l) => ({ topics: l.topics, data: l.data })))
+          const seq = sequenceFromLogs(
+            rc.logs.map((l) => ({ topics: l.topics, data: l.data })),
+            wh.bridge,
+          )
           if (!seq) throw new Error('The Wormhole message id was not found in the receipt.')
           updateActivity(item.id, {
             meta: {
@@ -1309,6 +1316,7 @@ export default function Bridge() {
               whSequence: seq.sequence,
               whSource: leg.from,
               whBridge: wh.bridge,
+              whDestBridge: wh.destBridge,
             },
           })
           updateStep(item.id, `arrive${i}`, {
@@ -1320,7 +1328,7 @@ export default function Bridge() {
             step: `arrive${i}`,
             sourceChainId: leg.from,
             toChainId: leg.to,
-            bridge: wh.bridge,
+            bridge: wh.destBridge,
             emitter: seq.emitter,
             sequence: seq.sequence,
           })

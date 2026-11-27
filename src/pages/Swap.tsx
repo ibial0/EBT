@@ -35,7 +35,7 @@ import { getNetwork, type NetworkEntry } from '../config/networks'
 import { executeSwap } from '../lib/swapExec'
 import { assertSwapRoute } from '../lib/guard'
 import { decodeTxError } from '../lib/errors'
-import { fmt, safeParseUnits, pct } from '../lib/format'
+import { fmt, safeParseUnits, pct, shortAddr } from '../lib/format'
 import { pairsForChain, poolsForChain } from '../config/pools'
 import { lastSelection } from '../lib/lastSelection'
 import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
@@ -624,6 +624,7 @@ export default function Swap() {
 
   async function runSwap() {
     if (!address) return notify('Connect a wallet first.', 'error')
+    if (amount.trim() !== debounced) return notify('The quote is still updating. Try again in a moment.', 'info')
     if (!quote.data) return notify('No executable quote yet.', 'error')
     if (insufficient) return notify('Insufficient balance.', 'error')
 
@@ -1059,7 +1060,7 @@ export default function Swap() {
                   size="lg"
                   variant="primary"
                   className="mt-4 h-[52px] text-[16px]"
-                  disabled={!quote.data || insufficient || amountIn <= 0n}
+                  disabled={!quote.data || insufficient || amountIn <= 0n || amount.trim() !== debounced}
                   loading={busy === 'start'}
                   onClick={runSwap}
                 >
@@ -1138,6 +1139,9 @@ export default function Swap() {
                 <Row label="Minimum received" value={out > 0n ? `${formatAmount(minOut, tokenOut.decimals, 6)} ${tokenOut.symbol}` : '-'} />
                 <Row label="Slippage tolerance" value={pct(slippageBps, 2)} />
                 <Row label="Route" value={quote.data?.route ?? '-'} />
+                {quote.data && 'router' in quote.data && (
+                  <Row label="Router" value={`${quote.data.dexName} · ${shortAddr(quote.data.router, 4)}`} />
+                )}
                 <Row label="Approval" value={!isConnected ? '-' : isNativeToken(tokenIn) ? 'not needed (native)' : needsApproval ? 'required, exact amount' : 'already approved'} />
                 <Row label="Pool fee" value={quote.data ? ('fee' in quote.data ? `${quote.data.fee / 10000}%` : '0.3% (AMM V2)') : '-'} />
               </>

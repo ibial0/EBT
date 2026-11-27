@@ -264,7 +264,9 @@ export default function Portfolio() {
           decimals: t.token.decimals,
           address: t.token.address,
           verified: t.token.verified,
-          usdValue: valueOf(t.balance, t.token.decimals, t.token.symbol, priceMap),
+          // Only a token we can identify gets a price: a spam token that calls itself WBTC must not
+          // borrow the real WBTC price and inflate the total.
+          usdValue: t.token.verified ? valueOf(t.balance, t.token.decimals, t.token.symbol, priceMap) : null,
           error: t.error,
         })
       }
@@ -429,7 +431,8 @@ export default function Portfolio() {
     const needle = q.trim().toLowerCase()
     const bySymbol = new Map<string, Group>()
     for (const r of scoped) {
-      const key = r.symbol.toUpperCase()
+      // Unverified tokens never merge into a verified asset's group: a spam "USDC" is its own row.
+      const key = `${r.symbol.toUpperCase()}::${r.verified ? 'v' : 'u'}`
       const g: Group =
         bySymbol.get(key) ??
         ({ symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)
@@ -463,7 +466,8 @@ export default function Portfolio() {
     const needle = q.trim().toLowerCase()
     const bySymbol = new Map<string, Group>()
     for (const r of tokenRows) {
-      const key = r.symbol.toUpperCase()
+      // Unverified tokens never merge into a verified asset's group: a spam "USDC" is its own row.
+      const key = `${r.symbol.toUpperCase()}::${r.verified ? 'v' : 'u'}`
       const g: Group =
         bySymbol.get(key) ??
         ({ symbol: r.symbol, name: r.name.replace(' (native)', ''), usd: null, amount: 0, rows: [] } as Group)

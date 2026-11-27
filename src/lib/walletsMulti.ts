@@ -1,5 +1,15 @@
 import { useSyncExternalStore } from 'react'
 
+/** Reject stored or injected addresses that cannot be an account at all. */
+function addressLooksSane(address: unknown): address is string {
+  return (
+    typeof address === 'string' &&
+    address.length >= 20 &&
+    address.length <= 128 &&
+    !/\s|[<>"'`]/.test(address)
+  )
+}
+
 export type NonEvmFamily =
   | 'solana'
   | 'sui'
@@ -132,7 +142,8 @@ function findStandardWallet(familyPrefix: 'solana:' | 'sui:' | 'aptos:', nameHin
 
   for (const hint of nameHints) {
     const low = hint.toLowerCase()
-    const hit = matchingFamily.find((w) => w.name.toLowerCase().includes(low))
+    // Exact name only: a wallet calling itself "Phantom Pro" must not be treated as Phantom.
+    const hit = matchingFamily.find((w) => w.name.trim().toLowerCase() === low)
     if (hit) return hit
   }
   return undefined
@@ -145,7 +156,10 @@ async function connectViaStandard(w: StandardWallet): Promise<{ address: string;
   if (stdConnect?.connect) {
     const res = await stdConnect.connect()
     const addr = res?.accounts?.[0]?.address
-    if (addr) return { address: addr, iconSrc: w.icon, providerName: w.name }
+    if (addr) {
+      if (!addressLooksSane(addr)) throw new Error(`${w.name} returned an invalid address.`)
+      return { address: addr, iconSrc: w.icon, providerName: w.name }
+    }
   }
 
   const aptConnect = w.features['aptos:connect'] as
@@ -154,7 +168,10 @@ async function connectViaStandard(w: StandardWallet): Promise<{ address: string;
   if (aptConnect?.connect) {
     const res = await aptConnect.connect()
     const addr = res?.args?.address ?? res?.address
-    if (addr) return { address: addr, iconSrc: w.icon, providerName: w.name }
+    if (addr) {
+      if (!addressLooksSane(addr)) throw new Error(`${w.name} returned an invalid address.`)
+      return { address: addr, iconSrc: w.icon, providerName: w.name }
+    }
   }
 
   throw new Error(`${w.name} did not return a connected account.`)
@@ -784,7 +801,7 @@ function loadInitialStore(): StoreState {
     if (rawV2) {
       const parsed = JSON.parse(rawV2) as StoreState
       if (parsed && Array.isArray(parsed.accounts)) {
-        return { accounts: parsed.accounts, activeByFamily: parsed.activeByFamily ?? {} }
+        return { accounts: parsed.accounts.filter((a) => a && addressLooksSane(a.address)), activeByFamily: parsed.activeByFamily ?? {} }
       }
     }
     const rawV1 = localStorage.getItem(STORAGE_KEY_V1)

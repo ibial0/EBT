@@ -24,11 +24,14 @@ export const WORMHOLE_BRIDGE: Record<number, WormholeBridgeCfg> = {
   11155420: { bridge: '0x99737Ec4B815d816c49A385943baf0380e75c0Ac', wormholeChainId: 10005 },
 }
 
-export function wormholeBridgeFor(fromId: number, toId: number): { bridge: Address; recipientChain: number } | null {
+export function wormholeBridgeFor(
+  fromId: number,
+  toId: number,
+): { bridge: Address; destBridge: Address; recipientChain: number } | null {
   const from = WORMHOLE_BRIDGE[fromId]
   const to = WORMHOLE_BRIDGE[toId]
   if (!from || !to || fromId === toId) return null
-  return { bridge: from.bridge, recipientChain: to.wormholeChainId }
+  return { bridge: from.bridge, destBridge: to.bridge, recipientChain: to.wormholeChainId }
 }
 
 export const erc20Abi = parseAbi([
@@ -81,8 +84,15 @@ export const LOG_MESSAGE_PUBLISHED = '0x6eb224fb001ed210e379b335e35efe88672a8ce9
 /** Pulls (emitter, sequence) out of a source transaction receipt so the VAA can be looked up. */
 export function sequenceFromLogs(
   logs: Array<{ topics: readonly string[]; data: string }>,
+  expectedEmitter?: Address,
 ): { emitter: Address; sequence: string } | null {
-  const log = logs.find((l) => l.topics[0] === LOG_MESSAGE_PUBLISHED)
+  const want = expectedEmitter?.toLowerCase()
+  const log = logs.find((l) => {
+    if (l.topics[0] !== LOG_MESSAGE_PUBLISHED || !l.topics[1] || l.data.length < 66) return false
+    if (!want) return true
+    // Only the token bridge we actually called may publish the message we later redeem.
+    return ('0x' + l.topics[1].slice(26)).toLowerCase() === want
+  })
   if (!log || !log.topics[1]) return null
   const emitter = ('0x' + log.topics[1].slice(26)) as Address
   const sequence = BigInt(log.data.slice(0, 66)).toString()
