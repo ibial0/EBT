@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDownUp, ChevronDown, Info, Settings2 } from 'lucide-react'
 import { formatUnits } from 'viem'
@@ -63,6 +64,47 @@ function asTokenCfg(chainId: number, tok: NonEvmSwapToken): TokenCfg {
     color: tok.color,
     verified: true,
   }
+}
+
+/** Approval-policy note. Portalled above the trigger so it never covers the quote details below. */
+function ApprovalTip({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement | null>(null)
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null)
+  const open = () => {
+    const r = ref.current?.getBoundingClientRect()
+    if (r) setAt({ x: Math.round(r.right), y: Math.round(r.top) })
+  }
+  const close = () => setAt(null)
+  return (
+    <>
+      <span
+        ref={ref}
+        tabIndex={0}
+        aria-label="Approval policy"
+        aria-describedby={at ? 'swap-approval-note' : undefined}
+        onMouseEnter={open}
+        onMouseLeave={close}
+        onFocus={open}
+        onBlur={close}
+        className="grid size-7 cursor-help place-items-center rounded-lg border border-line text-t3 transition-colors hover:border-line-strong hover:text-accent"
+      >
+        <Info size={13} />
+      </span>
+      {at &&
+        createPortal(
+          <div
+            id="swap-approval-note"
+            role="tooltip"
+            style={{ left: at.x, top: at.y - 9 }}
+            className="pointer-events-none fixed z-[140] w-[264px] -translate-x-full -translate-y-full rounded-lg border border-line-strong bg-ink-800 p-2.5 text-left text-[11px] leading-5 text-t2 shadow-[0_12px_32px_rgba(0,0,0,0.5)]"
+          >
+            {text}
+            <span className="absolute -bottom-1 right-3 size-2 rotate-45 border-b border-r border-line-strong bg-ink-800" />
+          </div>,
+          document.body,
+        )}
+    </>
+  )
 }
 
 export default function Swap() {
@@ -807,22 +849,15 @@ export default function Swap() {
                   <ChevronDown size={12} className="text-t2" />
                 </button>
                 <div className="flex items-center gap-2">
-                  <div className="group relative">
-                    <span
-                      tabIndex={0}
-                      aria-label="Approval policy"
-                      className="grid size-7 cursor-help place-items-center rounded-lg border border-line text-t3 transition-colors hover:border-line-strong hover:text-accent"
-                    >
-                      <Info size={13} />
-                    </span>
-                    <div className="pointer-events-none absolute right-0 top-full z-30 mt-2 hidden w-[260px] rounded-lg border border-line-strong bg-ink-800 p-2.5 text-[11px] leading-5 text-t2 shadow-[0_12px_32px_rgba(0,0,0,0.5)] group-hover:block group-focus-within:block">
-                      {isNonEvm
+                  <ApprovalTip
+                    text={
+                      isNonEvm
                         ? `Quotes on ${nonEvmNet!.name} are fetched live from ${nonEvmNet!.provider}.`
                         : chain.nativeIsUsdc
                           ? `Approvals are always for the exact amount. On ${chain.short} the gas token is USDC.`
-                          : `Approvals are always for the exact amount, never unlimited. Native ${chain.viem.nativeCurrency.symbol} is wrapped in the same transaction.`}
-                    </div>
-                  </div>
+                          : `Approvals are always for the exact amount, never unlimited. Native ${chain.viem.nativeCurrency.symbol} is wrapped in the same transaction.`
+                    }
+                  />
                   <button onClick={() => setShowSlip(true)} className="chip chip-accent hover:border-accent">
                     <Settings2 size={11} /> {pct(slippageBps, 2)}
                   </button>
@@ -1221,7 +1256,7 @@ export default function Swap() {
                 onClick={() => setSlippageBps(bps)}
                 className={`panel py-2 text-sm ${slippageBps === bps ? 'border-accent/50 bg-accent/10 text-accent' : 'text-t1 hover:bg-ink-700'}`}
               >
-                {(bps / 100).toFixed(bps === 10 ? 1 : 0)}%
+                {(bps / 100).toFixed(bps % 100 === 0 ? 0 : 1)}%
               </button>
             ))}
           </div>

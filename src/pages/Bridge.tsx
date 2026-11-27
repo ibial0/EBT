@@ -206,6 +206,56 @@ function legLabel(_index: number, leg: RouteLeg): string {
 }
 
 /** Visual route: source -> protocol -> destination, with real icons across both EVM and non-EVM networks. */
+/** Short provider name for a route: what the pill in the path graphic shows. */
+function routeShortName(legs: RouteLeg[], idx: number): string {
+  const b = legs.find((l) => l.kind !== 'swap')
+  switch (b?.kind) {
+    case 'across':
+      return 'Across v3'
+    case 'wormhole':
+      return 'Wormhole'
+    case 'stargate':
+      return 'Stargate v2'
+    case 'cctp':
+      return 'Circle CCTP v2'
+    case 'portal':
+      return 'OP Portal'
+    case 'arbitrum':
+      return 'Arbitrum Inbox'
+    case 'lifi':
+      return b.tool || 'LI.FI'
+    case 'relay':
+      return 'Relay'
+    default:
+      return `Route ${idx + 1}`
+  }
+}
+
+/** One-line expectation for the picker under the name. */
+function routeHint(legs: RouteLeg[]): string {
+  const b = legs.find((l) => l.kind !== 'swap')
+  switch (b?.kind) {
+    case 'across':
+      return 'Fast relayer, ~15–30 s'
+    case 'wormhole':
+      return 'Guardian VAA, ~5–20 min'
+    case 'stargate':
+      return 'LayerZero delivery, ~1–2 min'
+    case 'cctp':
+      return 'Burn, attest, then mint'
+    case 'portal':
+      return 'Canonical deposit, ~15 min'
+    case 'arbitrum':
+      return 'Retryable ticket, a few minutes'
+    case 'lifi':
+      return 'Aggregated bridge, one signature'
+    case 'relay':
+      return 'Intent-based fast fill'
+    default:
+      return legs.some((l) => l.kind === 'swap') ? 'Includes a swap' : ''
+  }
+}
+
 function RoutePath({
   fromId,
   toId,
@@ -213,6 +263,9 @@ function RoutePath({
   dest,
   legs,
   overrideLabel,
+  choices,
+  choiceIndex,
+  onChoose,
 }: {
   fromId: number
   toId: number
@@ -220,7 +273,28 @@ function RoutePath({
   dest?: TokenCfg | null
   legs?: RouteLeg[]
   overrideLabel?: string
+  choices?: Array<{ label: string; hint?: string }>
+  choiceIndex?: number
+  onChoose?: (index: number) => void
 }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
   const fromChain = fromId > 0 ? getChain(fromId) : undefined
   const toChain = toId > 0 ? getChain(toId) : undefined
   const fromExtra = fromId < 0 ? EXTRA_BRIDGE_MAP.get(fromId) : undefined
@@ -259,11 +333,63 @@ function RoutePath({
         </div>
       </div>
 
-      <div className="relative flex items-center justify-center">
+      <div className="relative z-20 flex items-center justify-center">
         <span className="absolute inset-x-0 top-1/2 -z-0 h-px -translate-y-1/2 bg-line-strong" />
-        <span className="relative z-10 whitespace-nowrap rounded-full border border-line-strong bg-ink-900 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-t2">
-          {label}
-        </span>
+        {choices && choices.length > 1 && onChoose ? (
+          <div ref={wrapRef} className="relative z-10">
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-haspopup="listbox"
+              aria-expanded={open}
+              aria-label="Choose a bridge route"
+              className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] transition-colors ${
+                open
+                  ? 'border-accent/60 bg-ink-900 text-t1'
+                  : 'border-line-strong bg-ink-900 text-t2 hover:border-accent/50 hover:text-t1'
+              }`}
+            >
+              {label}
+              <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+            {open && (
+              <div
+                role="listbox"
+                aria-label="Bridge routes"
+                className="absolute left-1/2 top-full z-40 mt-2 max-h-[218px] w-[236px] -translate-x-1/2 overflow-y-auto rounded-lg border border-line-strong bg-ink-800 p-1 shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
+              >
+                {choices.map((c, i) => {
+                  const active = (choiceIndex ?? 0) === i
+                  return (
+                    <button
+                      key={`${c.label}-${i}`}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      onClick={() => {
+                        onChoose(i)
+                        setOpen(false)
+                      }}
+                      className={`flex w-full items-start justify-between gap-2 rounded-md px-2.5 py-2 text-left transition-colors ${
+                        active ? 'bg-accent/10 text-t1' : 'text-t2 hover:bg-ink-700 hover:text-t1'
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-[11.5px] font-medium">{c.label}</span>
+                        {c.hint && <span className="mt-0.5 block truncate text-[10px] text-t3">{c.hint}</span>}
+                      </span>
+                      {active && <Check size={12} className="mt-0.5 shrink-0 text-accent" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="relative z-10 whitespace-nowrap rounded-full border border-line-strong bg-ink-900 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-t2">
+            {label}
+          </span>
+        )}
       </div>
 
       <div className="flex min-w-0 items-center justify-end gap-2.5">
@@ -1547,41 +1673,13 @@ export default function Bridge() {
                 source={source}
                 dest={dest}
                 legs={route.legs}
+                choices={routes.map((r, idx) => ({
+                  label: routeShortName(r.legs, idx),
+                  hint: routeHint(r.legs),
+                }))}
+                choiceIndex={routes[routeIdx] ? routeIdx : 0}
+                onChoose={setRouteIdx}
               />
-              {routes.length > 1 && (
-                <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-line pt-2.5">
-                  {routes.map((r, idx) => {
-                    const b = r.legs.find((l) => l.kind !== 'swap')
-                    const tag =
-                      b?.kind === 'across'
-                        ? 'Across v3 (~15s)'
-                        : b?.kind === 'wormhole'
-                          ? 'Wormhole (~5–20 min)'
-                          : b?.kind === 'stargate'
-                          ? 'Stargate v2 (~1–2 min)'
-                          : b?.kind === 'cctp'
-                          ? 'Circle CCTP v2'
-                          : b?.kind === 'portal'
-                            ? 'OP Portal'
-                            : b?.kind === 'arbitrum'
-                              ? 'Arbitrum Inbox'
-                              : `Route ${idx + 1}`
-                    const active = (routes[routeIdx] ? routeIdx : 0) === idx
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => setRouteIdx(idx)}
-                        className={`rounded-md border px-2 py-1 text-[11px] font-medium transition ${
-                          active ? 'border-accent/50 bg-accent/12 text-t1' : 'border-line text-t2 hover:border-line-strong'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
             </div>
           )}
 

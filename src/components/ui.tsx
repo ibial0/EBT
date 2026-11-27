@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { ArrowLeft, Check, Copy, Loader2, X } from 'lucide-react'
 import { copy as doCopy } from '../lib/format'
@@ -328,12 +329,17 @@ export function Modal({
   }, [open, onClose])
 
   if (!open) return null
-  return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6">
+  /**
+   * Portalled to <body>: an ancestor with a transform (the page-level `.enter` animation freezes at
+   * translateY(6px) under reduced motion) becomes the containing block for `position: fixed`, which
+   * parked the sheet low on the page and shrank the backdrop to the content column.
+   */
+  return createPortal(
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-[2px]">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
       <div
         className={clsx(
-          'enter relative z-10 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-b-none border border-line bg-ink-800 sm:rounded-[14px]',
+          'enter relative z-10 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-[14px] border border-line bg-ink-800',
           width,
         )}
       >
@@ -360,7 +366,8 @@ export function Modal({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
