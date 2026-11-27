@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Copy, Info, Plus, RefreshCw, Search, Wallet, X } from 'lucide-react'
 import { useAccount } from 'wagmi'
@@ -68,6 +69,47 @@ function RowChainLogo({ row, size }: { row: Row; size: number }) {
     return c ? <ChainLogo chain={c} size={size} /> : null
   }
   return row.network ? <NetworkLogo network={row.network} size={size} /> : null
+}
+
+/** Testnet-scope note. Portalled so it opens upward without being clipped by the card. */
+function ScopeTip() {
+  const ref = useRef<HTMLButtonElement | null>(null)
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null)
+  const open = () => {
+    const r = ref.current?.getBoundingClientRect()
+    if (r) setAt({ x: Math.round(r.left + r.width / 2), y: Math.round(r.top) })
+  }
+  const close = () => setAt(null)
+  return (
+    <>
+      <button
+        ref={ref}
+        type="button"
+        aria-label="What this balance covers"
+        aria-describedby={at ? 'pf-scope-note' : undefined}
+        onMouseEnter={open}
+        onMouseLeave={close}
+        onFocus={open}
+        onBlur={close}
+        className="grid size-5 place-items-center rounded-full text-t3 transition-colors hover:text-t2 focus-visible:text-t2 focus-visible:outline-none"
+      >
+        <Info size={15} strokeWidth={1.9} />
+      </button>
+      {at &&
+        createPortal(
+          <span
+            id="pf-scope-note"
+            role="tooltip"
+            style={{ left: at.x, top: at.y - 8 }}
+            className="pointer-events-none fixed z-[140] w-[250px] -translate-x-1/2 -translate-y-full rounded-[10px] bg-[#ECEDF2] px-3 py-2.5 text-left text-[12px] font-medium leading-[1.45] tracking-[-0.005em] text-[#171821] shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
+          >
+            <span className="absolute -bottom-1 left-1/2 size-2 -translate-x-1/2 rotate-45 bg-[#ECEDF2]" />
+            Testnet only. Balances are read from each testnet chain; mainnet holdings are not shown.
+          </span>,
+          document.body,
+        )}
+    </>
+  )
 }
 
 export default function Portfolio() {
@@ -468,29 +510,12 @@ export default function Portfolio() {
     <div className="dash-2 flex-1 lg:h-[calc(100dvh-7rem)] lg:flex-none">
       {/* ── left: value + chart ───────────────────────────── */}
       <div className="card flex h-full min-h-0 flex-col overflow-hidden p-6">
-        <div className="flex items-center justify-between">
+        <div className="relative flex items-center justify-center">
           <div className="flex items-center gap-1.5">
             <span className="head-num text-[17px] leading-6 text-t1" style={{ fontWeight: 750 }}>
               Portfolio
             </span>
-            <span className="group relative inline-flex">
-              <button
-                type="button"
-                aria-describedby="pf-scope-note"
-                aria-label="What this balance covers"
-                className="grid size-5 place-items-center rounded-full text-t3 transition-colors hover:text-t2 focus-visible:text-t2 focus-visible:outline-none"
-              >
-                <Info size={15} strokeWidth={1.9} />
-              </button>
-              <span
-                id="pf-scope-note"
-                role="tooltip"
-                className="pointer-events-none absolute left-[-10px] top-[calc(100%+9px)] z-30 w-[250px] rounded-[10px] bg-[#ECEDF2] px-3 py-2.5 text-left text-[12px] font-medium leading-[1.45] tracking-[-0.005em] text-[#171821] opacity-0 shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-              >
-                <span className="absolute -top-1 left-[14px] size-2 rotate-45 bg-[#ECEDF2]" />
-                Testnet only. Balances are read from each testnet chain; mainnet holdings are not shown.
-              </span>
-            </span>
+            <ScopeTip />
           </div>
           <button
             onClick={() => {
@@ -498,19 +523,19 @@ export default function Portfolio() {
               if (hasNonEvm) nonEvmQuery.refetch()
             }}
             title="Refresh balances"
-            className="grid size-9 place-items-center rounded-full border border-line-strong bg-ink-850 text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
+            className="absolute right-0 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-ink-850 text-t2 transition-colors hover:border-[#3f4a66] hover:text-t1"
           >
             <RefreshCw size={15} strokeWidth={2.4} className={isFetchingAny ? 'spin' : undefined} />
           </button>
         </div>
 
         {portfolio.isFetching && scanned > 0 && (
-          <div className="mt-3 text-[11px] text-t3">
+          <div className="mt-3 text-center text-[11px] text-t3">
             Scanning chains… {scanned}/{CHAINS.length} answered
           </div>
         )}
 
-        <div className="figure-num mt-4 text-[52px] leading-[58px] font-extrabold text-t1">
+        <div className="figure-num mt-4 text-center text-[52px] leading-[58px] font-extrabold text-t1">
           {initialLoading ? (
             <span className="skeleton inline-block h-12 w-52 align-middle" />
           ) : (
@@ -565,7 +590,7 @@ export default function Portfolio() {
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`mono rounded-md px-2.5 py-1 text-[12px] uppercase tracking-[0.6px] transition-colors ${
+              className={`head-num rounded-md px-2.5 py-1 text-[12.5px] transition-colors ${
                 range === r ? 'bg-ink-600 text-t1' : 'text-t2 hover:text-t1'
               }`}
             >
@@ -586,7 +611,7 @@ export default function Portfolio() {
             }}
             title={showBubbles ? 'Hide token bubbles' : 'Show token bubbles'}
             aria-pressed={showBubbles}
-            className={`ml-1 flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] transition-colors ${
+            className={`head-num ml-1 flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11.5px] transition-colors ${
               showBubbles
                 ? 'border-accent/45 bg-accent/10 text-accent'
                 : 'border-line bg-ink-850 text-t3 hover:text-t2'
@@ -600,7 +625,7 @@ export default function Portfolio() {
           </button>
           <button
             onClick={() => setPickNetwork(true)}
-            className="ml-auto flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-2.5 text-[12px] text-t1 transition-colors hover:border-[#3f4a66]"
+            className="head-num ml-auto flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-ink-850 px-2.5 text-[12.5px] text-t1 transition-colors hover:border-[#3f4a66]"
           >
             {selectedChain ? (
               <ChainLogo chain={selectedChain} size={14} />
@@ -875,7 +900,7 @@ export default function Portfolio() {
                         </span>
                         <span className="flex shrink-0 items-center gap-2.5">
                           <span className="text-right">
-                            <span className="display block text-[16px] leading-5 text-t1">
+                            <span className="figure-num block text-[16px] leading-5 text-t1">
                               {g.usd == null ? '—' : usd(g.usd)}
                             </span>
                             <span className="mono block text-[13px] leading-5 text-t2">
@@ -936,10 +961,10 @@ export default function Portfolio() {
                                       <span className="block truncate text-[13px] text-t1">{r.symbol}</span>
                                       <span className="block truncate text-[12px] leading-4 text-t3">{r.chainName}</span>
                                     </span>
-                                    <span className="mono shrink-0 text-right text-[13px] text-t1">
+                                    <span className="figure-num shrink-0 text-right text-[13px] text-t1">
                                       {r.usdValue == null ? '—' : usd(r.usdValue)}
                                     </span>
-                                    <span className="mono w-28 shrink-0 text-right text-[12px] text-t2">
+                                    <span className="figure-num w-28 shrink-0 text-right text-[12px] text-t2">
                                       {amt == null ? '—' : fmtAmount(amt)}
                                     </span>
                                   </button>
@@ -1460,7 +1485,7 @@ function NetworkPicker({
           <span className="mono block text-[11px] text-t3">{n.nativeCurrency.symbol}</span>
         </span>
         {connected ? (
-          <span className="mono shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
+          <span className="figure-num shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
         ) : (
           <span className="rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-[10px] font-medium text-warn">
             Connect
@@ -1486,7 +1511,7 @@ function NetworkPicker({
           <span className="block truncate text-[14px] font-medium text-t1">{c.name}</span>
           <span className="mono block text-[11px] text-t3">{c.id}</span>
         </span>
-        <span className="mono shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
+        <span className="figure-num shrink-0 text-[12px] text-t2">{t ? usd(t.usd) : '—'}</span>
       </button>
     )
   }

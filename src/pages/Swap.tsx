@@ -878,7 +878,7 @@ export default function Swap() {
                       onBlur={() => window.setTimeout(() => setSellFocus(false), 150)}
                       placeholder="0.0"
                       inputMode="decimal"
-                      className="input display text-[40px] leading-[48px] tracking-[-0.02em]"
+                      className="input figure-num text-[40px] leading-[48px] tracking-[-0.02em]"
                     />
                     <button
                       onClick={() => setPick('in')}
@@ -908,7 +908,7 @@ export default function Swap() {
                 <div className="mt-2 rounded-[14px] border border-line-strong bg-ink-850 p-4">
                   <div className="mb-2 col-head">Buy</div>
                   <div className="flex items-center gap-3">
-                    <div className="input display flex-1 truncate text-[40px] leading-[48px] tracking-[-0.02em] text-t1">
+                    <div className="input figure-num flex-1 truncate text-[40px] leading-[48px] tracking-[-0.02em] text-t1">
                       {isNonEvm ? (
                         nonEvmQuote.isFetching ? (
                           <Spinner size={20} />
