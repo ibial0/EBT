@@ -51,7 +51,8 @@ export function syntheticChainForNetwork(net: NetworkEntry, syntheticId: number)
   }
 }
 
-/** In-memory chain filter per picker scope: persists across open/close until full page reload. */
+/** In-memory chain filter per picker scope: a fallback for pickers whose page has no chain yet.
+ *  The chain printed on the page always wins; see initialPickerChain(). */
 const rememberedChainFilters = new Map<string, number | 'all'>()
 
 /**
