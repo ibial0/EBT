@@ -1981,6 +1981,9 @@ export default function Bridge() {
 /**
  * Live transfers, drawn as a picture rather than a paragraph: the two token marks, the chains they
  * sit on, and a dot travelling between them for as long as the transfer is in flight.
+ *
+ * Order matters: the transfer that was just submitted is the one the owner is watching, so newest
+ * first. Older in-flight transfers stay visible below it instead of pushing it out of the list.
  */
 function ActiveTransfers() {
   const items = useActivity()
@@ -1993,8 +1996,8 @@ function ActiveTransfers() {
         i.kind !== 'swap' &&
         i.status === 'pending',
     )
-    .sort((a, b) => a.createdAt - b.createdAt)
-    .slice(0, 3)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 6)
   if (!address || active.length === 0) return null
   return (
     <div className="space-y-3">
