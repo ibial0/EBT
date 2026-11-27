@@ -51,6 +51,11 @@ export async function prepareTx(
     const ceiling = 500n * 10n ** 9n
     const capped = candidate > ceiling ? ceiling : candidate
     prepared.maxFeePerGas = capped > floor ? capped : floor
+    // EIP-1559 requires maxPriorityFeePerGas <= maxFeePerGas; a lopsided node report must not
+    // produce a pair the wallet refuses to sign.
+    if (prepared.maxPriorityFeePerGas > prepared.maxFeePerGas) {
+      prepared.maxPriorityFeePerGas = prepared.maxFeePerGas
+    }
   }
 
   return prepared

@@ -304,7 +304,8 @@ export default function Portfolio() {
           decimals: t.decimals,
           address: t.address,
           verified: t.verified,
-          usdValue: valueOf(t.balance, t.decimals, t.symbol, priceMap),
+          // A non-EVM token's symbol is self-declared too: only a verified coin may borrow a price.
+          usdValue: t.verified ? valueOf(t.balance, t.decimals, t.symbol, priceMap) : null,
           error: t.error,
         })
       }
