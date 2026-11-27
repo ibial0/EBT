@@ -1,0 +1,574 @@
+{
+ "total": 71,
+ "withSwap": 12,
+ "rows": [
+  {
+   "id": 11155111,
+   "name": "Ethereum Sepolia",
+   "short": "Sepolia",
+   "uniswap": true,
+   "v3": 45,
+   "v2": 0
+  },
+  {
+   "id": 43113,
+   "name": "Avalanche Fuji",
+   "short": "Fuji",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 3
+  },
+  {
+   "id": 11155420,
+   "name": "OP Sepolia",
+   "short": "OP Sepolia",
+   "uniswap": true,
+   "v3": 2,
+   "v2": 0
+  },
+  {
+   "id": 421614,
+   "name": "Arbitrum Sepolia",
+   "short": "Arb Sepolia",
+   "uniswap": true,
+   "v3": 6,
+   "v2": 0
+  },
+  {
+   "id": 84532,
+   "name": "Base Sepolia",
+   "short": "Base Sepolia",
+   "uniswap": true,
+   "v3": 12,
+   "v2": 0
+  },
+  {
+   "id": 80002,
+   "name": "Polygon Amoy",
+   "short": "Amoy",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1301,
+   "name": "Unichain Sepolia",
+   "short": "Unichain",
+   "uniswap": true,
+   "v3": 4,
+   "v2": 0
+  },
+  {
+   "id": 59141,
+   "name": "Linea Sepolia",
+   "short": "Linea",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 812242,
+   "name": "Codex Testnet",
+   "short": "Codex",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 4801,
+   "name": "World Chain Sepolia",
+   "short": "World",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 10143,
+   "name": "Monad Testnet",
+   "short": "Monad",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1328,
+   "name": "Sei Testnet",
+   "short": "Sei",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 1
+  },
+  {
+   "id": 763373,
+   "name": "Ink Sepolia",
+   "short": "Ink",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 5042002,
+   "name": "Arc Testnet",
+   "short": "Arc",
+   "uniswap": true,
+   "v3": 10,
+   "v2": 0
+  },
+  {
+   "id": 1439,
+   "name": "Injective Testnet",
+   "short": "Injective",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 9746,
+   "name": "Plasma Testnet",
+   "short": "Plasma",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1952,
+   "name": "X Layer Testnet",
+   "short": "X Layer",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 46630,
+   "name": "Robinhood Chain Testnet",
+   "short": "Robinhood",
+   "uniswap": true,
+   "v3": 83,
+   "v2": 0
+  },
+  {
+   "id": 91342,
+   "name": "GIWA Sepolia",
+   "short": "GIWA",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 79479957,
+   "name": "SX Toronto",
+   "short": "SXTO",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 7080969,
+   "name": "Humanity Testnet",
+   "short": "HUM",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 98867,
+   "name": "Plume Testnet",
+   "short": "PLUME",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1962,
+   "name": "T-Rex Testnet",
+   "short": "TREX",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 843843,
+   "name": "Galactica Cassiopeia Testnet",
+   "short": "GAL",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 181228,
+   "name": "HPP Sepolia",
+   "short": "HPP",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 681,
+   "name": "JASMY Chain Testnet",
+   "short": "JAS",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 704852,
+   "name": "Mars Chain Testnet",
+   "short": "MARS",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 4221,
+   "name": "GenLayer Chain Testnet",
+   "short": "GEN",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 323432,
+   "name": "WorldMobile Testnet",
+   "short": "WOM",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 37714555429,
+   "name": "Xai Testnet",
+   "short": "XAI",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 33431,
+   "name": "Edge Testnet",
+   "short": "EDGE",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 26888,
+   "name": "AB Testnet",
+   "short": "AB",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 11124,
+   "name": "Abstract Testnet",
+   "short": "Abstract",
+   "uniswap": true,
+   "v3": 3,
+   "v2": 1
+  },
+  {
+   "id": 99999,
+   "name": "ADI Testnet",
+   "short": "ADI",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 81,
+   "name": "Astar Shibuya Testnet",
+   "short": "Shibuya",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 80069,
+   "name": "Berachain Bepolia",
+   "short": "Bepolia",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 97,
+   "name": "BNB Chain Testnet",
+   "short": "BNB Test",
+   "uniswap": true,
+   "v3": 9,
+   "v2": 36
+  },
+  {
+   "id": 808813,
+   "name": "BOB Testnet",
+   "short": "BOB Sep",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 11142220,
+   "name": "Celo Sepolia",
+   "short": "Celo Sep",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1114,
+   "name": "Core Testnet",
+   "short": "Core T2",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 102031,
+   "name": "Creditcoin Testnet",
+   "short": "Creditcoin",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 338,
+   "name": "Cronos Testnet",
+   "short": "Cronos",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 240,
+   "name": "Cronos zkEVM Testnet",
+   "short": "Cronos zk",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 6281971,
+   "name": "DogeOS Chikyu Testnet",
+   "short": "DogeOS",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 560048,
+   "name": "Ethereum Hoodi Testnet",
+   "short": "Hoodi",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 10200,
+   "name": "Gnosis Chiado Testnet",
+   "short": "Chiado",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 7771625,
+   "name": "Gravity Longevity Testnet",
+   "short": "Gravity",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 296,
+   "name": "Hedera Testnet",
+   "short": "Hedera",
+   "uniswap": true,
+   "v3": 4,
+   "v2": 0
+  },
+  {
+   "id": 998,
+   "name": "HyperEVM Testnet",
+   "short": "HyperEVM",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 2019775,
+   "name": "Jovay Testnet",
+   "short": "Jovay",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1001,
+   "name": "Kaia Testnet",
+   "short": "Kaia",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 4202,
+   "name": "Lisk Testnet",
+   "short": "Lisk Sep",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 5003,
+   "name": "Mantle Sepolia",
+   "short": "Mantle",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 6343,
+   "name": "MegaETH Testnet 2",
+   "short": "MegaETH 2",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1740,
+   "name": "Metal Testnet",
+   "short": "Metal",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 59902,
+   "name": "Metis Sepolia",
+   "short": "Metis Sep",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 919,
+   "name": "Mode Sepolia",
+   "short": "Mode Sep",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 2910,
+   "name": "Morph Hoodi Testnet",
+   "short": "Morph Hoodi",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 10323,
+   "name": "Mova Testnet",
+   "short": "Mova",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 12227332,
+   "name": "Neo X Testnet",
+   "short": "Neo X T4",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 5611,
+   "name": "opBNB Testnet",
+   "short": "opBNB",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 688689,
+   "name": "Pharos Atlantic Testnet",
+   "short": "Pharos",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 202601,
+   "name": "Ronin Saigon",
+   "short": "Saigon",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 157,
+   "name": "Shibarium Puppynet",
+   "short": "Puppynet",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1946,
+   "name": "Soneium Minato",
+   "short": "Minato",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 2391,
+   "name": "TAC Saint Petersburg Testnet",
+   "short": "TAC SPB",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 42431,
+   "name": "Tempo Moderato Testnet",
+   "short": "Tempo",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 1112,
+   "name": "WEMIX Testnet",
+   "short": "WEMIX",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 51,
+   "name": "XDC Apothem Testnet",
+   "short": "Apothem",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 300,
+   "name": "zkSync Sepolia",
+   "short": "zkSync Sep",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  },
+  {
+   "id": 999999999,
+   "name": "Zora Testnet",
+   "short": "Zora Sep",
+   "uniswap": false,
+   "v3": 0,
+   "v2": 0
+  }
+ ]
+}

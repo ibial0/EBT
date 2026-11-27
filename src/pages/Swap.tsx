@@ -309,6 +309,8 @@ export default function Swap() {
     return diffPool.length > 0 ? diffPool : tradeable.filter((t) => t.address !== tokenIn.address)
   }, [tradeable, tokenIn, swapChainId])
 
+  const hasAmm = poolsForChain(swapChainId).length > 0 || v2PairsForChain(swapChainId).length > 0
+
   const isNonEvm = Boolean(nonEvmNet && nonEvmMode)
   const amountIn = safeParseUnits(debounced, isNonEvm ? nonEvmIn.decimals : tokenIn.decimals)
   const sameToken = isNonEvm ? nonEvmIn.assetId === nonEvmOut.assetId : tokenIn.address === tokenOut.address
@@ -821,6 +823,16 @@ export default function Swap() {
               {isNonEvm && Number(debounced) > 0 && !nonEvmQuote.isFetching && !nonEvmQuote.data && !sameToken && (
                 <div className="mt-2 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-[12px] text-warn">
                   No active pool/orderbook path returned by {nonEvmNet!.provider} for {nonEvmIn.symbol} → {nonEvmOut.symbol} at this size.
+                </div>
+              )}
+
+              {!isNonEvm && !hasAmm && (
+                <div className="mb-3 rounded-lg border border-[#e6c17a]/25 bg-[#e6c17a]/8 px-3 py-2.5 text-[12px] leading-5 text-[#e6c17a]">
+                  <div className="font-medium">No AMM is deployed on {chain.short}.</div>
+                  <div className="mt-0.5 text-[#e6c17a]/80">
+                    A swap needs a DEX on the same chain. This testnet has none that we could verify on chain, so there is no
+                    honest route to show. Bridge the token to a chain that has a pool instead.
+                  </div>
                 </div>
               )}
 

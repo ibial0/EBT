@@ -55,3 +55,24 @@ backend relayer, or exists only on mainnet is out — no matter how good it look
 - Track every leg in the local activity ledger with the provider name, so a failed leg is visible.
 - Keep the existing conflict-free paths: CCTP wins for USDC where it is cheaper, Across wins for fast L2 hops.
 - One provider per commit, with a `scripts/_<provider>.mjs` probe that proves the quote/send path.
+
+## Swap coverage audit (2026-11-27, on-chain)
+
+Every chain in `src/config/chains.ts` was checked against the canonical Uniswap V2/V3 factory
+addresses, the project's own configured deployments, and Uniswap's official `deployments.json`
+feed (`docs.uniswap.org/deployments.json`, generated 2026-11-09).
+
+- **71 chains** in the allowlist, **12 with swaps** (17%).
+- Official Uniswap v3 testnet deployments that intersect our chains: Sepolia, OP Sepolia,
+  Arb Sepolia, Base Sepolia, Unichain Sepolia (all wired), plus Monad and Zora Sepolia.
+  Monad's factory `0x961235a9…` and Zora's `0x4324A677…` return **no bytecode** on their public
+  testnet RPCs today, so there is nothing to call.
+- The other 7 swap chains run deployments that were verified on chain and configured locally:
+  Robinhood (83 v3 pools), Arc (10), BNB (9 v3 + 36 v2 pairs), Hedera (4), Abstract (3 + 1),
+  Avalanche Fuji (3 v2), Sei (1 v2).
+- **The remaining 59 chains return no code at any canonical factory** and have no official
+  Uniswap deployment. Most are Orbit / app-specific testnets (T-Rex, SX, HPP, Plume, Humanity,
+  Edge, MegaETH, Monad, Plasma, Tempo, Pharos, …) where no AMM exists. A swap there would mean
+  inventing a route, which we do not do.
+- Swap UI now states this plainly: "No AMM is deployed on <chain>. … Bridge the token to a
+  chain that has a pool instead." (previously the form rendered silently empty).
