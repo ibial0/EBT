@@ -17,6 +17,12 @@ const factoryAbi = parseAbi([
   'function getPool(address tokenA, address tokenB, uint24 fee) view returns (address pool)',
 ])
 const poolAbi = parseAbi(['function liquidity() view returns (uint128)'])
+const v2FactoryAbi = parseAbi([
+  'function getPair(address tokenA, address tokenB) view returns (address pair)',
+])
+const v2PairAbi = parseAbi([
+  'function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
+])
 
 /** Uniswap v3 fee tiers in hundredths of a bip. */
 export const FEE_TIERS = [100, 500, 3000, 10_000] as const
@@ -90,4 +96,43 @@ export async function hasNativePool(
   weth: Address,
 ): Promise<boolean> {
   return (await discoverNativePools(client, chainId, factory, token, weth)).length > 0
+}
+
+
+/** Uniswap V2-style pair for `token` against the wrapped native coin, or null when there is none. */
+const v2Cache = new Map<string, { at: number; pair: Address | null }>()
+
+export async function discoverV2Pair(
+  client: PublicClient,
+  chainId: number,
+  factory: Address,
+  token: Address,
+  weth: Address,
+): Promise<Address | null> {
+  const key = `${chainId}:${token.toLowerCase()}`
+  const cached = v2Cache.get(key)
+  if (cached && Date.now() - cached.at < TTL) return cached.pair
+
+  let pair: Address | null = null
+  try {
+    const found = (await client.readContract({
+      address: factory,
+      abi: v2FactoryAbi,
+      functionName: 'getPair',
+      args: [token, weth],
+    })) as Address
+    if (found && found !== '0x0000000000000000000000000000000000000000') {
+      const reserves = (await client.readContract({
+        address: found,
+        abi: v2PairAbi,
+        functionName: 'getReserves',
+      })) as readonly [bigint, bigint, number]
+      if (reserves[0] > 0n && reserves[1] > 0n) pair = found
+    }
+  } catch {
+    /* no factory on this chain, or the pair does not exist */
+  }
+
+  v2Cache.set(key, { at: Date.now(), pair })
+  return pair
 }

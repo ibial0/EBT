@@ -37,7 +37,7 @@ import { fmt, safeParseUnits, pct } from '../lib/format'
 import { pairsForChain, poolsForChain } from '../config/pools'
 import { lastSelection } from '../lib/lastSelection'
 import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
-import { discoverNativePools } from '../lib/poolDiscovery'
+import { discoverNativePools, discoverV2Pair } from '../lib/poolDiscovery'
 import { walletSender } from '../lib/tx'
 
 const SLIPPAGE_PRESETS = [10, 50, 100]
@@ -173,7 +173,9 @@ export default function Swap() {
         addrs.add(pair.token0.toLowerCase())
         addrs.add(pair.token1.toLowerCase())
       }
-      const tokens = tokensForChain(c.id).filter((t) => addrs.has(t.address.toLowerCase()))
+      const tokens = tokensForChain(c.id).filter(
+        (t) => addrs.has(t.address.toLowerCase()) || (c.id === swapChainId && nativePools.has(t.address.toLowerCase())),
+      )
       if (c.nativeIsUsdc || (c.uniswap?.kind === 'v1' && !c.dexV2?.length)) return { chain: c, tokens }
       const native = nativeToken(c.id)
       return { chain: c, tokens: [native, ...tokens.filter((t) => t.address !== native.address)] }
@@ -383,9 +385,10 @@ export default function Swap() {
     [selectable],
   )
   useEffect(() => {
-    const factory = chain.uniswap?.factory
+    const v3Factory = chain.uniswap?.factory
+    const v2Factory = chain.dexV2?.[0]?.factory
     const weth = WETH[swapChainId]
-    if (!factory || !weth || !publicClient || !discoveryKey) {
+    if ((!v3Factory && !v2Factory) || !weth || !publicClient || !discoveryKey) {
       setNativePools(new Set())
       return
     }
@@ -395,14 +398,25 @@ export default function Swap() {
     const workers = Array.from({ length: Math.min(6, queue.length) }, async () => {
       while (queue.length > 0 && alive) {
         const token = queue.shift() as string
-        const pools = await discoverNativePools(
-          publicClient as never,
-          swapChainId,
-          factory as Address,
-          token as Address,
-          weth,
-        ).catch(() => [])
-        if (pools.length > 0) hits.add(token)
+        if (v3Factory) {
+          const pools = await discoverNativePools(
+            publicClient as never,
+            swapChainId,
+            v3Factory as Address,
+            token as Address,
+            weth,
+          ).catch(() => [])
+          if (pools.length > 0) hits.add(token)
+        } else if (v2Factory) {
+          const pair = await discoverV2Pair(
+            publicClient as never,
+            swapChainId,
+            v2Factory as Address,
+            token as Address,
+            weth,
+          ).catch(() => null)
+          if (pair) hits.add(token)
+        }
       }
     })
     void Promise.all(workers).then(() => {
@@ -411,7 +425,7 @@ export default function Swap() {
     return () => {
       alive = false
     }
-  }, [chain.uniswap?.factory, swapChainId, discoveryKey, publicClient])
+  }, [chain.uniswap?.factory, chain.dexV2, swapChainId, discoveryKey, publicClient])
 
   const quote = useQuery<SwapQuote | V2Quote | null>({
     queryKey: ['swap-quote', swapChainId, tokenIn.address, tokenOut.address, amountIn.toString()],
