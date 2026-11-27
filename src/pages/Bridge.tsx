@@ -11,6 +11,7 @@ import { WETH, isNativeToken, nativeToken, tokensForChain, type TokenCfg } from 
 import { useSearchParams } from 'react-router-dom'
 import { initiateWithdrawEth, rememberWithdrawal } from '../lib/orbitWithdraw'
 import { buildStargateEthSend, quoteStargateEth, stargateEthPool } from '../lib/stargate'
+import { lastSelection } from '../lib/lastSelection'
 import { Card, Button, Badge, Row, notify, ChainLogo, NetworkLogo, TokenIcon, Spinner } from '../components/ui'
 import {
   NON_EVM_BRIDGE_ENDPOINTS,
@@ -303,8 +304,8 @@ export default function Bridge() {
     const n = Number(searchParams.get(key))
     return Number.isFinite(n) && n > 0 ? n : fallback
   }
-  const [fromId, setFromId] = useState(() => paramId('from', 11155111))
-  const [toId, setToId] = useState(() => paramId('to', 84532))
+  const [fromId, setFromId] = useState(() => paramId('from', lastSelection.bridge()?.fromId ?? 11155111))
+  const [toId, setToId] = useState(() => paramId('to', lastSelection.bridge()?.toId ?? 84532))
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams)
@@ -313,8 +314,13 @@ export default function Bridge() {
     if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromId, toId])
-  const [sourceId, setSourceId] = useState(keyOf(11155111, NATIVE))
-  const [destId, setDestId] = useState(keyOf(84532, NATIVE))
+  const [sourceId, setSourceId] = useState(() => lastSelection.bridge()?.sourceId ?? keyOf(11155111, NATIVE))
+  const [destId, setDestId] = useState(() => lastSelection.bridge()?.destId ?? keyOf(84532, NATIVE))
+
+  // Keep the pair the user picked when they visit Portfolio/Swap and come back. A reload clears it.
+  useEffect(() => {
+    lastSelection.setBridge({ fromId, toId, sourceId, destId })
+  }, [fromId, toId, sourceId, destId])
   const [amount, setAmount] = useState('')
   const [fast, setFast] = useState(true)
   const [slippageBps, setSlippageBps] = useState(100)

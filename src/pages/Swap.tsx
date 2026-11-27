@@ -35,6 +35,7 @@ import { assertSwapRoute } from '../lib/guard'
 import { decodeTxError } from '../lib/errors'
 import { fmt, safeParseUnits, pct } from '../lib/format'
 import { pairsForChain, poolsForChain } from '../config/pools'
+import { lastSelection } from '../lib/lastSelection'
 import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
 import { walletSender } from '../lib/tx'
 
@@ -88,8 +89,20 @@ export default function Swap() {
   const pendingNonEvmPickRef = useRef<{ netId: NonEvmSwapId; role: 'in' | 'out'; assetId: string } | null>(null)
 
   const chainSupported = !isConnected || supportedSwap.has(chainId)
-  const [previewChain, setPreviewChain] = useState(11155111)
-  const swapChainId = isConnected && supportedSwap.has(chainId) ? chainId : previewChain
+  const [previewChain, setPreviewChain] = useState(lastSelection.swap()?.chainId ?? 11155111)
+  // The chain the user picked wins; the wallet follows it (the UI already offers to switch).
+  const swapChainId = previewChain
+  const syncedWalletChain = useRef(false)
+  useEffect(() => {
+    if (!isConnected || !supportedSwap.has(chainId)) return
+    if (!syncedWalletChain.current) {
+      syncedWalletChain.current = true
+      // Keep the selection restored from this tab; only adopt the wallet chain on a fresh visit.
+      if (!lastSelection.swap()) setPreviewChain(chainId)
+      return
+    }
+    setPreviewChain(chainId)
+  }, [chainId, isConnected])
   const [sellFocus, setSellFocus] = useState(false)
   const [tokenIn, setTokenIn] = useState<TokenCfg>(() => tokensForChain(11155111)[0])
   const [tokenOut, setTokenOut] = useState<TokenCfg>(() => tokensForChain(11155111)[1])
@@ -98,6 +111,7 @@ export default function Swap() {
   const [showSlip, setShowSlip] = useState(false)
   const [pick, setPick] = useState<'in' | 'out' | null>(null)
   const pendingPickRef = useRef<{ chainId: number; role: 'in' | 'out'; token: TokenCfg } | null>(null)
+  const restored = useRef(false)
   const [busy, setBusy] = useState<string | null>(null)
   /** liquid journey: out (card→sell token), back (token→card), inR (card→buy token), done */
   const [flow, setFlow] = useState<'idle' | 'out' | 'back' | 'inR' | 'done'>('idle')
@@ -261,6 +275,22 @@ export default function Swap() {
     }
     const keyOf = (x: TokenCfg) =>
       (isNativeToken(x) ? (WETH[swapChainId] ?? '').toLowerCase() : x.address.toLowerCase())
+    // First mount: put back what the user had selected before leaving the page.
+    if (!restored.current) {
+      restored.current = true
+      const saved = lastSelection.swap()
+      if (saved && saved.chainId === swapChainId) {
+        const pool = hideNative ? activeList : [native, ...activeList].filter(Boolean)
+        const back = pool.find((x) => x?.symbol === saved.inSymbol)
+        const out = pool.find((x) => x?.symbol === saved.outSymbol)
+        if (back && out) {
+          setTokenIn(back)
+          setTokenOut(out)
+          setAmount('')
+          return
+        }
+      }
+    }
     const first = hideNative ? activeList[0] : native
     const second =
       activeList.find((x) => x.address !== first?.address && (!first || keyOf(x) !== keyOf(first))) ??
@@ -270,6 +300,11 @@ export default function Swap() {
     setTokenOut(second)
     setAmount('')
   }, [swapChainId])
+
+  // Remember the chain and both tokens for this tab; a full reload starts fresh.
+  useEffect(() => {
+    lastSelection.setSwap({ chainId: previewChain, inSymbol: tokenIn.symbol, outSymbol: tokenOut.symbol })
+  }, [previewChain, tokenIn, tokenOut])
 
   const selectable: TokenCfg[] = useMemo(() => {
     const list = tokensForChain(swapChainId)

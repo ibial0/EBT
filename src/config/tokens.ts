@@ -144,6 +144,7 @@ export const TOKENS: TokenCfg[] = [
   // ── Robinhood Chain Testnet (Synthra V3 DEX) — WETH & USDC both have 18 decimals here
   t(46630, '0x33e4191705c386532ba27cBF171Db86919200B94', 'WETH', 'Wrapped Ether', 18, 'weth', '#627eea'),
   t(46630, '0xbf4479C07Dc6fdc6dAa764A0ccA06969e894275F', 'USDC', 'USD Coin', 18, 'usdc', '#2775ca'),
+  t(46630, '0x8F9231B0F448bA9AD045348437458721676c23BC', 'USDG', 'Global Dollar (test)', 6, 'usdc', '#00b3a4'),
   t(46630, '0xC5124C846c6e6307986988dFb7e743327aA05F19', 'SYN', 'Synapse', 18, 'token', '#9e6de5'),
   t(46630, '0x5884aD2f920c162CFBbACc88C9C51AA75eC09E02', 'AMZN', 'Amazon', 18, 'token', '#ff9900'),
   t(46630, '0xC9f9c86933092BbbfFF3CCb4b105A4A94bf3Bd4E', 'TSLA', 'Tesla', 18, 'token', '#e31937'),
