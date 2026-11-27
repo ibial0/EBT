@@ -12,7 +12,8 @@
     "test:sim": "esbuild scripts/simulate.ts --bundle --platform=node --format=esm --outfile=scripts/simulate.mjs --external:@x402/* --log-level=warning && node scripts/simulate.mjs",
     "test:routes": "esbuild scripts/routes-check.ts --bundle --platform=node --format=esm --outfile=scripts/routes-check.mjs --log-level=error --external:@x402/* && node scripts/routes-check.mjs",
     "test:deposit": "esbuild scripts/deposit-check.ts --bundle --platform=node --format=esm --outfile=scripts/deposit-check.mjs --log-level=error --external:@x402/* && node scripts/deposit-check.mjs",
-    "test:orbit": "esbuild scripts/orbit-check.ts --bundle --platform=node --format=esm --outfile=scripts/orbit-check.mjs --log-level=error --external:@x402/* && node scripts/orbit-check.mjs"
+    "test:orbit": "esbuild scripts/orbit-check.ts --bundle --platform=node --format=esm --outfile=scripts/orbit-check.mjs --log-level=error --external:@x402/* && node scripts/orbit-check.mjs",
+    "test:history": "node --experimental-strip-types scripts/history-check.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter-tight": "^5.3.0",
