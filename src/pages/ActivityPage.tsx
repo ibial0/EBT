@@ -45,7 +45,6 @@ export default function ActivityPage() {
 
   return (
     <div className="space-y-5">
-      <ClaimableWithdrawals />
       <PageHeader
         eyebrow="Local ledger"
         title="Activity"
@@ -74,6 +73,8 @@ export default function ActivityPage() {
           </div>
         }
       />
+
+      <ClaimableWithdrawals />
 
       <RecoveryPanel compact />
 
@@ -117,7 +118,7 @@ export default function ActivityPage() {
                       )}
                       <span className="chip !py-0 !text-[9px]">{a.provider}</span>
                     </div>
-                    <div className="mt-0.5 truncate text-[10px] text-t3">
+                    <div className="mt-0.5 truncate text-[11px] text-t3">
                       {from?.short ?? a.fromChainId} → {to?.short ?? a.toChainId} · {timeAgo(a.createdAt)} · {shortAddr(a.owner, 3)}
                     </div>
                   </div>

@@ -672,6 +672,7 @@ export default function Swap() {
 
   return (
     <div className="space-y-5">
+      <h1 className="sr-only">Swap</h1>
       <div className="flex items-stretch gap-6">
         <div ref={sideColRef} className="relative hidden flex-1 items-center justify-center xl:flex">
           <Wire side="left" dir={flow === 'back' ? 'back' : flow === 'out' ? 'out' : null} plugFrac={plugFrac} />

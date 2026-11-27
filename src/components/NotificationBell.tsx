@@ -59,7 +59,7 @@ export function NotificationBell() {
       >
         <Bell size={16} strokeWidth={1.6} />
         {pending.length > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#ff8f8f] px-1 text-[10px] font-medium leading-none text-t1">
+          <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#ff8f8f] px-1 text-[10px] font-medium leading-none text-[#241014]">
             {pending.length}
           </span>
         )}

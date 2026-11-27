@@ -1295,6 +1295,8 @@ export default function Bridge() {
 
   return (
     <div className="flex min-h-0 flex-col gap-4 lg:h-[calc(100dvh-7rem)] lg:flex-none">
+      {/* console pages keep the nav as the visible title; the outline still needs a heading */}
+      <h1 className="sr-only">Bridge</h1>
       <div className="grid w-full min-h-0 flex-1 gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-stretch">
         <Card className="flex h-full min-h-0 flex-col p-5">
           <div className="relative flex flex-1 flex-col gap-3">
@@ -1642,14 +1644,14 @@ export default function Bridge() {
                   <span className="text-xs font-semibold text-t1">Fast</span>
                   <Badge tone={fast ? 'mint' : 'default'}>{fees.data ? `${(fees.data.fastBps / 100).toFixed(2)}%` : '-'}</Badge>
                 </div>
-                <div className="mt-0.5 text-[10px] leading-relaxed text-t3">Fee at mint · attested after soft finality</div>
+                <div className="mt-0.5 text-[11px] leading-relaxed text-t3">Fee at mint · attested after soft finality</div>
               </button>
               <button onClick={() => setFast(false)} className={`panel p-3 text-left transition ${!fast ? 'border-accent/50 bg-accent/8' : 'hover:bg-ink-700'}`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-t1">Standard</span>
                   <Badge tone={!fast ? 'mint' : 'default'}>{fees.data ? `${(fees.data.standardBps / 100).toFixed(2)}%` : '-'}</Badge>
                 </div>
-                <div className="mt-0.5 text-[10px] leading-relaxed text-t3">No protocol fee · waits for hard finality</div>
+                <div className="mt-0.5 text-[11px] leading-relaxed text-t3">No protocol fee · waits for hard finality</div>
               </button>
             </div>
           )}

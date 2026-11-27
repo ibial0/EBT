@@ -23,7 +23,7 @@
   --color-line-strong: #333d52;
   --color-t1: #f2f5fc;
   --color-t2: #adb9ce;
-  --color-t3: #7d88a0;
+  --color-t3: #8a95ac;
   --color-accent: #abb8ff;
   --color-accent-2: #b8c4ff;
   --color-pos: #6adbb6;
@@ -175,7 +175,7 @@
     font-variant-numeric: tabular-nums;
   }
   .input::placeholder {
-    color: #7d88a0;
+    color: var(--color-t3);
   }
   .btn {
     display: inline-flex;

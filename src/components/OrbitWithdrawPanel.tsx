@@ -261,7 +261,7 @@ export function OrbitWithdrawPanel({ fromId, toId }: { fromId: number; toId: num
           ))}
 
           {withdrawal && (
-            <p className="mono text-[10px] text-t3">
+            <p className="mono text-[11px] text-t3">
               position {withdrawal.position.toString()} · {shortAddr(withdrawal.txHash, 6)}
             </p>
           )}
