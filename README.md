@@ -2,15 +2,14 @@
 
 **Bridge, swap and track. Every testnet, one console.**
 
-EBT is a browser-only console for testnet assets: it reads balances straight from each chain,
-quotes real routes, signs with your own wallet, and keeps a local ledger of what you did. There is
-no account, no backend and no custody. Keys never leave the wallet extension.
+EBT is a browser console for testnet assets: it reads balances from every supported chain,
+quotes real routes, signs with your own wallet, and keeps a local ledger of what you did. Keys
+never leave the wallet extension.
 
 **Live demo:** https://ebt-ashy.vercel.app
 
 [![live demo](https://img.shields.io/badge/demo-ebt--ashy.vercel.app-6b7cff)](https://ebt-ashy.vercel.app)
 [![testnet only](https://img.shields.io/badge/network-testnet%20only-6b7cff)](#what-it-is-not)
-[![no backend](https://img.shields.io/badge/backend-none-2ea043)](#architecture)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![stack](https://img.shields.io/badge/React%2019%20%2B%20Vite%20%2B%20wagmi-0b0f1a)](#quick-start)
 
@@ -31,8 +30,6 @@ no account, no backend and no custody. Keys never leave the wallet extension.
 
 - **Not mainnet.** Every chain, token and RPC in this build is a testnet. Nothing here moves real value.
 - **Not a wallet.** EBT never sees a seed phrase or a private key. Your wallet signs everything.
-- **Not a service.** There is no server to trust and no database to breach. Balances are read from
-  public RPCs and the activity list lives in `localStorage` on your machine.
 - **Not financial advice.** Testnet tokens have no price. Fiat numbers are display-only estimates.
 
 ## Overview
@@ -108,21 +105,25 @@ deduplicated, so the same path never appears twice under different names.
 
 ![Settings](docs/screenshots/08-settings-dark.png)
 
-## Wallets and notifications
+## Send, receive and recovery
 
-| Connected wallets | Pending transfer |
+| Token actions | Receive |
 | --- | --- |
-| ![Connected wallets](docs/screenshots/09-wallets-dark.png) | ![Pending transfer](docs/screenshots/10-notifications-dark.png) |
+| ![Token actions](docs/screenshots/12-token-sheet-light.png) | ![Receive](docs/screenshots/13-receive-light.png) |
 
-Several wallets can be connected at once (EVM plus non-EVM accounts), and the bell tracks every
-transfer that still needs a claim, so a bridge you close is never lost.
+- **Send** checks the destination against the wallet family you picked before it enables the button.
+- **Receive** shows a QR and the address for the selected chain, with one click to copy.
+- **Recovery** lists withdrawals that are ready to claim and USDC that was burned but not minted,
+  so nothing is left half-finished.
+
+![Recovery](docs/screenshots/14-recovery-light.png)
 
 ## Light theme and mobile
 
 <p align="center"><img src="docs/screenshots/11-portfolio-mobile-light.png" alt="Mobile portfolio" width="300"></p>
 
 Both themes share one accent ramp, and the layout collapses to a bottom bar on small screens.
-The portfolio shots above are light mode; every other screen is shown in dark mode.
+Portfolio screens are shown in light mode, everything else in dark mode.
 
 ## Chains
 
