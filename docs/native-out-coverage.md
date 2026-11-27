@@ -75,3 +75,24 @@ token against the native coin.
 
 Also checked: **Zora Sepolia** has a full Uniswap v3 stack (official deployment) but no token list entry in
 `config/tokens.ts`, so there is nothing to quote against yet.
+
+
+## Batch 2 look (Monad, Berachain, Ronin, Zora)
+
+| Chain | What the docs say | Why it is not usable with the current adapters |
+| --- | --- | --- |
+| Monad testnet (10143) | Uniswap's own deployments table lists a v3 factory at `0x9612…4276`, but that address returns `0x` on `testnet-rpc.monad.xyz` (chain id verified as 10143) | deployment cannot be verified, so it is not enabled |
+| Berachain Bepolia | BEX is live, but it is a **Balancer v2** fork (Vault `0x4Be0…E80B`) | Balancer swap math is not Uniswap v2/v3; needs a Balancer adapter |
+| Ronin Saigon (202601) | Katana V2/V3 exist on Ronin (V3 is a Uniswap v3 fork) | no published router/factory address for Saigon, so nothing to point at |
+| Zora Sepolia | full Uniswap v3 stack from the official deployment table | `config/tokens.ts` has no tokens for 999999999, nothing to quote |
+
+Pattern: every remaining testnet either has no AMM, or runs a DEX family whose math differs from Uniswap
+(Balancer, Algebra, Maverick, iZiSwap, or a CLOB). Each of those is a separate adapter, and even a finished
+adapter only helps if that exact token has a pool against the chain's native coin.
+
+## Proposal
+
+Coverage can stop being a code problem. Add a **Custom DEX** entry in Settings: chain, router, factory, wrapped
+native. The app validates it on chain (router bytecode, `WETH()`, `factory().allPairsLength() > 0`) and then
+treats it like any other V2 venue. Any testnet DEX the owner finds can then be enabled in a minute, without a
+code change or a rebuild.
