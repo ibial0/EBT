@@ -4,6 +4,8 @@ import { type FaucetLink } from '../config/chains'
 import { ALL_NETWORKS, type NetworkEntry } from '../config/networks'
 import { Badge, Card, NetworkLogo, TokenIcon } from '../components/ui'
 import { PageHeader } from '../components/Layout'
+import { useAccount } from 'wagmi'
+import { ranksFor } from '../lib/ranks'
 
 const ACCESS_LABEL: Record<string, string> = {
   free: 'No account',
@@ -323,10 +325,14 @@ function FaucetRow({
 
 export default function Faucets() {
   const [q, setQ] = useState('')
+  const { address } = useAccount()
+  // funded networks first, same rule as the bridge/swap selectors
+  const ranks = ranksFor(address)
 
   const needle = q.trim().toLowerCase()
 
-  // Sort networks: active faucets first (by count), then non-deprecated missing, then deprecated
+  // Sort networks: active faucets first (by count), then non-deprecated missing, then deprecated.
+  // With a connected wallet, what it already holds floats above all of that.
   const sortedNetworks = useMemo(() => {
     const withActive = ALL_NETWORKS.filter((n) => n.status !== 'deprecated' && n.faucets.some((f) => !f.missing && !f.inactive))
     const onlyMissing = ALL_NETWORKS.filter((n) => n.status !== 'deprecated' && n.faucets.every((f) => f.missing || f.inactive))
@@ -338,8 +344,19 @@ export default function Faucets() {
         a.faucets.filter((f) => !f.missing && !f.inactive).length,
     )
 
-    return [...withActive, ...onlyMissing, ...deprecated]
-  }, [])
+    const base = [...withActive, ...onlyMissing, ...deprecated]
+    const usdOf = (n: NetworkEntry) =>
+      n.family === 'evm' ? (ranks.chainUsd.get(Number(n.nativeId)) ?? 0) : 0
+    if (!base.some((n) => usdOf(n) > 0)) return base
+    return base
+      .map((n, i) => ({ n, i, usd: usdOf(n) }))
+      .sort((a, b) => {
+        if ((a.usd > 0) !== (b.usd > 0)) return a.usd > 0 ? -1 : 1
+        if (a.usd !== b.usd) return b.usd - a.usd
+        return a.i - b.i
+      })
+      .map((x) => x.n)
+  }, [ranks])
 
   const networks = useMemo(() => {
     return sortedNetworks.filter((n) => {

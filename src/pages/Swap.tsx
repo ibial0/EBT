@@ -111,7 +111,7 @@ export default function Swap() {
   const [showSlip, setShowSlip] = useState(false)
   const [pick, setPick] = useState<'in' | 'out' | null>(null)
   const pendingPickRef = useRef<{ chainId: number; role: 'in' | 'out'; token: TokenCfg } | null>(null)
-  const restored = useRef(false)
+  const restoredFor = useRef<number | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   /** liquid journey: out (card→sell token), back (token→card), inR (card→buy token), done */
   const [flow, setFlow] = useState<'idle' | 'out' | 'back' | 'inR' | 'done'>('idle')
@@ -275,20 +275,24 @@ export default function Swap() {
     }
     const keyOf = (x: TokenCfg) =>
       (isNativeToken(x) ? (WETH[swapChainId] ?? '').toLowerCase() : x.address.toLowerCase())
-    // First mount: put back what the user had selected before leaving the page.
-    if (!restored.current) {
-      restored.current = true
-      const saved = lastSelection.swap()
-      if (saved && saved.chainId === swapChainId) {
-        const pool = hideNative ? activeList : [native, ...activeList].filter(Boolean)
-        const back = pool.find((x) => x?.symbol === saved.inSymbol)
-        const out = pool.find((x) => x?.symbol === saved.outSymbol)
-        if (back && out) {
-          setTokenIn(back)
-          setTokenOut(out)
-          setAmount('')
-          return
-        }
+    // One pass per chain. React StrictMode mounts effects twice in dev, so a boolean ref let the
+    // second pass fall through to the defaults and wipe the restored pair; remember the chain instead.
+    if (restoredFor.current === swapChainId) return
+    restoredFor.current = swapChainId
+    const saved = lastSelection.swap()
+    if (saved && saved.chainId === swapChainId) {
+      const fullPool = (hideNative ? list : [native, ...list].filter(Boolean)) as TokenCfg[]
+      const norm = (x: TokenCfg) => (isNativeToken(x) ? 'native' : x.address.toLowerCase())
+      const byAddr = (addr?: string) =>
+        addr ? fullPool.find((x) => norm(x) === addr.toLowerCase()) : undefined
+      const bySym = (sym?: string) => (sym ? fullPool.find((x) => x.symbol === sym) : undefined)
+      const back = byAddr(saved.inAddress) ?? bySym(saved.inSymbol)
+      const out = byAddr(saved.outAddress) ?? bySym(saved.outSymbol)
+      if (back && out && norm(back) !== norm(out)) {
+        setTokenIn(back)
+        setTokenOut(out)
+        setAmount('')
+        return
       }
     }
     const first = hideNative ? activeList[0] : native
@@ -303,7 +307,13 @@ export default function Swap() {
 
   // Remember the chain and both tokens for this tab; a full reload starts fresh.
   useEffect(() => {
-    lastSelection.setSwap({ chainId: previewChain, inSymbol: tokenIn.symbol, outSymbol: tokenOut.symbol })
+    lastSelection.setSwap({
+      chainId: previewChain,
+      inSymbol: tokenIn.symbol,
+      outSymbol: tokenOut.symbol,
+      inAddress: isNativeToken(tokenIn) ? 'native' : tokenIn.address.toLowerCase(),
+      outAddress: isNativeToken(tokenOut) ? 'native' : tokenOut.address.toLowerCase(),
+    })
   }, [previewChain, tokenIn, tokenOut])
 
   const selectable: TokenCfg[] = useMemo(() => {

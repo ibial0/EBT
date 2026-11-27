@@ -16,6 +16,9 @@ export interface SwapSelection {
   chainId: number
   inSymbol: string
   outSymbol: string
+  /** 'native' or the lowercase token address, when known. Symbols alone are ambiguous (ETH vs WETH). */
+  inAddress?: string
+  outAddress?: string
 }
 
 const mem: { bridge?: BridgeSelection; swap?: SwapSelection } = {}

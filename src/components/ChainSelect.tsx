@@ -5,6 +5,8 @@ import type { ChainCfg } from '../config/chains'
 import { getChain } from '../config/chains'
 import { getNetwork, type NetworkEntry } from '../config/networks'
 import { Modal, ChainLogo, NetworkLogo, Badge, Empty } from './ui'
+import { useAccount } from 'wagmi'
+import { ranksFor, rankChains } from '../lib/ranks'
 
 const CORE_EVM_IDS = new Set([11155111, 84532, 421614, 11155420, 1301, 43113, 80002])
 
@@ -35,6 +37,9 @@ export function ChainSelect({
   subtitle?: string
 }) {
   const [q, setQ] = useState('')
+  const { address } = useAccount()
+  // funded networks first, by wallet balance; unranked lists keep their curated order
+  const ranks = ranksFor(address)
 
   const items = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -63,8 +68,8 @@ export function ChainSelect({
       ...otherExtras.map((net) => ({ kind: 'extra' as const, net })),
       ...restEvm.map((chain) => ({ kind: 'evm' as const, chain })),
     ]
-    return unified
-  }, [chains, extraNetworks, q, isExtraConnected])
+    return rankChains(unified, (u) => (u.kind === 'evm' ? u.chain.id : -1), ranks)
+  }, [chains, extraNetworks, q, isExtraConnected, ranks])
 
   return (
     <Modal open={open} onClose={onClose} title={title}>

@@ -1401,6 +1401,28 @@ function NetworkPicker({
   const hasAny =
     coreEvm.length > 0 || connectedExtras.length > 0 || unconnectedExtras.length > 0 || restEvm.length > 0
 
+  // Same ordering rule as every other selector: funded networks first, by the value held there.
+  const orderedRows = (() => {
+    type Row = { kind: 'evm'; chain: (typeof CHAINS)[number] } | { kind: 'extra'; net: NetworkEntry }
+    const base: Row[] = [
+      ...coreEvm.map((chain) => ({ kind: 'evm' as const, chain })),
+      ...connectedExtras.map((net) => ({ kind: 'extra' as const, net })),
+      ...unconnectedExtras.map((net) => ({ kind: 'extra' as const, net })),
+      ...restEvm.map((chain) => ({ kind: 'evm' as const, chain })),
+    ]
+    const usdOf = (row: Row) =>
+      totals.get(row.kind === 'evm' ? `eip155:${row.chain.id}` : row.net.id)?.usd ?? 0
+    if (!base.some((row) => usdOf(row) > 0)) return base
+    return base
+      .map((row, i) => ({ row, i, usd: usdOf(row) }))
+      .sort((a, b) => {
+        if ((a.usd > 0) !== (b.usd > 0)) return a.usd > 0 ? -1 : 1
+        if (a.usd !== b.usd) return b.usd - a.usd
+        return a.i - b.i
+      })
+      .map((x) => x.row)
+  })()
+
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 px-3 backdrop-blur-[2px]">
       <div className="absolute inset-0" onClick={onClose} />
@@ -1438,10 +1460,9 @@ function NetworkPicker({
             <span className="flex-1 text-[14px] text-t1">All chains</span>
             <span className="mono text-[12px] text-t2">{totals.size}</span>
           </button>
-          {coreEvm.map(renderEvmRow)}
-          {connectedExtras.map(renderNonEvmRow)}
-          {unconnectedExtras.map(renderNonEvmRow)}
-          {restEvm.map(renderEvmRow)}
+          {orderedRows.map((row) =>
+            row.kind === 'evm' ? renderEvmRow(row.chain) : renderNonEvmRow(row.net),
+          )}
           {!hasAny && (
             <div className="px-4 py-10 text-center text-[13px] text-t2">No chain matches “{q}”.</div>
           )}

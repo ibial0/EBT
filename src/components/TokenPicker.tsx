@@ -180,9 +180,73 @@ export function TokenPicker({
     })),
   })
 
+  // Balance-first ordering: what the wallet holds floats to the top, inside a chain and across
+  // chains. Unconnected (or still loading) keeps the curated order untouched.
+  const rankedGroups = useMemo(() => {
+    const priceTable = prices.data?.prices ?? {}
+    const perRow = rows.map(({ token }, i) => {
+      const raw = balances[i]?.data ?? null
+      if (raw == null) return { has: false, usd: 0 }
+      const amount = Number(formatUnits(raw as bigint, token.decimals))
+      const price = priceOf(priceTable, token.symbol) ?? 0
+      return { has: amount > 0, usd: amount * price }
+    })
+    const rowIndex = new Map<string, number>()
+    rows.forEach(({ chain, token }, i) => rowIndex.set(`${chain.id}:${token.address.toLowerCase()}`, i))
+
+    const ranked = visible.map((g, groupIndex) => {
+      let total = 0
+      const tokens = g.tokens
+        .map((t, tokenIndex) => {
+          let has = false
+          let usd = 0
+          if (g.network) {
+            const raw = g.nonEvmBalances?.[t.address.toLowerCase()] ?? null
+            if (raw != null) {
+              const amount = Number(formatUnits(raw as bigint, t.decimals))
+              usd = amount * (priceOf(priceTable, t.symbol) ?? 0)
+              has = amount > 0
+            }
+          } else {
+            const i = rowIndex.get(`${g.chain.id}:${t.address.toLowerCase()}`)
+            if (i != null) ({ has, usd } = perRow[i])
+          }
+          if (!g.network) total += usd
+          return { t, tokenIndex, has, usd }
+        })
+        .sort((a, b) => {
+          if (a.has !== b.has) return a.has ? -1 : 1
+          if (a.usd !== b.usd) return b.usd - a.usd
+          return a.tokenIndex - b.tokenIndex
+        })
+        .map((x) => x.t)
+      return { group: { ...g, tokens }, groupIndex, total }
+    })
+
+    // Only reorder chains once something is actually funded, so the list does not jump while
+    // the balance reads are still in flight.
+    if (!ranked.some((r) => r.total > 0)) return ranked.map((r) => r.group)
+    ranked.sort((a, b) => {
+      if ((a.total > 0) !== (b.total > 0)) return a.total > 0 ? -1 : 1
+      if (a.total !== b.total) return b.total - a.total
+      return a.groupIndex - b.groupIndex
+    })
+    return ranked.map((r) => r.group)
+  }, [visible, rows, balances, prices.data])
+
   if (!open) return null
 
-  const chainOptions = chains ?? groups.map((g) => g.chain)
+  const chainOptions = useMemo(() => {
+    const base = chains ?? groups.map((g) => g.chain)
+    // follow the same balance order as the asset list: funded chains first
+    const rankOf = new Map<number, number>()
+    rankedGroups.forEach((g, i) => rankOf.set(g.chain.id, i))
+    if (!rankedGroups.some((g) => g.tokens.length > 0)) return base
+    return base
+      .map((c, i) => ({ c, i, r: rankOf.get(c.id) }))
+      .sort((a, b) => (a.r ?? 1e9) - (b.r ?? 1e9) || a.i - b.i)
+      .map((x) => x.c)
+  }, [chains, groups, rankedGroups])
   const totalChains = chainOptions.length
 
   const renderChainLogo = (c: ChainCfg, size: number) => {
@@ -341,7 +405,7 @@ export function TokenPicker({
           {visible.length === 0 && (
             <div className="px-4 py-10 text-center text-[13px] text-t2">No asset matches “{q}”.</div>
           )}
-          {visible.map((g) => (
+          {rankedGroups.map((g) => (
             <div key={g.network ? g.network.id : g.chain.id} className="mb-1">
               <div className="sticky top-0 z-10 flex items-center gap-2 bg-ink-800/95 px-3 py-2 backdrop-blur">
                 {g.network ? <NetworkLogo network={g.network} size={16} /> : <ChainLogo chain={g.chain} size={16} />}

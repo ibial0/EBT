@@ -245,6 +245,9 @@ function persist(v: CachedPrices) {
   }
 }
 
+/** Synchronous view of the price table, for callers that rank by value during render. */
+export const peekPrices = (): PriceMap => ({ ...FALLBACK, ...(readCache()?.prices ?? {}) })
+
 export const priceOf = (prices: PriceMap, symbol: string): number | undefined => prices[symbol.toUpperCase()]
 
 const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
