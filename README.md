@@ -6,18 +6,21 @@ EBT is a browser-only console for testnet assets: it reads balances straight fro
 quotes real routes, signs with your own wallet, and keeps a local ledger of what you did. There is
 no account, no backend and no custody. Keys never leave the wallet extension.
 
+**Live demo:** https://ebt-ashy.vercel.app
+
+[![live demo](https://img.shields.io/badge/demo-ebt--ashy.vercel.app-6b7cff)](https://ebt-ashy.vercel.app)
 [![testnet only](https://img.shields.io/badge/network-testnet%20only-6b7cff)](#what-it-is-not)
 [![no backend](https://img.shields.io/badge/backend-none-2ea043)](#architecture)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![stack](https://img.shields.io/badge/React%2019%20%2B%20Vite%20%2B%20wagmi-0b0f1a)](#quick-start)
 
-![Bridge on a desktop, ETH from Sepolia to Base Sepolia](docs/screenshots/06-bridge-dark.png)
+![Bridge on a desktop, ETH from Sepolia to Base Sepolia](docs/screenshots/04-bridge-dark.png)
 
 ## What it is
 
 | Area | What you can do |
 | --- | --- |
-| Portfolio | One total across 71 EVM testnets and 17 non-EVM testnets, per token and per chain |
+| Portfolio | One total across 83 active testnets, per token and per chain |
 | Bridge | Find a route, read the fee and ETA, sign once, claim when the destination needs it |
 | Swap | Uniswap v3 plus any custom V2 DEX you add, with price impact and a minimum received |
 | Faucets | Jump straight to the faucet of the chain you are short on |
@@ -32,9 +35,17 @@ no account, no backend and no custody. Keys never leave the wallet extension.
   public RPCs and the activity list lives in `localStorage` on your machine.
 - **Not financial advice.** Testnet tokens have no price. Fiat numbers are display-only estimates.
 
+## Overview
+
+![Operations overview](docs/screenshots/03-overview-dark.png)
+
+The landing screen is the live registry: every RPC probed, every route counted, and the chains
+that have no verified provider listed as such instead of hidden. Numbers move when a provider
+moves.
+
 ## Portfolio
 
-![Portfolio overview](docs/screenshots/01-portfolio-overview-dark.png)
+![Portfolio overview in light mode](docs/screenshots/01-portfolio-light.png)
 
 - The headline is the sum of every supported chain for the connected wallets. Disconnect one and
   the number drops, because it is the total of what is connected right now.
@@ -49,7 +60,7 @@ no account, no backend and no custody. Keys never leave the wallet extension.
 - The refresh button doubles as the scan indicator: a ring and a percentage fill in place, so the
   page never jumps while chains are answering.
 
-![Tokens tab](docs/screenshots/02-portfolio-tokens-dark.png)
+![Tokens tab](docs/screenshots/02-tokens-light.png)
 
 ### Sending and receiving
 
@@ -61,7 +72,7 @@ no account, no backend and no custody. Keys never leave the wallet extension.
 
 ## Bridge
 
-![Bridge route and quote](docs/screenshots/06-bridge-dark.png)
+![Bridge route and quote](docs/screenshots/04-bridge-dark.png)
 
 1. Pick the source chain and asset (the amount field shows your balance).
 2. Pick the destination chain and asset. EBT scans the routes it knows and picks the cheapest.
@@ -77,7 +88,7 @@ deduplicated, so the same path never appears twice under different names.
 
 ## Swap
 
-![Swap quote](docs/screenshots/07-swap-dark.png)
+<p align="center"><img src="docs/screenshots/05-swap-card.png" alt="Swap quote" width="580"></p>
 
 - Quotes Uniswap v3 first, then any V2 DEX you added in Settings.
 - Shows rate, price impact, minimum received, route and pool fee before you sign.
@@ -88,29 +99,37 @@ deduplicated, so the same path never appears twice under different names.
 
 | Faucets | Activity |
 | --- | --- |
-| ![Faucets](docs/screenshots/04-faucets-dark.png) | ![Activity](docs/screenshots/03-activity-dark.png) |
+| ![Faucets](docs/screenshots/07-faucets-dark.png) | ![Activity](docs/screenshots/06-activity-dark.png) |
 
 - **Faucets** groups the official testnet faucets by chain, with what each one drips.
 - **Activity** is a local ledger: every send, bridge and swap started from this browser, stored in
   `localStorage`, with filters, explorer links and a **Recover** flow for transfers that need a claim.
 - **Settings** holds the theme, the wallet list, custom DEX contracts and imported tokens.
 
-![Settings](docs/screenshots/05-settings-dark.png)
+![Settings](docs/screenshots/08-settings-dark.png)
+
+## Wallets and notifications
+
+| Connected wallets | Pending transfer |
+| --- | --- |
+| ![Connected wallets](docs/screenshots/09-wallets-dark.png) | ![Pending transfer](docs/screenshots/10-notifications-dark.png) |
+
+Several wallets can be connected at once (EVM plus non-EVM accounts), and the bell tracks every
+transfer that still needs a claim, so a bridge you close is never lost.
 
 ## Light theme and mobile
 
-| Light | Mobile portfolio | Mobile bridge |
-| --- | --- | --- |
-| ![Light theme](docs/screenshots/08-portfolio-light.png) | ![Mobile portfolio](docs/screenshots/09-portfolio-mobile.png) | ![Mobile bridge](docs/screenshots/10-bridge-mobile.png) |
+<p align="center"><img src="docs/screenshots/11-portfolio-mobile-light.png" alt="Mobile portfolio" width="300"></p>
 
 Both themes share one accent ramp, and the layout collapses to a bottom bar on small screens.
+The portfolio shots above are light mode; every other screen is shown in dark mode.
 
 ## Chains
 
-- **71 EVM testnets**, including Ethereum Sepolia, Base Sepolia, Arbitrum Sepolia, OP Sepolia,
+- **83 active testnets**, including Ethereum Sepolia, Base Sepolia, Arbitrum Sepolia, OP Sepolia,
   Polygon Amoy, Scroll Sepolia, Linea Sepolia, Unichain Sepolia, Ink Sepolia, World Chain Sepolia,
   Zora Sepolia, Celo Alfajores and dozens of newer testnets.
-- **17 non-EVM testnets**: Solana Devnet, Sui Testnet, Aptos Testnet, Starknet Sepolia, Stellar
+- Non-EVM coverage: Solana Devnet, Sui Testnet, Aptos Testnet, Starknet Sepolia, Stellar
   Testnet, Algorand Testnet, NEAR Testnet, Noble Testnet, Polkadot Westend, XRP Ledger Testnet,
   Canton DevNet and TestNet, and more.
 
