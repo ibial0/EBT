@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.64.2",
   "type": "module",
-  "description": "EBT — unified multi-chain TESTNET bridge & swap platform",
+  "description": "EBT \u2014 unified multi-chain TESTNET bridge & swap platform",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -14,7 +14,8 @@
     "test:deposit": "esbuild scripts/deposit-check.ts --bundle --platform=node --format=esm --outfile=scripts/deposit-check.mjs --log-level=error --external:@x402/* && node scripts/deposit-check.mjs",
     "test:orbit": "esbuild scripts/orbit-check.ts --bundle --platform=node --format=esm --outfile=scripts/orbit-check.mjs --log-level=error --external:@x402/* && node scripts/orbit-check.mjs",
     "test:history": "node --experimental-strip-types scripts/history-check.mjs",
-    "test:address": "node --experimental-strip-types scripts/address-check.mjs"
+    "test:address": "node --experimental-strip-types scripts/address-check.mjs",
+    "test:recovery": "node --experimental-strip-types scripts/recovery-check.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter-tight": "^5.3.0",

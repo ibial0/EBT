@@ -118,7 +118,10 @@ export function RecoveryPanel({ compact }: { compact?: boolean }) {
                       ? `Unverified: ${r.error ?? 'destination RPC did not answer'}`
                       : res?.ok
                         ? 'Recovered'
-                        : res?.error ?? 'Ready to mint'}
+                        : res?.error ??
+                          (r.expired
+                            ? 'Attestation expired — Recover asks Circle to re-sign it first'
+                            : 'Ready to mint')}
                 </div>
               </div>
               {!r.used && r.checked && (

@@ -139,3 +139,21 @@ export async function fetchAttestation(sourceDomain: number, txHash: string): Pr
 }
 
 export const ATT_ = { fast: 'Fast transfer: attested after source-chain soft finality.', standard: 'Standard: attested after source-chain hard finality.' }
+
+/**
+ * CCTP v2 attestations carry an expirationBlock ~24h ahead. Once it passes the mint reverts
+ * with "Message expired and must be re-signed", so ask Circle to re-attest the same burn.
+ * The docs expose the nonce either raw hex or 0x-prefixed depending on version, so try both.
+ */
+export async function requestReattest(nonce: string): Promise<boolean> {
+  const candidates = [nonce, nonce.replace(/^0x/, '')]
+  for (const value of candidates) {
+    try {
+      const res = await fetch(`${IRIS_BASE}/v2/reattest/${value}`, { method: 'POST' })
+      if (res.ok) return true
+    } catch {
+      /* try the next form */
+    }
+  }
+  return false
+}

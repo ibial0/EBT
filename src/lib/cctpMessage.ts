@@ -59,3 +59,7 @@ export function decodeCctpMessage(message: string): DecodedCctpMessage | null {
 }
 
 export const usd6 = (v: bigint) => (Number(v) / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 })
+
+/** A CCTP v2 message can only be minted before its expiration block. */
+export const isCctpExpired = (expirationBlock: bigint, currentBlock: bigint) =>
+  expirationBlock > 0n && currentBlock >= expirationBlock
