@@ -236,7 +236,9 @@ export function TokenPicker({
 
   if (!open) return null
 
-  const chainOptions = useMemo(() => {
+  // Plain computation on purpose: this sits after `if (!open) return null`, so a hook here
+  // changes the hook count between closed and open renders and crashes the whole app.
+  const chainOptions = (() => {
     const base = chains ?? groups.map((g) => g.chain)
     // follow the same balance order as the asset list: funded chains first
     const rankOf = new Map<number, number>()
@@ -246,7 +248,7 @@ export function TokenPicker({
       .map((c, i) => ({ c, i, r: rankOf.get(c.id) }))
       .sort((a, b) => (a.r ?? 1e9) - (b.r ?? 1e9) || a.i - b.i)
       .map((x) => x.c)
-  }, [chains, groups, rankedGroups])
+  })()
   const totalChains = chainOptions.length
 
   const renderChainLogo = (c: ChainCfg, size: number) => {

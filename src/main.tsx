@@ -20,6 +20,7 @@ import { resumeOrbitTracking } from './lib/orbitTrack'
 import { resumeAcrossTracking } from './lib/acrossTrack'
 import { getPublicClient } from 'wagmi/actions'
 import { Toaster } from './components/ui'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 15_000 } },
@@ -36,7 +37,9 @@ function Root() {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App />
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
         </BrowserRouter>
         <Toaster />
       </QueryClientProvider>
