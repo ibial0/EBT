@@ -37,6 +37,7 @@ import { fmt, safeParseUnits, pct } from '../lib/format'
 import { pairsForChain, poolsForChain } from '../config/pools'
 import { lastSelection } from '../lib/lastSelection'
 import { ensureWalletChain, wagmiConfig } from '../lib/wallet'
+import { discoverNativePools } from '../lib/poolDiscovery'
 import { walletSender } from '../lib/tx'
 
 const SLIPPAGE_PRESETS = [10, 50, 100]
@@ -110,6 +111,8 @@ export default function Swap() {
   const [slippageBps, setSlippageBps] = useState(50)
   const [showSlip, setShowSlip] = useState(false)
   const [pick, setPick] = useState<'in' | 'out' | null>(null)
+  /** tokens on this chain that have a live pool against the wrapped native coin (discovered on chain) */
+  const [nativePools, setNativePools] = useState<Set<string>>(() => new Set())
   const pendingPickRef = useRef<{ chainId: number; role: 'in' | 'out'; token: TokenCfg } | null>(null)
   const restoredFor = useRef<number | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -335,9 +338,11 @@ export default function Swap() {
       addrs.add(pair.token0.toLowerCase())
       addrs.add(pair.token1.toLowerCase())
     }
-    const kept = selectable.filter((t) => addrs.has(poolKey(t)))
+    const kept = selectable.filter(
+      (t) => addrs.has(poolKey(t)) || isNativeToken(t) || nativePools.has(t.address.toLowerCase()),
+    )
     return kept.length >= 2 ? kept : selectable
-  }, [selectable, swapChainId])
+  }, [selectable, swapChainId, nativePools])
 
   useMemo(() => {
     const inKey = poolKey(tokenIn)
@@ -354,13 +359,59 @@ export default function Swap() {
     return diffPool.length > 0 ? diffPool : tradeable.filter((t) => t.address !== tokenIn.address)
   }, [tradeable, tokenIn, swapChainId])
 
-  const hasAmm = poolsForChain(swapChainId).length > 0 || v2PairsForChain(swapChainId).length > 0
+  const hasAmm =
+    poolsForChain(swapChainId).length > 0 || v2PairsForChain(swapChainId).length > 0 || nativePools.size > 0
 
   const isNonEvm = Boolean(nonEvmNet && nonEvmMode)
   const amountIn = safeParseUnits(debounced, isNonEvm ? nonEvmIn.decimals : tokenIn.decimals)
   const sameToken = isNonEvm ? nonEvmIn.assetId === nonEvmOut.assetId : tokenIn.address === tokenOut.address
 
   const publicClient = useMemo(() => getPublicClient(wagmiConfig, { chainId: swapChainId as never }), [swapChainId])
+
+  /**
+   * Ask the chain which tokens actually have a pool against the wrapped native coin.
+   * This is what lets a token that is missing from the curated pool list (LINK, WBTC …)
+   * still be sold into native gas money, on any chain where a Uniswap v3 factory exists.
+   */
+  const discoveryKey = useMemo(
+    () =>
+      selectable
+        .filter((t) => !isNativeToken(t))
+        .map((t) => t.address.toLowerCase())
+        .sort()
+        .join(','),
+    [selectable],
+  )
+  useEffect(() => {
+    const factory = chain.uniswap?.factory
+    const weth = WETH[swapChainId]
+    if (!factory || !weth || !publicClient || !discoveryKey) {
+      setNativePools(new Set())
+      return
+    }
+    let alive = true
+    const queue = discoveryKey.split(',')
+    const hits = new Set<string>()
+    const workers = Array.from({ length: Math.min(6, queue.length) }, async () => {
+      while (queue.length > 0 && alive) {
+        const token = queue.shift() as string
+        const pools = await discoverNativePools(
+          publicClient as never,
+          swapChainId,
+          factory as Address,
+          token as Address,
+          weth,
+        ).catch(() => [])
+        if (pools.length > 0) hits.add(token)
+      }
+    })
+    void Promise.all(workers).then(() => {
+      if (alive) setNativePools(hits)
+    })
+    return () => {
+      alive = false
+    }
+  }, [chain.uniswap?.factory, swapChainId, discoveryKey, publicClient])
 
   const quote = useQuery<SwapQuote | V2Quote | null>({
     queryKey: ['swap-quote', swapChainId, tokenIn.address, tokenOut.address, amountIn.toString()],
