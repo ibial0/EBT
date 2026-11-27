@@ -118,6 +118,16 @@ export default function Portfolio() {
   const nonEvmFamilies = (Object.keys(nonEvmAccounts) as NonEvmFamily[]).sort()
   const hasNonEvm = nonEvmFamilies.length > 0
   const anyConnected = Boolean((isConnected && address) || hasNonEvm)
+  /** The exact wallet set a reading is read from; totals only compare within one set. */
+  const acctKey = (() => {
+    const parts: string[] = []
+    if (isConnected && address) parts.push(`eip155:${address.toLowerCase()}`)
+    for (const f of nonEvmFamilies) {
+      const a = nonEvmAccounts[f]?.address
+      if (a) parts.push(`${f}:${a.toLowerCase()}`)
+    }
+    return parts.sort().join('|')
+  })()
 
   const [network, setNetwork] = useState<string>('all')
   const [tab, setTab] = useState<View>('overview')
@@ -376,8 +386,8 @@ export default function Portfolio() {
     // made the chart zig-zag against numbers the wallet never actually held.
     if (isFetchingAny) return
     if (totalUsd <= 0) return
-    setHistory(recordSnapshot(totalUsd))
-  }, [anyConnected, initialLoading, isFetchingAny, totalUsd])
+    setHistory(recordSnapshot(totalUsd, Date.now(), acctKey))
+  }, [anyConnected, initialLoading, isFetchingAny, totalUsd, acctKey])
 
   /**
    * Token bubbles. Same rule as the history line: only a settled scan counts, and a token
@@ -491,6 +501,9 @@ export default function Portfolio() {
   }, [tokenRows, q])
 
   const chartPoints = useMemo(() => sliceRange(history, range), [history, range])
+  /** The line belongs to the wallet set it was measured with; say so when that set changed. */
+  const historyOwner = history.length ? history[history.length - 1].acct : undefined
+  const historyPaused = Boolean(anyConnected && historyOwner && acctKey && historyOwner !== acctKey)
   const top = groups.slice(0, 12)
   const displayAddr = address ?? (nonEvmFamilies[0] ? nonEvmAccounts[nonEvmFamilies[0]]?.address : '') ?? ''
 
@@ -646,6 +659,12 @@ export default function Portfolio() {
 
         <div className="mt-4 flex min-h-[180px] flex-1 flex-col">
           <ValueChart points={chartPoints} range={range} current={totalUsd} events={inflows} showBubbles={showBubbles} />
+          {historyPaused && (
+            <p className="mt-2 text-[11px] leading-4 text-t3">
+              The line is measured per wallet set. Reconnect the wallets it was recorded with to
+              continue it; a disconnected wallet is not a loss.
+            </p>
+          )}
         </div>
       </div>
 

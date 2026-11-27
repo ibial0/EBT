@@ -9,6 +9,9 @@
 export interface HistoryPoint {
   t: number
   v: number
+  /** Which set of connected wallets the reading came from; totals from two different sets
+   *  must never share one line, or disconnecting a wallet looks like a loss. */
+  acct?: string
 }
 
 const KEY = 'ebt.portfolioHistory'
@@ -33,16 +36,20 @@ export function loadHistory(): HistoryPoint[] {
   }
 }
 
-export function recordSnapshot(value: number, at = Date.now()): HistoryPoint[] {
+export function recordSnapshot(value: number, at = Date.now(), acct?: string): HistoryPoint[] {
   const points = loadHistory()
   const last = points[points.length - 1]
+  // A reading belongs to the wallets it was read from. When the connected set changes,
+  // leave the line untouched: the total did not fall, we simply stopped seeing part of it.
+  if (last?.acct && acct && last.acct !== acct) return points
+  const owner = acct ?? last?.acct
   let next: HistoryPoint[]
   if (last && at - last.t < BUCKET) {
     // Same five-minute bucket: move the point to the newest value so the right edge of
     // the chart tracks the wallet instead of freezing the first reading of the window.
-    next = [...points.slice(0, -1), { t: at, v: value }]
+    next = [...points.slice(0, -1), { t: at, v: value, acct: owner }]
   } else {
-    next = [...points, { t: at, v: value }]
+    next = [...points, { t: at, v: value, acct: owner }]
   }
   if (next.length > MAX_POINTS) next = next.slice(-MAX_POINTS)
   try {
