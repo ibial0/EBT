@@ -1,0 +1,264 @@
+{
+  "ranAt": "2026-11-27T12:51:46.791Z",
+  "results": [
+    {
+      "id": "guard: mainnet rejected",
+      "ok": true,
+      "detail": "Blocked: 1 is a mainnet. EBT is testnet-only."
+    },
+    {
+      "id": "guard: unknown chain rejected",
+      "ok": true,
+      "detail": "unknown testnet id throws"
+    },
+    {
+      "id": "guard: GIWA has no CCTP route",
+      "ok": true,
+      "detail": "CCTP is not available for GIWA Sepolia → Base Sepolia."
+    },
+    {
+      "id": "cctp: Iris fee API (0 → 6)",
+      "ok": true,
+      "detail": "fast=1bps standard=0bps"
+    },
+    {
+      "id": "cctp: burn reaches token transfer",
+      "ok": true,
+      "detail": "revert: Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: depositForBurn succeeds with funds",
+      "ok": true,
+      "detail": "layout balance=9 allowance=10, maxFee=125"
+    },
+    {
+      "id": "swap: quote WETH→USDC on Sepolia",
+      "ok": true,
+      "detail": "out=43041715 fee=100 impact=3bps"
+    },
+    {
+      "id": "swap: native ETH→USDC executes",
+      "ok": true,
+      "detail": "returned 0x000000000000000000000000000000000000000000000000000000000290c3b3"
+    },
+    {
+      "id": "opstack: GIWA deposit accepted",
+      "ok": true,
+      "detail": "portal 0x956962C34687A954e611A83619ABaA37Ce6bC78A"
+    },
+    {
+      "id": "swap: quote USDC→WETH on Sepolia",
+      "ok": true,
+      "detail": "out=23430857013139 fee=500"
+    },
+    {
+      "id": "swap: USDC.approve(router, exact)",
+      "ok": true,
+      "detail": "returned 0x0000000000000000"
+    },
+    {
+      "id": "swap: USDC→ETH executes with funds",
+      "ok": true,
+      "detail": "returned 0x0000000000000000"
+    },
+    {
+      "id": "swap: quote USDC→WETH on Base Sepolia",
+      "ok": true,
+      "detail": "out=442770446646008 fee=100"
+    },
+    {
+      "id": "swap: quote USDC→WETH on OP Sepolia",
+      "ok": true,
+      "detail": "out=768821310674726 fee=500"
+    },
+    {
+      "id": "swap: USDC→WETH executes on OP Sepolia",
+      "ok": true,
+      "detail": "returned ok"
+    },
+    {
+      "id": "swap: executable pair coverage",
+      "ok": true,
+      "detail": "69 live pairs / 158 probed"
+    },
+    {
+      "id": "arc: MessageTransmitter localDomain",
+      "ok": true,
+      "detail": "domain=26"
+    },
+    {
+      "id": "arc: USDC ERC-20 view is 6dp",
+      "ok": true,
+      "detail": "decimals=6, gasPrice=25000000000"
+    },
+    {
+      "id": "arc: gas floor ≥20 gwei",
+      "ok": true,
+      "detail": "25 gwei"
+    },
+    {
+      "id": "opstack: ETH deposit targets from Sepolia",
+      "ok": true,
+      "detail": "OP Sepolia, Base Sepolia, Unichain, Codex, World, Ink, GIWA, BOB Sep, Lisk Sep, Metal, Mode Sep, Minato, Zora Sep"
+    },
+    {
+      "id": "opstack: portal has code (OP Sepolia)",
+      "ok": true,
+      "detail": "0x16Fc5058F25648194471939df75CF27A2fdC48BC"
+    },
+    {
+      "id": "opstack: portal has code (Base Sepolia)",
+      "ok": true,
+      "detail": "0x49f53e41452c74589e85ca1677426ba426459e85"
+    },
+    {
+      "id": "opstack: portal has code (Unichain)",
+      "ok": true,
+      "detail": "0x0d83dab629f0e0F9d36c0Cbc89B69a489f0751bD"
+    },
+    {
+      "id": "cctp: message decoder (real message)",
+      "ok": true,
+      "detail": "amount=248000000 → domain 26"
+    },
+    {
+      "id": "cctp: Arc mint simulation",
+      "ok": true,
+      "detail": "message already minted (usedNonces != 0) — decoder + nonce offset correct"
+    },
+    {
+      "id": "swap: quote USDC→EURC on Arc",
+      "ok": true,
+      "detail": "out=826068 fee=500 impact=5bps"
+    },
+    {
+      "id": "swap: Arc router accepts calldata",
+      "ok": true,
+      "detail": "Execution reverted with reason: STF. (STF = decoded, reached token transfer)"
+    },
+    {
+      "id": "swap: Arc empty tier rejected",
+      "ok": true,
+      "detail": "Execution reverted for an unknown reason."
+    },
+    {
+      "id": "swap: quote WETH→USDC on Abstract",
+      "ok": true,
+      "detail": "out=1736592 fee=3000"
+    },
+    {
+      "id": "swap: Abstract ETH→USDC executes",
+      "ok": true,
+      "detail": "returned 0x000000000000000000000000"
+    },
+    {
+      "id": "swap: quote WBNB→BUSD on BNB Testnet",
+      "ok": true,
+      "detail": "out=129130146289314763422 via PancakeSwap V2"
+    },
+    {
+      "id": "swap: BNB tBNB→BUSD executes",
+      "ok": true,
+      "detail": "returned 0x000000000000000000000000"
+    },
+    {
+      "id": "swap: quote WHBAR→USDC on Hedera",
+      "ok": true,
+      "detail": "out=2406465 fee=3000"
+    },
+    {
+      "id": "swap: Hedera router calldata valid",
+      "ok": true,
+      "detail": "[Request ID: 02f31fa5-6e30-4e04-b2a4-152e66e29a52] execution reverted: CONTRACT_REVERT_EXECUTED, INSUFFICIENT_"
+    },
+    {
+      "id": "swap: Solana Dev live quote (SOL→USDC)",
+      "ok": true,
+      "detail": "out=0.706887 via Raydium Devnet (2-hop)"
+    },
+    {
+      "id": "swap: Stellar live quote (XLM→USDC)",
+      "ok": true,
+      "detail": "out=6.426638 via Stellar SDEX direct orderbook"
+    },
+    {
+      "id": "cctp: HyperEVM (d19) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: PLUME (d22) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: EDGE (d28) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Morph Hoodi (d30) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Pharos (d31) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Cronos (d32) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "cctp: Apothem (d18) depositForBurn",
+      "ok": true,
+      "detail": "Execution reverted with reason: ERC20: transfer amount exceeds allowance."
+    },
+    {
+      "id": "opstack: Sepolia→Lisk Sep depositTransaction",
+      "ok": true,
+      "detail": "portal 0xe3d90F21490686Ec7eF37BE788E02dfC12787264"
+    },
+    {
+      "id": "opstack: Sepolia→Metal depositTransaction",
+      "ok": true,
+      "detail": "portal 0x01D4dfC994878682811b2980653D03E589f093cB"
+    },
+    {
+      "id": "opstack: Sepolia→Codex depositTransaction",
+      "ok": true,
+      "detail": "portal 0x037F161D12c829A9ca4742eEd9371830CA54fcB2"
+    },
+    {
+      "id": "opstack: BNB Test→opBNB depositTransaction",
+      "ok": true,
+      "detail": "portal 0x4386C8ABf2009aC0c263462Da568DD9d46e52a31"
+    },
+    {
+      "id": "cctp non-evm: Solana Dev (d5)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=1bps"
+    },
+    {
+      "id": "cctp non-evm: Starknet (d25)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=14bps"
+    },
+    {
+      "id": "cctp non-evm: Aptos Test (d9)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=0bps"
+    },
+    {
+      "id": "cctp non-evm: Stellar (d27)→Sepolia Iris",
+      "ok": true,
+      "detail": "fast=0bps"
+    }
+  ],
+  "pairs": {
+    "tried": 158,
+    "live": 69
+  }
+}

@@ -42,12 +42,46 @@ it privately and rotate it rather than opening a PR that repeats the value.
 ## Dependency advisories
 
 `npm audit` currently reports advisories in transitive packages pulled in by `wagmi` 2.x
-(`@reown/appkit`, `@walletconnect/*`, `viem`, `ws`, `zod`). The clearing upgrade is `wagmi` 3,
-a breaking change planned as a separate migration. In this app those packages are either not
-imported at all (the connector list is injected-only) or only run in the browser, so the
-server-side advisories (`ws` memory exhaustion, `zod` oversized collections) are not reachable
-from the deployed bundle. This is tracked in the repository issues; do not treat a clean audit
-as a security guarantee.
+(`@reown/appkit`, `@walletconnect/*`, `viem`, `ws`, `zod`, `decode-uri-component`, `uuid`) and
+in `react-router-dom` 6. The clearing upgrades are `wagmi` 3 and `react-router` 7, both breaking
+changes planned as a separate migration with a full regression pass. In this app the affected
+code either never runs in the deployed bundle or is only reachable from data we generate
+ourselves:
+
+- `ws` DoS needs a hostile WebSocket *server* sending tiny fragments; the app only opens sockets
+  to wallet relays and RPCs the visitor chose.
+- `zod` memory exhaustion needs oversized constrained collections; schemas here only validate
+  our own static ABI and config literals.
+- `decode-uri-component` / `uuid` are only fed app-built strings and ids; no user payload reaches
+  a decoder with attacker-controlled run length, and no `uuid` v3/v5/v6 call passes a buffer.
+- `react-router` open redirect needs a user-controlled `<Link to>` / `navigate()` target; every
+  route in this app is a static literal.
+
+Dependabot is enabled (weekly npm, monthly actions), so these stay visible. Do not treat a clean
+audit as a security guarantee, and do not force a major upgrade just to silence the report.
+
+## Hardening log
+
+The first full security pass (static review over 377 files plus a dependency scan) produced
+thirteen findings that were fixed rather than documented away:
+
+- token valuation and grouping now key on `verified`, so a spam token that calls itself `WBTC`
+  cannot borrow the real asset's price or merge into its row;
+- imported/discovered token metadata from the indexer is validated (address, symbol length,
+  integer decimals) before it becomes a `TokenCfg`;
+- Wallet Standard providers are matched by exact name and returned addresses must look sane;
+- Wormhole claims use the destination Token Bridge and only accept a VAA log whose emitter is
+  the bridge that was actually called;
+- the swap button stays disabled until the quote matches the visible amount;
+- a symbol with no ASCII letters no longer crashes the shell (`initials()` fallback);
+- `/bridge?from=` accepts only chains in the allowlist and falls back to defaults;
+- the send sheet signs only the row it displays (non-EVM rows cannot silently sign an EVM one);
+- Stargate sends carry a 0.5% minimum instead of `0`;
+- fee caps are bounded to 500 gwei even if a node reports an absurd `eth_gasPrice`;
+- Across quotes are rejected when stale, empty or carrying an impossible exclusivity window;
+- unverified tokens no longer render a verified project's logo;
+- the local dev signer only answers loopback origins.
+
 
 ## What the site already does
 
