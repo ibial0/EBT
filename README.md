@@ -6,9 +6,9 @@ EBT is a browser console for testnet assets: it reads balances from every suppor
 quotes real routes, signs with your own wallet, and keeps a local ledger of what you did. Keys
 never leave the wallet extension.
 
-**Live demo:** https://ebt-ashy.vercel.app
+**Live demo:** https://ebt-swap.vercel.app
 
-[![live demo](https://img.shields.io/badge/demo-ebt--ashy.vercel.app-6b7cff)](https://ebt-ashy.vercel.app)
+[![live demo](https://img.shields.io/badge/demo-ebt--ashy.vercel.app-6b7cff)](https://ebt-swap.vercel.app)
 [![testnet only](https://img.shields.io/badge/network-testnet%20only-6b7cff)](#what-it-is-not)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![stack](https://img.shields.io/badge/React%2019%20%2B%20Vite%20%2B%20wagmi-0b0f1a)](#quick-start)
