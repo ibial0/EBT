@@ -152,6 +152,27 @@ export default function Portfolio() {
   })
   const prices = useQuery({ queryKey: ['prices'], queryFn: loadPrices, staleTime: 10 * 60_000, retry: 1 })
 
+  /**
+   * Faucet claims and transfers happen in other tabs. Focus refetch is off globally (a full
+   * 71-chain scan on every focus would be wasteful), so this page opts in on its own: coming
+   * back to the tab re-scans once the data is older than a few seconds, which is what lets the
+   * inflow bubbles notice a claim the moment the user looks.
+   */
+  useEffect(() => {
+    if (!address) return
+    const reconsider = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - (portfolio.dataUpdatedAt || 0) < 15_000) return
+      void portfolio.refetch()
+    }
+    document.addEventListener('visibilitychange', reconsider)
+    window.addEventListener('focus', reconsider)
+    return () => {
+      document.removeEventListener('visibilitychange', reconsider)
+      window.removeEventListener('focus', reconsider)
+    }
+  }, [address, portfolio, portfolio.dataUpdatedAt])
+
   const priceMap = prices.data?.prices ?? {}
   const holdings: ChainHolding[] = useMemo(() => {
     const base = portfolio.data ?? []

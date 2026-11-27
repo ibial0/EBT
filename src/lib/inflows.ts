@@ -10,8 +10,8 @@
  */
 const KEY = 'ebt.chartInflows.v1'
 const MAX_EVENTS = 400
-/** Same token within this window is one event, updated in place. */
-const MERGE_MS = 6 * 60_000
+/** Same token within this window is one bubble, whichever chain it landed on. */
+const MERGE_MS = 60 * 60_000
 
 export interface InflowEvent {
   /** when the change was observed */
@@ -70,15 +70,22 @@ export function diffInflows(
 ): InflowEvent[] {
   if (!prev || prev.length === 0) return []
   const before = new Map<string, bigint>()
-  for (const h of prev) if (h.amount != null) before.set(keyOf(h), h.amount)
+  const chainsSeen = new Set<string>()
+  for (const h of prev) {
+    chainsSeen.add(h.networkKey)
+    if (h.amount != null) before.set(keyOf(h), h.amount)
+  }
 
   const out: InflowEvent[] = []
   for (const h of next) {
-    if (h.amount == null) continue
+    if (h.amount == null || h.amount <= 0n) continue
     const previous = before.get(keyOf(h))
-    // Unknown before this scan → not an inflow we can prove.
-    if (previous == null) continue
-    if (h.amount <= previous) continue
+    // A row we have never seen is normally discovery catching up, not a receive. The exception
+    // is a token that shows up on a chain we had already scanned: that is a faucet claim or a
+    // transfer landing while the app was open, and it is exactly what the bubble is for.
+    const firstSighting = previous == null
+    if (firstSighting && !chainsSeen.has(h.networkKey)) continue
+    if (!firstSighting && h.amount <= previous!) continue
     out.push({
       t: at,
       v: valueNow,
@@ -86,22 +93,40 @@ export function diffInflows(
       address: h.address,
       networkKey: h.networkKey,
       chainId: h.chainId ?? null,
-      delta: (h.amount - previous).toString(),
+      delta: (firstSighting ? h.amount : h.amount - (previous as bigint)).toString(),
       decimals: h.decimals,
     })
   }
   return out
 }
 
-/** Appends events, merging repeats of the same token seen minutes apart. */
+/**
+ * Appends events, keeping one bubble per token per hour.
+ *
+ * The key is the symbol alone: the same token claimed on five chains inside an hour is one
+ * arrival, so it stays one bubble. The earliest sighting anchors the bubble; a repeat of the
+ * exact same token on the same chain adds its amount so the tooltip total stays honest.
+ */
 export function mergeInflows(existing: InflowEvent[], incoming: InflowEvent[]): InflowEvent[] {
-  const merged = [...existing]
+  const merged = [...existing].sort((a, b) => a.t - b.t)
   for (const e of incoming) {
     const idx = merged.findIndex(
-      (m) => m.symbol === e.symbol && m.networkKey === e.networkKey && Math.abs(m.t - e.t) < MERGE_MS,
+      (m) => m.symbol.toUpperCase() === e.symbol.toUpperCase() && Math.abs(m.t - e.t) < MERGE_MS,
     )
-    if (idx >= 0) merged[idx] = e
-    else merged.push(e)
+    if (idx < 0) {
+      merged.push(e)
+      continue
+    }
+    const m = merged[idx]
+    const sameToken = m.networkKey === e.networkKey && (m.address ?? '') === (e.address ?? '')
+    if (!sameToken) continue
+    let delta = e.delta
+    try {
+      delta = (BigInt(m.delta) + BigInt(e.delta)).toString()
+    } catch {
+      /* keep the newer delta if either side is not an integer */
+    }
+    merged[idx] = { ...m, delta, v: e.v }
   }
   return merged.sort((a, b) => a.t - b.t).slice(-MAX_EVENTS)
 }
